@@ -118,6 +118,21 @@
             <groupId>vip.xiaonuo</groupId>
             <artifactId>snowy-plugin-sys</artifactId>
         </dependency>
+
+        <!-- fastjson2 MCP接口依赖 -->
+        <dependency>
+            <groupId>com.alibaba.fastjson2</groupId>
+            <artifactId>fastjson2</artifactId>
+            <version>2.0.28</version>
+        </dependency>
+
+        <!-- paho mqtt MQTT接口依赖 -->
+        <dependency>
+            <groupId>org.eclipse.paho</groupId>
+            <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
+            <version>1.2.5</version>
+        </dependency>
+
     </dependencies>
 
     <build>
