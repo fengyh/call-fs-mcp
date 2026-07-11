@@ -70,6 +70,13 @@
                 <version>${snowy.version}</version>
             </dependency>
 
+            <!-- snowy-plugin-fscloud-api -->
+            <dependency>
+                <groupId>vip.xiaonuo</groupId>
+                <artifactId>snowy-plugin-fscloud-api</artifactId>
+                <version>${snowy.version}</version>
+            </dependency>
+
             <!-- snowy-plugin-dev-api -->
             <dependency>
                 <groupId>vip.xiaonuo</groupId>
@@ -130,6 +137,13 @@
             <dependency>
                 <groupId>vip.xiaonuo</groupId>
                 <artifactId>snowy-plugin-gen</artifactId>
+                <version>${snowy.version}</version>
+            </dependency>
+
+            <!-- snowy-plugin-fscloud -->
+            <dependency>
+                <groupId>vip.xiaonuo</groupId>
+                <artifactId>snowy-plugin-fscloud</artifactId>
                 <version>${snowy.version}</version>
             </dependency>
 

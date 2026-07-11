@@ -89,6 +89,12 @@
             <artifactId>snowy-plugin-biz</artifactId>
         </dependency>
 
+        <!-- FsCloud插件 -->
+        <dependency>
+            <groupId>vip.xiaonuo</groupId>
+            <artifactId>snowy-plugin-fscloud</artifactId>
+        </dependency>
+
         <!-- C端功能插件 -->
         <dependency>
             <groupId>vip.xiaonuo</groupId>

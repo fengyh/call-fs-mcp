@@ -14,8 +14,10 @@ package vip.xiaonuo.auth.modular.login.service;
 
 import vip.xiaonuo.auth.core.pojo.SaBaseClientLoginUser;
 import vip.xiaonuo.auth.core.pojo.SaBaseLoginUser;
+import vip.xiaonuo.auth.modular.login.fsdto.LoginResult;
 import vip.xiaonuo.auth.modular.login.param.*;
 import vip.xiaonuo.auth.modular.login.result.AuthPicValidCodeResult;
+import vip.xiaonuo.fs.entity.Result;
 
 /**
  * 登录Service接口
@@ -170,4 +172,12 @@ public interface AuthService {
      * @date 2021/12/28 14:46
      **/
     boolean getDefaultCaptchaOpenForC();
+
+    /**
+     * FS端账号密码登录
+     *
+     * @author system
+     * @date 2026/5/26
+     */
+    Result<LoginResult> doLogin4Fs(vip.xiaonuo.auth.modular.login.param.AuthAccountPasswordLoginParam authAccountPasswordLoginParam);
 }

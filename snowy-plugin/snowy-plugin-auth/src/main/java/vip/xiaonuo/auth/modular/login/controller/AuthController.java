@@ -29,6 +29,9 @@ import vip.xiaonuo.auth.modular.login.result.AuthPicValidCodeResult;
 import vip.xiaonuo.auth.modular.login.service.AuthService;
 import vip.xiaonuo.common.pojo.CommonResult;
 
+import vip.xiaonuo.auth.modular.login.fsdto.LoginResult;
+import vip.xiaonuo.fs.entity.Result;
+
 import javax.validation.Valid;
 
 /**
@@ -91,6 +94,18 @@ public class AuthController {
     @PostMapping("/auth/b/doLogin")
     public CommonResult<String> doLogin(@RequestBody @Valid AuthAccountPasswordLoginParam authAccountPasswordLoginParam) {
         return CommonResult.data(authService.doLogin(authAccountPasswordLoginParam, SaClientTypeEnum.B.getValue()));
+    }
+
+    /**
+     * FS端账号密码登录
+     *
+     * @author system
+     * @date 2026/5/26
+     **/
+    @Operation(summary = "FS端账号密码登录")
+    @PostMapping("/auth/b/doLogin4Fs")
+    public Result<LoginResult> doLogin4Fs(@RequestBody @Valid AuthAccountPasswordLoginParam authAccountPasswordLoginParam) {
+        return authService.doLogin4Fs(authAccountPasswordLoginParam);
     }
 
     /**

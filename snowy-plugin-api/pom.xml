@@ -21,6 +21,9 @@
         <!-- 业务功能插件api接口 -->
         <module>snowy-plugin-biz-api</module>
 
+        <!-- FsCloud插件api接口 -->
+        <module>snowy-plugin-fscloud-api</module>
+
         <!-- C端功能插件api接口 -->
         <module>snowy-plugin-client-api</module>
 

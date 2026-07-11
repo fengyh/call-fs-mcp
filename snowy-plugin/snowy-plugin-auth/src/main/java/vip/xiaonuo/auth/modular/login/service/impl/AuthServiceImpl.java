@@ -41,6 +41,7 @@ import vip.xiaonuo.auth.modular.login.enums.AuthDeviceTypeEnum;
 import vip.xiaonuo.auth.modular.login.enums.AuthExceptionEnum;
 import vip.xiaonuo.auth.modular.login.enums.AuthPhoneOrEmailTypeEnum;
 import vip.xiaonuo.auth.modular.login.enums.AuthStrategyWhenNoUserWithPhoneOrEmailEnum;
+import vip.xiaonuo.auth.modular.login.fsdto.LoginResult;
 import vip.xiaonuo.auth.modular.login.param.*;
 import vip.xiaonuo.auth.modular.login.prop.AuthThirdClientProperties;
 import vip.xiaonuo.auth.modular.login.result.AuthPicValidCodeResult;
@@ -55,6 +56,8 @@ import vip.xiaonuo.common.util.CommonTimeFormatUtil;
 import vip.xiaonuo.dev.api.DevConfigApi;
 import vip.xiaonuo.dev.api.DevEmailApi;
 import vip.xiaonuo.dev.api.DevSmsApi;
+import vip.xiaonuo.fs.entity.Result;
+import vip.xiaonuo.fs.enums.ResultCode;
 import vip.xiaonuo.sys.api.SysUserApi;
 
 import java.util.List;
@@ -532,6 +535,106 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    /**
+     * FS端账号密码登录
+     *
+     * @author system
+     * @date 2026/5/26
+     **/
+    @Override
+    public Result<LoginResult> doLogin4Fs(AuthAccountPasswordLoginParam authAccountPasswordLoginParam) {
+        try {
+            // 获取账号
+            String account = authAccountPasswordLoginParam.getAccount();
+            // 获取密码
+            String password = authAccountPasswordLoginParam.getPassword();
+            // 获取设备
+            String device = authAccountPasswordLoginParam.getDevice();
+
+            // 默认指定为PC
+            if(ObjectUtil.isEmpty(device)) {
+                device = AuthDeviceTypeEnum.PC.getValue();
+            } else {
+                AuthDeviceTypeEnum.validate(device);
+            }
+
+            // SM2解密并获得前端传来的密码哈希值
+            String passwordHash;
+            try {
+                passwordHash = CommonCryptogramUtil.doHashValue(CommonCryptogramUtil.doSm2Decrypt(password));
+            } catch (Exception e) {
+                return new Result<>(ResultCode.PASSWORD_DECRYPT_ERROR);
+
+            }
+
+            // 先尝试从B端用户表获取用户
+            SaBaseLoginUser saBaseLoginUser = null;
+            try {
+                saBaseLoginUser = loginUserApi.getUserByAccount(account);
+            } catch (Exception e) {
+                // 捕获transService转换过程中的异常，继续尝试C端
+                System.err.println("B端用户查询异常: " + e.getMessage());
+            }
+
+            // 如果B端用户不存在，尝试从C端用户表获取
+            if(ObjectUtil.isEmpty(saBaseLoginUser)) {
+                SaBaseClientLoginUser saBaseClientLoginUser = null;
+                try {
+                    saBaseClientLoginUser = clientLoginUserApi.getClientUserByAccount(account);
+                } catch (Exception e) {
+                    System.err.println("C端用户查询异常: " + e.getMessage());
+                }
+
+                if(ObjectUtil.isEmpty(saBaseClientLoginUser)) {
+                    return new Result<>(ResultCode.MOBILE_OR_PASSWORD_ERROR);
+                }
+
+                // C端用户验证
+                if (!saBaseClientLoginUser.getPassword().equals(passwordHash)) {
+                    return new Result<>(ResultCode.MOBILE_OR_PASSWORD_ERROR);
+                }
+                if(!saBaseClientLoginUser.getEnabled()) {
+                    return new Result<>(ResultCode.USER_DISABLED);
+                }
+
+                // 执行登录（使用B端标准登录）
+                StpUtil.login(saBaseClientLoginUser.getId(), new SaLoginParameter().setDeviceType(device).setExtra("name", saBaseClientLoginUser.getName()));
+                // C端用户也按B端登录，需要填充权限信息到TokenSession
+                fillSaBaseLoginUserAndUpdateCache4Fs(saBaseClientLoginUser.getId(), saBaseClientLoginUser.getName());
+
+                // 返回自定义格式结果
+                return new Result<>(ResultCode.SUCCESS, LoginResult.builder().token(StpUtil.getTokenInfo().getTokenValue()).build());
+
+//                    saBaseClientLoginUser.getId(),
+//                    saBaseClientLoginUser.getName(),
+//                    StpUtil.getTokenInfo().getTokenValue(),
+//                    saBaseClientLoginUser.getPhone()
+            }
+
+            // B端用户验证
+            if (!saBaseLoginUser.getPassword().equals(passwordHash)) {
+                return new Result<>(ResultCode.MOBILE_OR_PASSWORD_ERROR);
+            }
+            if(!saBaseLoginUser.getEnabled()) {
+                return new Result<>(ResultCode.USER_DISABLED);
+            }
+
+            // 执行登录（使用B端标准登录）
+            StpUtil.login(saBaseLoginUser.getId(), new SaLoginParameter().setDeviceType(device).setExtra("name", saBaseLoginUser.getName()));
+            // 填充权限信息到TokenSession，否则@SaCheckPermission会失败
+            fillSaBaseLoginUserAndUpdateCache(saBaseLoginUser);
+
+            // 返回自定义格式结果
+            return new Result<>(ResultCode.SUCCESS, LoginResult.builder()
+                .userId(saBaseLoginUser.getId())
+                .username(saBaseLoginUser.getName())
+                .mobile(saBaseLoginUser.getPhone())
+                .token(StpUtil.getTokenInfo().getTokenValue())
+                .build());
+        } catch (Exception e) {
+            return new Result<>(ResultCode.FAIL);
+        }
+    }
     @Override
     public String doLoginByPhone(AuthPhoneValidCodeLoginParam authPhoneValidCodeLoginParam, String type) {
         // 校验是否允许手机号登录
@@ -799,6 +902,58 @@ public class AuthServiceImpl implements AuthService {
         saBaseClientLoginUser.setRoleCodeList(roleCodeList);
         // 缓存用户信息，此处使用TokenSession为了指定时间内无操作则自动下线
         StpClientUtil.getTokenSession().set("loginUser", saBaseClientLoginUser);
+    }
+
+    /**
+     * 为FS端登录填充C端用户的权限信息到B端TokenSession
+     * （doLogin4Fs中C端用户按B端StpUtil.login登录，但权限查询走clientLoginUserApi）
+     */
+    private void fillSaBaseLoginUserAndUpdateCache4Fs(String userId, String userName) {
+        // 角色集合
+        List<JSONObject> roleList = clientLoginUserApi.getRoleListByUserId(userId);
+        // 角色id集合
+        List<String> roleIdList = roleList.stream().map(jsonObject -> jsonObject.getStr("id")).collect(Collectors.toList());
+        // 角色码集合
+        List<String> roleCodeList = roleList.stream().map(jsonObject -> jsonObject.getStr("code")).collect(Collectors.toList());
+        // 角色id和用户id集合
+        List<String> userAndRoleIdList = CollectionUtil.unionAll(roleIdList, CollectionUtil.newArrayList(userId));
+        // 并行查询权限
+        CompletableFuture<List<String>> buttonCodeFuture = CompletableFuture.supplyAsync(() ->
+            clientLoginUserApi.getButtonCodeListListByUserAndRoleIdList(userAndRoleIdList));
+        CompletableFuture<List<String>> mobileButtonCodeFuture = CompletableFuture.supplyAsync(() ->
+            clientLoginUserApi.getMobileButtonCodeListListByUserIdAndRoleIdList(userAndRoleIdList));
+        CompletableFuture<List<SaBaseClientLoginUser.DataScope>> dataScopeFuture = CompletableFuture.supplyAsync(() ->
+            Convert.toList(SaBaseClientLoginUser.DataScope.class,
+                clientLoginUserApi.getPermissionListByUserIdAndRoleIdList(userAndRoleIdList, null)));
+        // 等待所有查询完成
+        CompletableFuture.allOf(buttonCodeFuture, mobileButtonCodeFuture, dataScopeFuture).join();
+        // 获取权限码
+        List<String> permissionCodeList = dataScopeFuture.join().stream()
+            .map(SaBaseClientLoginUser.DataScope::getApiUrl).collect(Collectors.toList());
+
+        // 构建最小SaBaseLoginUser存入B端TokenSession
+        SaBaseLoginUser loginUser = new SaBaseLoginUser() {
+            @Override
+            public Boolean getEnabled() { return true; }
+        };
+        loginUser.setId(userId);
+        loginUser.setName(userName);
+        loginUser.setPermissionCodeList(permissionCodeList);
+        loginUser.setRoleCodeList(roleCodeList);
+        loginUser.setButtonCodeList(buttonCodeFuture.join());
+        loginUser.setMobileButtonCodeList(mobileButtonCodeFuture.join());
+        // C端DataScope转B端DataScope（结构相同，逐字段映射）
+        List<SaBaseLoginUser.DataScope> bDataScopeList = dataScopeFuture.join().stream().map(cDs -> {
+            SaBaseLoginUser.DataScope bDs = new SaBaseLoginUser.DataScope();
+            bDs.setApiUrl(cDs.getApiUrl());
+            bDs.setDataScope(cDs.getDataScope());
+            return bDs;
+        }).collect(Collectors.toList());
+        loginUser.setDataScopeList(bDataScopeList);
+        // 存入B端TokenSession
+        StpUtil.getTokenSession().set("loginUser", loginUser);
+        // 异步刷新用户数据范围预计算表
+        CompletableFuture.runAsync(() -> clientLoginUserApi.refreshUserDataScope(userId, bDataScopeList));
     }
 
     /**

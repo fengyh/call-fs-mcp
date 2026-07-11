@@ -21,6 +21,9 @@
         <!-- 业务功能插件 -->
         <module>snowy-plugin-biz</module>
 
+        <!-- FsCloud插件 -->
+        <module>snowy-plugin-fscloud</module>
+
          <!-- C端功能插件 -->
         <module>snowy-plugin-client</module>
 
