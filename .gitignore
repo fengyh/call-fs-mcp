@@ -32,3 +32,6 @@ logs/
 tmp/
 !**/src/main/resources/lib/*.jar
 !**/allatori/**
+
+### static 调试用模型库落盘路径 ###
+static/

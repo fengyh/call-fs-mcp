@@ -59,6 +59,5 @@ fs-cloud-plugin是fs建模器的插件，安装了fs（例如fs_Setup_v5.1.0-202
 #### 4.2.3 后端支持fs-cloud-plugin的登录
 登录相关的文件如下图所示：
 ![fs_cloud_plugin_related.png](docs/images/fs_cloud_plugin_related.png)
-#### 4.2.4 后端支持fs-cloud-plugin的模型上传
-#### 4.2.5 后端支持fs-cloud-plugin的模型的落盘
-#### 4.2.6 后端支持fs-cloud-plugin的模型的落库
+#### 4.2.4 后端支持fs-cloud-plugin的模型上传、落盘、落库
+![img.png](docs/images/upload.png)
