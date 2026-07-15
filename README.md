@@ -61,3 +61,17 @@ fs-cloud-plugin是fs建模器的插件，安装了fs（例如fs_Setup_v5.1.0-202
 ![fs_cloud_plugin_related.png](docs/images/fs_cloud_plugin_related.png)
 #### 4.2.4 后端支持fs-cloud-plugin的模型上传、落盘、落库
 ![img.png](docs/images/upload.png)
+
+### 4.3 取模型中的参数
+#### 4.3.1 在fs建模器中定义MCP表
+- 在fs建模器中打开模型文件（.fs文件）
+- 在主模型中添加MCP表，表名：MCP, 用于MCP接口查询模型中的参数table
+- 在MCP表中添加列，名称建议“参数列表|S”
+- 将要查询的参数添加到MCP表中: 
+  - 选要查询/修改的参数table, ctrl+c
+  - 在MCP表中添加一行，添加行后选中新单元格即可（单击鼠标）, ctrl+v 完成添加
+- 将模型文件上传到后端，落盘、落库，添加到模型库 （按4.2章节步骤）
+#### 4.3.2 在“仿真服务”-“参数管理”中查看和修改参数
+![img.png](docs/images/param_manage.png)
+#### 4.3.3 代码相对 fb09bf83 版本的变化
+![img.png](docs/images/param.png)

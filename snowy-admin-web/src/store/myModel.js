@@ -30,6 +30,13 @@ export const useMyModelStore = defineStore('myModel', () => {
 	const feedbackMsg = ref('')      // 操作反馈消息
 	const record = ref(null)	// 模型库记录
 
+	// 参数表数据
+	const parameterTables = ref([])        // 参数表列表（from listParameterTables）
+	const snapshotRaw = ref(null)          // 参数快照原始内容（不可变）
+	const snapshotData = ref({})           // 参数快照按表名解析 { tableName: rows[][] }（可修改）
+	const snapshotBackup = ref({})         // 参数快照备份（用于取消恢复）
+	const selectedTableName = ref('')      // 当前选中的表名
+
 	// ===== getters =====
 	const isLoaded = computed(() => !!modelId.value)
 
@@ -75,6 +82,7 @@ export const useMyModelStore = defineStore('myModel', () => {
 		consoleLog.value = []
 		feedbackMsg.value = ''
 		mqttConnected.value = false
+		clearSnapshot()
 	}
 
 	// 清除控制台日志
@@ -136,10 +144,44 @@ export const useMyModelStore = defineStore('myModel', () => {
 		feedbackMsg.value = msg
 	}
 
+	// 清除参数快照数据
+	function clearSnapshot() {
+		parameterTables.value = []
+		snapshotRaw.value = null
+		snapshotData.value = {}
+		snapshotBackup.value = {}
+		selectedTableName.value = ''
+	}
+
+	/** 解析快照数据并存入 store */
+	function parseAndSetSnapshot(raw) {
+		if (!raw) {
+			clearSnapshot()
+			return
+		}
+		snapshotRaw.value = JSON.parse(JSON.stringify(raw))
+		const parsed = {}
+		const tables = raw.tables || []
+		for (const table of tables) {
+			const name = table.tableName || table.name || ''
+			if (!name) continue
+			parsed[name] = {
+				columns: (table.columns || []).map(col => ({ ...col })),
+				rows: (table.rows || []).map(row => [...(row || [])])
+			}
+		}
+		snapshotData.value = parsed
+		snapshotBackup.value = JSON.parse(JSON.stringify(parsed))
+		const keys = Object.keys(parsed)
+		selectedTableName.value = keys.length > 0 ? keys[0] : ''
+	}
+
 	return {
 		modelId, recordId, modelName, modelFileName, simStatus,
 		runId, simTime, simProgress, message, mqttConnected, consoleLog, feedbackMsg,
 		isLoaded, record,
-		setModel, clearModel, clearConsoleLog, setMqttConnected, updateStatus, updateProgress, addConsoleLog, setRecord, setFeedbackMsg
+		parameterTables, snapshotRaw, snapshotData, snapshotBackup, selectedTableName,
+		setModel, clearModel, clearConsoleLog, setMqttConnected, updateStatus, updateProgress, addConsoleLog, setRecord, setFeedbackMsg,
+		clearSnapshot, parseAndSetSnapshot
 	}
 })

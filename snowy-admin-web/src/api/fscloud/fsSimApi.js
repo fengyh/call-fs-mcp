@@ -41,4 +41,12 @@ export default {
 	fsSimGetLoadedModel() {
 		return request('getLoadedModel', {}, 'post')
 	},
+	// 获取仿真模型的参数表列表
+	fsSimListParameterTables(data) {
+		return request('listParameterTables', data, 'post')
+	},
+	// 获取参数快照
+	fsSimGetParameterSnapshot(data) {
+		return request('getParameterSnapshot', data, 'post')
+	}
 }

@@ -85,6 +85,9 @@
 								</a-popconfirm>
 							</a-space>
 						</template>
+						<template v-if="column.dataIndex === 'model'">
+							<a v-bind:href="`/static/uploaded/${record.userId}/${record.model}`" v-bind:download="record.model" target="_blank">{{ record.model }}</a>
+						</template>
 						<template v-if="column.dataIndex === 'modelUsage'">
 							{{ $TOOL.dictTypeData('FS_USAGE', record.modelUsage) }}
 						</template>
@@ -484,7 +487,7 @@
 	// 表格列定义
 	const columns = [
 		{
-			title: '仿真文件',
+			title: '仿真文件(点击下载)',
 			dataIndex: 'model',
 			width: 120,
 			ellipsis: true,

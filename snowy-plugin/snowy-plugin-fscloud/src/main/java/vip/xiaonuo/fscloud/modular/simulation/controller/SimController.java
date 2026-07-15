@@ -15,9 +15,11 @@ package vip.xiaonuo.fscloud.modular.simulation.controller;
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
@@ -30,16 +32,15 @@ import vip.xiaonuo.common.pojo.CommonResult;
 import vip.xiaonuo.fscloud.modular.modelfile.entity.FsModelFile;
 import vip.xiaonuo.fscloud.modular.modelfile.service.FsModelFileService;
 import vip.xiaonuo.fscloud.modular.simulation.SimStatusEnum;
-import vip.xiaonuo.fscloud.modular.simulation.dto.GetLoadedModelDto;
-import vip.xiaonuo.fscloud.modular.simulation.dto.LoadModelDto;
-import vip.xiaonuo.fscloud.modular.simulation.dto.RunModelDto;
+import vip.xiaonuo.fscloud.modular.simulation.dto.*;
+import vip.xiaonuo.fscloud.modular.simulation.param.GetModelParamsParam;
+import vip.xiaonuo.fscloud.modular.simulation.param.GetParameterSnapshotParam;
 import vip.xiaonuo.fscloud.modular.simulation.param.LoadModelParam;
 import vip.xiaonuo.fscloud.modular.simulation.param.RunModelParam;
 import vip.xiaonuo.fscloud.modular.simulation.service.McpClientService;
 import vip.xiaonuo.fscloud.modular.simulation.service.SimulationModelRecord;
 import vip.xiaonuo.fscloud.modular.simulation.service.SimulationModelTrackingMap;
 
-import jakarta.annotation.Resource;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -355,6 +356,101 @@ public class SimController {
         dto.setSimProgress(tracking.getSimProgress());
 
         log.debug("getLoadedModel: userId={}, modelId={}", userId, tracking.getModelId());
+        return CommonResult.data(dto);
+    }
+
+    // ==================== 获取参数表列表 ====================
+
+    @Operation(summary = "获取参数表列表")
+    @SaCheckPermission("/fscloud/sim/listParameterTables")
+    @PostMapping("/fscloud/sim/listParameterTables")
+    public CommonResult<GetModelParamsDto> listParameterTables(@RequestBody @Valid GetModelParamsParam param) {
+        String userId = StpUtil.getLoginIdAsString();
+        String modelId = param.getModelId();
+
+        log.info("listParameterTables: userId={}, modelId={}", userId, modelId);
+
+        GetModelParamsDto dto = new GetModelParamsDto();
+        JSONObject mcpResult;
+        try {
+            mcpResult = mcpClientService.listParameterTables(userId, modelId);
+        } catch (McpClientService.McpServiceException e) {
+            log.warn("MCP service error when listing parameter tables: {}", e.getMessage());
+            dto.setStatus("FAILED");
+            return CommonResult.data(dto);
+        }
+
+        JSONObject data = mcpResult.getJSONObject("data");
+        if (data != null) {
+            dto.setModelId(data.getStr("modelId"));
+            dto.setModelFileName(data.getStr("modelFileName"));
+            dto.setRecordId(data.getStr("recordId"));
+            dto.setStatus(data.getStr("status"));
+            dto.setMcpTableName(data.getStr("mcpTableName"));
+            dto.setMcpTableFound(data.getBool("mcpTableFound"));
+
+            JSONArray tables = data.getJSONArray("parameterTables");
+            if (tables != null) {
+                dto.setParameterTables(tables.toList(String.class));
+            }
+        }
+
+        log.info("listParameterTables success: modelId={}, tableCount={}",
+                modelId, dto.getParameterTables() != null ? dto.getParameterTables().size() : 0);
+        return CommonResult.data(dto);
+    }
+
+    // ==================== 获取参数快照 ====================
+
+    @Operation(summary = "获取参数快照")
+    @SaCheckPermission("/fscloud/sim/getParameterSnapshot")
+    @PostMapping("/fscloud/sim/getParameterSnapshot")
+    public CommonResult<GetParameterSnapshotDto> getParameterSnapshot(@RequestBody @Valid GetParameterSnapshotParam param) {
+        String userId = StpUtil.getLoginIdAsString();
+        String modelId = param.getModelId();
+        String runId = param.getRunId();
+        if (StrUtil.isBlank(runId)) {
+            runId = "";
+        }
+
+        log.info("getParameterSnapshot: userId={}, modelId={}, runId={}", userId, modelId, runId);
+
+        GetParameterSnapshotDto dto = new GetParameterSnapshotDto();
+        JSONObject mcpResult;
+        try {
+            mcpResult = mcpClientService.getParameterSnapshot(userId, modelId, runId);
+        } catch (McpClientService.McpServiceException e) {
+            log.warn("MCP service error when getting parameter snapshot: {}", e.getMessage());
+            return CommonResult.data(dto);
+        }
+
+        JSONObject data = mcpResult.getJSONObject("data");
+        if (data != null) {
+            dto.setRecordId(data.getStr("recordId"));
+            dto.setModelId(data.getStr("modelId"));
+            dto.setModelFileName(data.getStr("modelFileName"));
+            dto.setStatus(data.getStr("status"));
+            dto.setSnapshotAt(data.getLong("snapshotAt"));
+            dto.setMcpTableName(data.getStr("mcpTableName"));
+            dto.setMcpTableFound(data.getBool("mcpTableFound"));
+
+            JSONArray mcpRows = data.getJSONArray("mcpRows");
+            if (mcpRows != null) {
+                dto.setMcpRows(mcpRows.toList(Object.class));
+            }
+
+            JSONArray tables = data.getJSONArray("tables");
+            if (tables != null) {
+                dto.setTables(tables.toList(Object.class));
+            }
+
+            JSONArray missingTables = data.getJSONArray("missingTables");
+            if (missingTables != null) {
+                dto.setMissingTables(missingTables.toList(String.class));
+            }
+        }
+
+        log.info("getParameterSnapshot success: modelId={}", modelId);
         return CommonResult.data(dto);
     }
 
