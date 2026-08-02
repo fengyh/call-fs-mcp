@@ -6,7 +6,7 @@
 				<a-button size="small" :type="editMode ? 'primary' : 'default'" @click="toggleEdit">
 					{{ editMode ? '🔓 查看' : '🔒 编辑' }}
 				</a-button>
-				<a-button size="small" type="primary" :disabled="!dirty" @click="saveChanges">💾 保存</a-button>
+				<a-button size="small" type="primary" :disabled="!dirty" @click="saveChanges">💾 接受</a-button>
 				<a-button size="small" :disabled="!dirty" @click="cancelChanges">↩ 取消</a-button>
 			</a-space>
 		</div>

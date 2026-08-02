@@ -68,12 +68,13 @@ public class McpClientService {
     }
 
     /** 加载仿真模型 */
-    public JSONObject loadModel(String userId, String recordId, String modelFileName) {
+    public JSONObject loadModel(String userId, String recordId, String modelFileName, Boolean loadInUI) {
         JSONObject args = new JSONObject();
         args.put("userId", userId);
         args.put("recordId", recordId);
         args.put("modelFileName", modelFileName);
-        log.info("MCP loadModel: userId={}, recordId={}, modelFileName={}", userId, recordId, modelFileName);
+        args.put("loadInUI", loadInUI);
+        log.info("MCP loadModel: userId={}, recordId={}, modelFileName={}, loadInUI={}", userId, recordId, modelFileName, loadInUI);
         return callTool("loadRemoteSimulationModel", args);
     }
 
@@ -185,6 +186,74 @@ public class McpClientService {
         args.put("tableName", tableName);
         args.put("patchesJson", patchesJson);
         return callTool("updateRemoteSimulationParameterCells", args);
+    }
+
+    /** 批量更新参数表（原子写入多张表） */
+    public JSONObject batchUpdateParameterTables(String userId, String modelId, String tablesJson, boolean bSaveModel) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("tablesJson", tablesJson);
+        args.put("bSaveModel", bSaveModel);
+        return callTool("batchUpdateRemoteSimulationParameterTable", args);
+    }
+
+    /** 获取结果数据集分页 */
+    public JSONObject getResultDatasetPage(String userId, String modelId, String runId,
+                                            String dataset, int limit, int offset) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("runId", runId != null ? runId : "");
+        args.put("dataset", dataset);
+        args.put("limit", limit);
+        args.put("offset", offset);
+        return callTool("getRemoteSimulationResultDatasetPage", args);
+    }
+
+    /** 获取动画层列表 */
+    public JSONObject listAnimationLayers(String userId, String modelId) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        return callTool("listRemoteSimulationAnimationLayers", args);
+    }
+
+    /** 选择动画层 */
+    public JSONObject selectAnimationLayer(String userId, String modelId, String layerId, int frameRate) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("layerId", layerId);
+        args.put("frameRate", frameRate);
+        return callTool("selectRemoteSimulationAnimationLayer", args);
+    }
+
+    /** 开关动画 */
+    public JSONObject setAnimationEnabled(String userId, String modelId, boolean enabled) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("enabled", enabled);
+        return callTool("setRemoteSimulationAnimationEnabled", args);
+    }
+
+    /** 设置仿真加速因子 */
+    public JSONObject setAccelerateFactor(String userId, String modelId, int factor) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("accelerateFactor", factor);
+        return callTool("setRemoteSimulationAccelerateFactor", args);
+    }
+
+    /** 获取 SVG 高清静态图 */
+    public JSONObject getSvgPicture(String userId, String modelId, String layerId) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("layerId", layerId);
+        return callTool("getSvgPicture", args);
     }
 
     // ==================== 底层 JSON-RPC ====================

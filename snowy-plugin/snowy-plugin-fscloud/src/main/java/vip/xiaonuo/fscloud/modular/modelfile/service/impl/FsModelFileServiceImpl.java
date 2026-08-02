@@ -354,12 +354,14 @@ public class FsModelFileServiceImpl extends ServiceImpl<FsModelFileMapper, FsMod
             String fileName = file.getOriginalFilename();
             if(fileName!=null) {
                 Path filePath = uploadBasePath.resolve(fsModelInfo.getUserId() + "_" + fileName);
+                log.info("uploaded file path: {}", filePath);
                 try (FileOutputStream fileOutputStream = new FileOutputStream(filePath.toFile())) {
                     fileOutputStream.write(file.getBytes());
                 }
                 // 处理 zip 文件
                 if(fileName.endsWith(".zfs")) {
                     ZipFactory.unzip(filePath);
+
                 }
             }
         } catch (IOException e) {

@@ -86,7 +86,7 @@
 							</a-space>
 						</template>
 						<template v-if="column.dataIndex === 'model'">
-							<a v-bind:href="`/static/uploaded/${record.userId}/${record.model}`" v-bind:download="record.model" target="_blank">{{ record.model }}</a>
+							{{ record.model }}
 						</template>
 						<template v-if="column.dataIndex === 'modelUsage'">
 							{{ $TOOL.dictTypeData('FS_USAGE', record.modelUsage) }}
@@ -116,7 +116,9 @@
 						<a-col :span="12">
 							<a-descriptions :column="1" bordered size="small" :labelStyle="{ width: '120px' }" class="detail-desc">
 								<a-descriptions-item label="仿真模型名称">{{ selectedRecord.name }}</a-descriptions-item>
-								<a-descriptions-item label="仿真文件">{{ selectedRecord.model }}</a-descriptions-item>
+								<a-descriptions-item label="仿真文件">
+								<a v-bind:href="`/static/uploaded/${selectedRecord.userId}/${selectedRecord.model}`" v-bind:download="selectedRecord.model" target="_blank"><DownloadOutlined/>&nbsp;{{ selectedRecord.model }}</a>
+							</a-descriptions-item>
 								<a-descriptions-item label="模型描述">{{ selectedRecord.description }}</a-descriptions-item>
 								<a-descriptions-item label="引擎版本">{{ selectedRecord.engineVersion }}</a-descriptions-item>
 								<a-descriptions-item label="创建人">{{ selectedRecord.userName }}</a-descriptions-item>
@@ -487,34 +489,76 @@
 	// 表格列定义
 	const columns = [
 		{
-			title: '仿真文件(点击下载)',
+			title: '仿真文件',
 			dataIndex: 'model',
-			width: 120,
+			width: 140,
 			ellipsis: true,
 			fixed: 'left'
 		},
+		// {
+		// 	title: '仿真模型名称',
+		// 	dataIndex: 'name',
+		// 	width: 180,
+		// 	fixed: 'left'
+		// },
+		// {
+		// 	title: '模型描述',
+		// 	dataIndex: 'description',
+		// 	width: 160,
+		// 	ellipsis: true
+		// },
+		// {
+		// 	title: '引擎版本',
+		// 	dataIndex: 'engineVersion',
+		// 	width: 90,
+		// 	align: 'center'
+		// },
 		{
 			title: '模型用途',
 			dataIndex: 'modelUsage',
-			width: 70,
+			width: 90,
 			align: 'center'
 		},
 		{
 			title: '创建人',
 			dataIndex: 'userName',
-			width: 60,
+			width: 80,
 			align: 'center'
 		},
+		// {
+		// 	title: '模型所属公司',
+		// 	dataIndex: 'modelCompany',
+		// 	width: 110,
+		// 	align: 'center'
+		// },
+		// {
+		// 	title: '所属工厂',
+		// 	dataIndex: 'modelFactory',
+		// 	width: 100,
+		// 	align: 'center'
+		// },
+		// {
+		// 	title: '所属车间',
+		// 	dataIndex: 'modelWorkshop',
+		// 	width: 100,
+		// 	align: 'center'
+		// },
+		// {
+		// 	title: '模型版本',
+		// 	dataIndex: 'modelVersion',
+		// 	width: 90,
+		// 	align: 'center'
+		// },
 		{
 			title: '分享范围',
 			dataIndex: 'shareFlag',
-			width: 90,
+			width: 110,
 			align: 'center'
 		},
 		{
 			title: '仿真状态',
 			dataIndex: 'simStatus',
-			width: 90,
+			width: 100,
 			align: 'center'
 		},
 		{
@@ -673,11 +717,24 @@
 		})
 	}
 
+	// 下载模型文件
+	const downloadModel = (record) => {
+		if (!record?.userId || !record?.model) return
+		const baseUrl = import.meta.env.VITE_API_BASEURL || ''
+		const url = `${baseUrl}/static/uploaded/${record.userId}/${record.model}`
+		const a = document.createElement('a')
+		a.href = url
+		a.download = record.model
+		document.body.appendChild(a)
+		a.click()
+		document.body.removeChild(a)
+	}
+
 	// ----- 实际操作函数 -----
 	const doLoadModel = (recordId) => {
 		if (!checkSelected()) return Promise.resolve()
 		simResult.value = '正在加载模型...'
-		return fsSimApi.fsSimLoadModel({ id: recordId }).then(res => {
+		return fsSimApi.fsSimLoadModel({ id: recordId, loadInUI: true }).then(res => {
 			console.log('loadModel res', res)
 			if (res && res.modelId) {
 				selectedRecord.value.modelId = res.modelId

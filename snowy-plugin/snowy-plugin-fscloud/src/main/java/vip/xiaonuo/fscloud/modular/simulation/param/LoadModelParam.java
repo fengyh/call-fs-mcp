@@ -32,4 +32,7 @@ public class LoadModelParam {
     @Schema(description = "fs_model_file 表主键 ID", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "id不能为空")
     private Long id;
+    @Schema(description = "是否加载模型到仿真引擎UI", requiredMode = Schema.RequiredMode.REQUIRED)
+    @NotNull(message = "loadInUI不能为空")
+    private Boolean loadInUI;
 }

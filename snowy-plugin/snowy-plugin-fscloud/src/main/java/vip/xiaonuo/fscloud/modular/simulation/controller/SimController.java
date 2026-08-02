@@ -17,9 +17,9 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
@@ -32,18 +32,41 @@ import vip.xiaonuo.common.pojo.CommonResult;
 import vip.xiaonuo.fscloud.modular.modelfile.entity.FsModelFile;
 import vip.xiaonuo.fscloud.modular.modelfile.service.FsModelFileService;
 import vip.xiaonuo.fscloud.modular.simulation.SimStatusEnum;
-import vip.xiaonuo.fscloud.modular.simulation.dto.*;
-import vip.xiaonuo.fscloud.modular.simulation.param.GetModelParamsParam;
+import vip.xiaonuo.fscloud.modular.simulation.dto.GetResultSnapshotDto;
+import vip.xiaonuo.fscloud.modular.simulation.dto.SaveParamSnapshotToModelDto;
+import vip.xiaonuo.fscloud.modular.simulation.dto.GetParameterSnapshotDto;
+import vip.xiaonuo.fscloud.modular.simulation.dto.GetModelParamsDto;
+import vip.xiaonuo.fscloud.modular.simulation.dto.GetLoadedModelDto;
+import vip.xiaonuo.fscloud.modular.simulation.dto.LoadModelDto;
+import vip.xiaonuo.fscloud.modular.simulation.dto.RunModelDto;
+import vip.xiaonuo.fscloud.modular.simulation.dto.SnapshotDto;
+import vip.xiaonuo.fscloud.modular.simulation.param.GetResultDatasetPageParam;
+import vip.xiaonuo.fscloud.modular.simulation.param.GetResultSnapshotParam;
+import vip.xiaonuo.fscloud.modular.simulation.param.SaveParamSnapshotToModelParam;
 import vip.xiaonuo.fscloud.modular.simulation.param.GetParameterSnapshotParam;
+import vip.xiaonuo.fscloud.modular.simulation.param.AnimationLayerParam;
+import vip.xiaonuo.fscloud.modular.simulation.param.GetModelParamsParam;
 import vip.xiaonuo.fscloud.modular.simulation.param.LoadModelParam;
 import vip.xiaonuo.fscloud.modular.simulation.param.RunModelParam;
+import vip.xiaonuo.fscloud.modular.simulation.param.SaveSnapshotParam;
+import vip.xiaonuo.fscloud.modular.simulation.param.SelectAnimationLayerParam;
+import vip.xiaonuo.fscloud.modular.simulation.param.SetAccelerateFactorParam;
+import vip.xiaonuo.fscloud.modular.simulation.param.SetAnimationEnabledParam;
+import vip.xiaonuo.fscloud.modular.simulation.param.GetSvgPictureParam;
+import vip.xiaonuo.fscloud.modular.simulation.param.SnapshotIdParam;
+import vip.xiaonuo.fscloud.modular.simulation.param.SnapshotListParam;
+import vip.xiaonuo.fscloud.modular.simulation.service.FsSimParamSnapshotService;
 import vip.xiaonuo.fscloud.modular.simulation.service.McpClientService;
 import vip.xiaonuo.fscloud.modular.simulation.service.SimulationModelRecord;
 import vip.xiaonuo.fscloud.modular.simulation.service.SimulationModelTrackingMap;
 
+import jakarta.annotation.Resource;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 仿真控制控制器
@@ -87,6 +110,7 @@ public class SimController {
         if (record == null) {
             throw new CommonException("仿真模型记录不存在，id={}", fileId);
         }
+        Boolean loadInUI = loadModelParam.getLoadInUI();
 
         String userId = StpUtil.getLoginIdAsString();
 
@@ -102,7 +126,7 @@ public class SimController {
                 String.valueOf(recordUserId), modelRelativePath);
         String modelFileName = fullPath.toString();
 
-        log.info("Loading model: userId={}, fileId={}, modelFileName={}", userId, fileId, modelFileName);
+        log.info("Loading model: userId={}, fileId={}, modelFileName={}, loadInUI={}", userId, fileId, modelFileName, loadInUI);
 
         LoadModelDto dto = new LoadModelDto();
         dto.setModelName(record.getName());
@@ -110,7 +134,7 @@ public class SimController {
 
         JSONObject mcpResult;
         try {
-            mcpResult = mcpClientService.loadModel(userId, String.valueOf(fileId), modelFileName);
+            mcpResult = mcpClientService.loadModel(userId, String.valueOf(fileId), modelFileName, loadInUI);
         } catch (McpClientService.McpServiceException e) {
             log.warn("MCP service error when loading model: {}", e.getMessage());
             dto.setMessage(e.getMessage());
@@ -452,6 +476,270 @@ public class SimController {
 
         log.info("getParameterSnapshot success: modelId={}", modelId);
         return CommonResult.data(dto);
+    }
+
+    // ==================== 参数快照写模型 ====================
+
+    @Operation(summary = "参数快照写模型")
+    @SaCheckPermission("/fscloud/sim/saveParamSnapshotToModel")
+    @PostMapping("/fscloud/sim/saveParamSnapshotToModel")
+    public CommonResult<SaveParamSnapshotToModelDto> saveParamSnapshotToModel(@RequestBody @Valid SaveParamSnapshotToModelParam param) {
+        String userId = StpUtil.getLoginIdAsString();
+        String modelId = param.getModelId();
+        String tablesJson = param.getTablesJson();
+        boolean bSaveModel = param.getBSaveModel() != null ? param.getBSaveModel() : true;
+
+        log.info("saveParamSnapshotToModel: userId={}, modelId={}, bSaveModel={}", userId, modelId, bSaveModel);
+
+        SaveParamSnapshotToModelDto dto = new SaveParamSnapshotToModelDto();
+        JSONObject mcpResult;
+        try {
+            mcpResult = mcpClientService.batchUpdateParameterTables(userId, modelId, tablesJson, bSaveModel);
+        } catch (McpClientService.McpServiceException e) {
+            log.warn("MCP service error when saving param snapshot to model: {}", e.getMessage());
+            return CommonResult.data(dto);
+        }
+
+        JSONObject data = mcpResult.getJSONObject("data");
+        if (data != null) {
+            dto.setRecordId(data.getStr("recordId"));
+            dto.setModelId(data.getStr("modelId"));
+            dto.setUpdatedTableCount(data.getInt("updatedTableCount"));
+            dto.setUpdatedRowCount(data.getInt("updatedRowCount"));
+
+            JSONArray tableNames = data.getJSONArray("tableNames");
+            if (tableNames != null) {
+                dto.setTableNames(tableNames.toList(String.class));
+            }
+
+            dto.setBSaveModel(data.getBool("bSaveModel"));
+            dto.setModelSaved(data.getBool("modelSaved"));
+            dto.setModelFilePath(data.getStr("modelFilePath"));
+        }
+
+        log.info("saveParamSnapshotToModel success: modelId={}, updatedTableCount={}",
+                modelId, dto.getUpdatedTableCount());
+        return CommonResult.data(dto);
+    }
+
+    // ==================== 获取仿真结果快照 ====================
+
+    @Operation(summary = "获取仿真结果快照")
+    @SaCheckPermission("/fscloud/sim/getResultSnapshot")
+    @PostMapping("/fscloud/sim/getResultSnapshot")
+    public CommonResult<GetResultSnapshotDto> getResultSnapshot(@RequestBody @Valid GetResultSnapshotParam param) {
+        String userId = StpUtil.getLoginIdAsString();
+        String modelId = param.getModelId();
+        String runId = param.getRunId();
+        if (StrUtil.isBlank(runId)) {
+            runId = "";
+        }
+
+        log.info("getResultSnapshot: userId={}, modelId={}, runId={}", userId, modelId, runId);
+
+        GetResultSnapshotDto dto = new GetResultSnapshotDto();
+        try {
+            JSONObject mcpResult = mcpClientService.getResultSnapshot(userId, modelId, runId);
+            JSONObject data = mcpResult.getJSONObject("data");
+            if (data != null) {
+                dto.setUserId(data.getStr("userId"));
+                dto.setRunId(data.getStr("runId"));
+                dto.setRecordId(data.getStr("recordId"));
+                dto.setModelId(data.getStr("modelId"));
+                dto.setModelFileName(data.getStr("modelFileName"));
+                dto.setStatus(data.getStr("status"));
+                dto.setSimTime(data.getLong("simTime"));
+                dto.setStartedAt(data.getLong("startedAt"));
+                dto.setFinishedAt(data.getLong("finishedAt"));
+                dto.setTotalOutput(data.getInt("totalOutput"));
+                dto.setThroughputPerHour(data.getDouble("throughputPerHour"));
+                dto.setCurrentWip(data.getInt("currentWip"));
+                dto.setParameterSnapshotAt(data.getLong("parameterSnapshotAt"));
+                dto.setResultStatus(data.getStr("resultStatus"));
+                dto.setResultSnapshotAt(data.getLong("resultSnapshotAt"));
+
+                JSONObject summary = data.getJSONObject("summaryResults");
+                if (summary != null) {
+                    dto.setSummaryResults((Map<String, Object>) summary);
+                }
+
+                JSONArray datasets = data.getJSONArray("datasets");
+                if (datasets != null) {
+                    dto.setDatasets((List) datasets.toList(Map.class));
+                }
+            }
+        } catch (McpClientService.McpServiceException e) {
+            log.warn("MCP service error when getting result snapshot: {}", e.getMessage());
+            return CommonResult.data(dto);
+        }
+
+        log.info("getResultSnapshot success: modelId={}, resultStatus={}", modelId, dto.getResultStatus());
+        return CommonResult.data(dto);
+    }
+
+    // ==================== 获取结果数据集分页 ====================
+
+    @Operation(summary = "获取结果数据集分页")
+    @SaCheckPermission("/fscloud/sim/getResultDatasetPage")
+    @PostMapping("/fscloud/sim/getResultDatasetPage")
+    public CommonResult<Map<String, Object>> getResultDatasetPage(@RequestBody @Valid GetResultDatasetPageParam param) {
+        String userId = StpUtil.getLoginIdAsString();
+        String modelId = param.getModelId();
+        String runId = param.getRunId();
+        if (StrUtil.isBlank(runId)) runId = "";
+        String dataset = param.getDataset();
+        int limit = param.getLimit() != null ? param.getLimit() : 25;
+        int offset = param.getOffset() != null ? param.getOffset() : 0;
+
+        log.info("getResultDatasetPage: modelId={}, dataset={}, limit={}, offset={}",
+                modelId, dataset, limit, offset);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("rows", new ArrayList<>());
+        result.put("total", 0);
+        result.put("hasMore", false);
+        result.put("offset", offset);
+        result.put("limit", limit);
+
+        try {
+            JSONObject mcpResult = mcpClientService.getResultDatasetPage(userId, modelId, runId, dataset, limit, offset);
+            JSONObject mcpData = mcpResult.getJSONObject("data");
+            if (mcpData != null) {
+                result.put("total", mcpData.getInt("total", 0));
+                result.put("hasMore", mcpData.getBool("hasMore", false));
+                result.put("offset", mcpData.getInt("offset", offset));
+                result.put("limit", mcpData.getInt("limit", limit));
+
+                JSONArray rows = mcpData.getJSONArray("rows");
+                List<Map<String, Object>> rowList = new ArrayList<>();
+                if (rows != null) {
+                    for (int i = 0; i < rows.size(); i++) {
+                        JSONObject row = rows.getJSONObject(i);
+                        if (row != null) {
+                            rowList.add((Map<String, Object>) row);
+                        }
+                    }
+                }
+                result.put("rows", rowList);
+            }
+        } catch (McpClientService.McpServiceException e) {
+            log.warn("MCP error when getting result dataset page: {}", e.getMessage());
+        }
+
+        log.info("getResultDatasetPage success: dataset={}, returned={}", dataset, ((List<?>)result.get("rows")).size());
+        return CommonResult.data(result);
+    }
+
+    // ==================== 参数快照（落库） ====================
+
+    @Resource
+    private FsSimParamSnapshotService fsSimParamSnapshotService;
+
+    @Operation(summary = "保存参数快照")
+    @SaCheckPermission("/fscloud/sim/saveSnapshot")
+    @CommonLog("保存参数快照")
+    @PostMapping("/fscloud/sim/saveSnapshot")
+    public CommonResult<Long> saveSnapshot(@RequestBody @Valid SaveSnapshotParam param) {
+        Long id = fsSimParamSnapshotService.saveSnapshot(param);
+        log.info("saveSnapshot success: id={}, modelFileId={}", id, param.getModelFileId());
+        return CommonResult.data(id);
+    }
+
+    @Operation(summary = "查询某模型的所有快照列表")
+    @SaCheckPermission("/fscloud/sim/listSnapshots")
+    @PostMapping("/fscloud/sim/listSnapshots")
+    public CommonResult<List<SnapshotDto>> listSnapshots(@RequestBody @Valid SnapshotListParam param) {
+        List<SnapshotDto> list = fsSimParamSnapshotService.listByModelFileId(param.getModelFileId());
+        return CommonResult.data(list);
+    }
+
+    @Operation(summary = "查询单个快照详情")
+    @SaCheckPermission("/fscloud/sim/getSnapshot")
+    @PostMapping("/fscloud/sim/getSnapshot")
+    public CommonResult<SnapshotDto> getSnapshot(@RequestBody @Valid SnapshotIdParam param) {
+        SnapshotDto dto = fsSimParamSnapshotService.getById(param.getId());
+        return CommonResult.data(dto);
+    }
+
+    @Operation(summary = "删除参数快照")
+    @SaCheckPermission("/fscloud/sim/deleteSnapshot")
+    @CommonLog("删除参数快照")
+    @PostMapping("/fscloud/sim/deleteSnapshot")
+    public CommonResult<Void> deleteSnapshot(@RequestBody @Valid SnapshotIdParam param) {
+        fsSimParamSnapshotService.deleteById(param.getId());
+        log.info("deleteSnapshot success: id={}", param.getId());
+        return CommonResult.ok();
+    }
+
+    // ==================== 动画播放 ====================
+
+    @Operation(summary = "获取动画层列表")
+    @SaCheckPermission("/fscloud/sim/listAnimationLayers")
+    @PostMapping("/fscloud/sim/listAnimationLayers")
+    public CommonResult<Object> listAnimationLayers(@RequestBody @Valid AnimationLayerParam param) {
+        String userId = StpUtil.getLoginIdAsString();
+        String modelId = param.getModelId();
+        JSONObject mcpResult = mcpClientService.listAnimationLayers(userId, modelId);
+        log.info("listAnimationLayers: userId={}, modelId={}, \n\tresult={}", userId, modelId, mcpResult);
+        return CommonResult.data(convertToPlain(mcpResult));
+    }
+
+    @Operation(summary = "选择动画层")
+    @SaCheckPermission("/fscloud/sim/selectAnimationLayer")
+    @PostMapping("/fscloud/sim/selectAnimationLayer")
+    public CommonResult<Object> selectAnimationLayer(@RequestBody @Valid SelectAnimationLayerParam param) {
+        String userId = StpUtil.getLoginIdAsString();
+        JSONObject mcpResult = mcpClientService.selectAnimationLayer(
+                userId, param.getModelId(), param.getLayerId(), param.getFrameRate());
+        return CommonResult.data(convertToPlain(mcpResult));
+    }
+
+    @Operation(summary = "开关动画")
+    @SaCheckPermission("/fscloud/sim/setAnimationEnabled")
+    @PostMapping("/fscloud/sim/setAnimationEnabled")
+    public CommonResult<Object> setAnimationEnabled(@RequestBody @Valid SetAnimationEnabledParam param) {
+        String userId = StpUtil.getLoginIdAsString();
+        JSONObject mcpResult = mcpClientService.setAnimationEnabled(userId, param.getModelId(), param.getEnabled());
+        return CommonResult.data(convertToPlain(mcpResult));
+    }
+
+    @Operation(summary = "设置仿真加速因子")
+    @SaCheckPermission("/fscloud/sim/setAccelerateFactor")
+    @PostMapping("/fscloud/sim/setAccelerateFactor")
+    public CommonResult<Object> setAccelerateFactor(@RequestBody @Valid SetAccelerateFactorParam param) {
+        String userId = StpUtil.getLoginIdAsString();
+        JSONObject mcpResult = mcpClientService.setAccelerateFactor(userId, param.getModelId(), param.getAccelerateFactor());
+        return CommonResult.data(convertToPlain(mcpResult));
+    }
+
+    @Operation(summary = "获取 SVG 高清静态图")
+    @SaCheckPermission("/fscloud/sim/getSvgPicture")
+    @PostMapping("/fscloud/sim/getSvgPicture")
+    public CommonResult<Object> getSvgPicture(@RequestBody @Valid GetSvgPictureParam param) {
+        String userId = StpUtil.getLoginIdAsString();
+        JSONObject mcpResult = mcpClientService.getSvgPicture(userId, param.getModelId(), param.getLayerId());
+        return CommonResult.data(convertToPlain(mcpResult));
+    }
+
+    /** 递归将 Hutool JSONObject 转为 Jackson 友好的 Map/List（消除 JSONNull） */
+    @SuppressWarnings("unchecked")
+    private Object convertToPlain(Object obj) {
+        if (obj instanceof JSONObject json) {
+            Map<String, Object> map = new java.util.LinkedHashMap<>();
+            for (var entry : json.entrySet()) {
+                map.put(entry.getKey(), convertToPlain(entry.getValue()));
+            }
+            return map;
+        } else if (obj instanceof JSONArray arr) {
+            List<Object> list = new ArrayList<>();
+            for (int i = 0; i < arr.size(); i++) {
+                list.add(convertToPlain(arr.get(i)));
+            }
+            return list;
+        } else if (obj instanceof cn.hutool.json.JSONNull) {
+            return null;
+        }
+        return obj;
     }
 
     // ==================== 公共控制方法 ====================

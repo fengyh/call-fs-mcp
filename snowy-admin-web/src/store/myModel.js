@@ -30,7 +30,17 @@ export const useMyModelStore = defineStore('myModel', () => {
 	const feedbackMsg = ref('')      // 操作反馈消息
 	const record = ref(null)	// 模型库记录
 
+	// ----- animation state -----
+	const animationFrameUrl = ref('')       // 当前帧 Blob URL
+	const animationPrevUrl = ref('')        // 上一帧 URL（用于释放）
+	const animationLayers = ref([])         // [{ layerId, name, ... }]
+	const animationActiveLayer = ref('root')
+	const animationStreaming = ref(false)
+	const animationFrameRate = ref(5)
+	const animationFrameSeq = ref(0)
+
 	// 参数表数据
+	const resultSnapshot = ref(null)       // 仿真结果快照（from getResultSnapshot）
 	const parameterTables = ref([])        // 参数表列表（from listParameterTables）
 	const snapshotRaw = ref(null)          // 参数快照原始内容（不可变）
 	const snapshotData = ref({})           // 参数快照按表名解析 { tableName: rows[][] }（可修改）
@@ -176,12 +186,40 @@ export const useMyModelStore = defineStore('myModel', () => {
 		selectedTableName.value = keys.length > 0 ? keys[0] : ''
 	}
 
+	/** 直接以 keyed 对象（{ tableName: { columns, rows } }）设置快照数据 */
+	function setSnapshotFromKeyed(obj) {
+		if (!obj || typeof obj !== 'object') {
+			clearSnapshot()
+			return
+		}
+		snapshotRaw.value = JSON.parse(JSON.stringify(obj))
+		snapshotData.value = obj
+		snapshotBackup.value = JSON.parse(JSON.stringify(obj))
+		const keys = Object.keys(obj)
+		selectedTableName.value = keys.length > 0 ? keys[0] : ''
+	}
+
+	/** 设置当前选中的参数表名 */
+	function setSelectedTableName(name) {
+		selectedTableName.value = name
+	}
+
+	/** 更新某参数表内容并刷新备份 */
+	function updateSnapshotTable(name, newData) {
+		if (!snapshotData.value) snapshotData.value = {}
+		snapshotData.value = { ...snapshotData.value, [name]: newData }
+		snapshotBackup.value = JSON.parse(JSON.stringify(snapshotData.value))
+	}
+
 	return {
 		modelId, recordId, modelName, modelFileName, simStatus,
 		runId, simTime, simProgress, message, mqttConnected, consoleLog, feedbackMsg,
 		isLoaded, record,
+		animationFrameUrl, animationPrevUrl, animationLayers, animationActiveLayer,
+		animationStreaming, animationFrameRate, animationFrameSeq,
+		resultSnapshot,
 		parameterTables, snapshotRaw, snapshotData, snapshotBackup, selectedTableName,
 		setModel, clearModel, clearConsoleLog, setMqttConnected, updateStatus, updateProgress, addConsoleLog, setRecord, setFeedbackMsg,
-		clearSnapshot, parseAndSetSnapshot
+		clearSnapshot, parseAndSetSnapshot, setSnapshotFromKeyed, setSelectedTableName, updateSnapshotTable
 	}
 })

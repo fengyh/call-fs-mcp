@@ -109,6 +109,10 @@ public class GlobalConfigure implements WebMvcConfigurer {
     @Resource
     private SaTokenConfig saTokenConfig;
 
+    /** fscloud 上传文件根路径，从 application 配置读取 */
+    @org.springframework.beans.factory.annotation.Value("${fscloud.upload.static-path:${user.dir}${file.separator}static}")
+    private String fscloudUploadStaticPath;
+
     private static final String COMMON_REPEAT_SUBMIT_CACHE_KEY = "common-repeatSubmit:";
 
     /**
@@ -373,6 +377,9 @@ public class GlobalConfigure implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("doc.html").addResourceLocations(ResourceUtils.CLASSPATH_URL_PREFIX + "/META-INF/resources/");
         registry.addResourceHandler("/webjars/**").addResourceLocations(ResourceUtils.CLASSPATH_URL_PREFIX + "/META-INF/resources/webjars/");
+        // fscloud 上传文件映射：/static/** → 外部 static 目录（由 fscloud.upload.static-path 指定）
+        registry.addResourceHandler("/static/**")
+                .addResourceLocations("file:" + fscloudUploadStaticPath.replace("\\", "/") + "/");
     }
 
     /**
