@@ -5,13 +5,13 @@
  Source Server Type    : MySQL
  Source Server Version : 80046 (8.0.46)
  Source Host           : localhost:13306
- Source Schema         : gh_mysql
+ Source Schema         : fp_mysql
 
  Target Server Type    : MySQL
  Target Server Version : 80046 (8.0.46)
  File Encoding         : 65001
 
- Date: 11/07/2026 15:32:23
+ Date: 03/08/2026 09:53:25
 */
 
 SET NAMES utf8mb4;
@@ -45,15 +45,35 @@ CREATE TABLE `fs_model_file`  (
   INDEX `idx_user_id`(`user_id` ASC) USING BTREE,
   INDEX `idx_name`(`name` ASC) USING BTREE,
   INDEX `idx_model_company`(`model_company` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2074056518734450691 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '仿真模型文件表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 2083912095054118914 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci COMMENT = '仿真模型文件表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- Records of fs_model_file
 -- ----------------------------
-INSERT INTO `fs_model_file` VALUES (2073362175811944449, '测试fscloud', '测试fscloud的模型', '5.1.0', 'FS_USAGE_GENERAL', 1543837863788879871, '超管', 'step-by-step.jpg', 'step-by-step.fs', NULL, NULL, NULL, NULL, 'MODEL_SHARE_PUBLIC', '2026-07-04 19:03:58', '2026-07-04 19:03:58', 'SIM_STATUS_ALREADY', 37, '389a125effc3');
-INSERT INTO `fs_model_file` VALUES (2073730755808202753, '<html><u>仿真模型</u></html>', '全自动化加工线+立体仓库+AGV运输系统', '5.1.0', 'FS_USAGE_SELF', 1543837863788879871, '超管', 'ProductionLine.jpg', 'ProductionLine.fs', NULL, NULL, NULL, NULL, 'MODEL_SHARE_COMPANY', '2026-07-05 19:28:34', '2026-07-05 19:28:34', 'SIM_STATUS_GOING', 9, 'b8c05d3be9e6');
-INSERT INTO `fs_model_file` VALUES (2073774368411881474, '测试模型库、仿真控制', '测试模型库、仿真控制', '5.1.0', 'FS_USAGE_TEST', 1543837863788879871, '超管', 'Conveyor.jpg', 'Conveyor.fs', NULL, NULL, NULL, NULL, 'MODEL_SHARE_PUBLIC', '2026-07-05 22:21:52', '2026-07-05 22:21:52', 'SIM_STATUS_ALREADY', 4, '5433bcb9437c');
-INSERT INTO `fs_model_file` VALUES (2074043302742593537, '测试模型-UI', '', '5.1.0', 'FS_USAGE_TEST', 1543837863788879871, '超管', 'UI.jpg', 'UI.fs', NULL, NULL, NULL, NULL, 'MODEL_SHARE_PUBLIC', '2026-07-06 16:10:31', '2026-07-06 16:10:31', 'SIM_STATUS_NOTYET', 0, NULL);
-INSERT INTO `fs_model_file` VALUES (2074056518734450690, '仿真模型6666666666', '', '5.1.0', 'FS_USAGE_GENERAL', 1543837863788879871, '超管', 'CarProductionLine.jpg', 'CarProductionLine.fs', NULL, NULL, NULL, NULL, 'MODEL_SHARE_COMPANY', '2026-07-06 17:03:02', '2026-07-06 17:03:02', 'SIM_STATUS_NOTYET', 0, NULL);
+INSERT INTO `fs_model_file` VALUES (2083912095054118913, '仿真模型', '测试', '5.1.0', 'FS_USAGE_GENERAL', 1543837863788879871, '超管', '仿真云平台测试专用-v0.1-0723-1655.jpg', '仿真云平台测试专用-v0.1-0723-1655.fs', NULL, NULL, NULL, NULL, 'MODEL_SHARE_COMPANY', '2026-08-02 13:45:35', '2026-08-02 13:45:35', 'SIM_STATUS_STOPPED', 4, '19f100cb0667');
+
+-- ----------------------------
+-- Table structure for fs_sim_param_snapshot
+-- ----------------------------
+DROP TABLE IF EXISTS `fs_sim_param_snapshot`;
+CREATE TABLE `fs_sim_param_snapshot`  (
+  `ID` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID，自增',
+  `MODEL_FILE_ID` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '模型库记录ID（对应 MCP recordId）',
+  `SNAPSHOT_AT` bigint NOT NULL COMMENT '快照时间（毫秒时间戳）',
+  `PARAMETER_TABLES` json NULL COMMENT '参数表列表',
+  `MCP_ROWS` json NULL COMMENT 'MCP 表中的参数表信息',
+  `TABLES` json NULL COMMENT '各参数表内容（二维数组或对象数组）',
+  `MISSING_TABLES` json NULL COMMENT '缺失的参数表列表',
+  `CREATE_TIME` datetime NULL DEFAULT NULL COMMENT '创建时间',
+  `UPDATE_TIME` datetime NULL DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`ID`) USING BTREE,
+  INDEX `IDX_FS_SIM_PARAM_SNAPSHOT_MODEL`(`MODEL_FILE_ID` ASC) USING BTREE,
+  INDEX `IDX_FS_SIM_PARAM_SNAPSHOT_AT`(`MODEL_FILE_ID` ASC, `SNAPSHOT_AT` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '仿真参数快照' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- Records of fs_sim_param_snapshot
+-- ----------------------------
+INSERT INTO `fs_sim_param_snapshot` VALUES (1, '2083912095054118913', 1785680253740, NULL, '[{\"exists\": true, \"remark\": \"\", \"tableId\": \"8eca1be7b67e\", \"wholeNo\": \".订单表\", \"rowCount\": 2, \"rowIndex\": 0, \"tableName\": \".订单表\", \"columnCount\": 5}, {\"exists\": true, \"remark\": \"\", \"tableId\": \"9138d214d65e\", \"wholeNo\": \".工站参数\", \"rowCount\": 7, \"rowIndex\": 1, \"tableName\": \".工站参数\", \"columnCount\": 9}]', '{\"订单表\": {\"rows\": [[\"PartA\", \"汽车门锁总成A\", \"80\", \"0\", \"0\"], [\"PartB\", \"汽车门锁总成B\", \"20\", \"0\", \"0\"]], \"columns\": [{\"name\": \"MU类型\", \"type\": \"String\", \"index\": 0, \"width\": 84, \"format\": \"General\", \"indexColumn\": false}, {\"name\": \"名称\", \"type\": \"String\", \"index\": 1, \"width\": 153, \"format\": \"General\", \"indexColumn\": false}, {\"name\": \"数量\", \"type\": \"Int\", \"index\": 2, \"width\": 120, \"format\": \"General\", \"indexColumn\": false}, {\"name\": \"创建时间\", \"type\": \"Time\", \"index\": 3, \"width\": 160, \"format\": \"dd:hh:mm:ss.SSS\", \"indexColumn\": false}, {\"name\": \"优先级\", \"type\": \"Int\", \"index\": 4, \"width\": 100, \"format\": \"General\", \"indexColumn\": false}]}, \"工站参数\": {\"rows\": [[\".预装\", \"Triangular(40,45,50)\", \"0.99\", \"不适用\", \"不适用\", \"不适用\", \"不适用\", \"不适用\", \"工人1\"], [\".压装\", \"Triangular(60,65,72)\", \"不适用\", \"7200\", \"600\", \"300\", \"不适用\", \"不适用\", \"工人2\"], [\".锁付1\", \"Triangular(32,35,40)\", \"0.995\", \"不适用\", \"不适用\", \"不适用\", \"不适用\", \"不适用\", \"工人3\"], [\".锁付2\", \"Triangular(32,35,40)\", \"0.995\", \"不适用\", \"不适用\", \"不适用\", \"不适用\", \"不适用\", \"工人3\"], [\".电检\", \"Triangular(65,70,78)\", \"0.95\", \"不适用\", \"不适用\", \"不适用\", \"不适用\", \"不适用\", \"工人4\"], [\".包装\", \"Triangular(36,40,45)\", \"不适用\", \"不适用\", \"不适用\", \"不适用\", \"不适用\", \"不适用\", \"工人4\"], [\".返修工位\", \"Triangular(100,120,150)\", \"不适用\", \"不适用\", \"不适用\", \"不适用\", \"0.90\", \"1\", \"工人5\"]], \"columns\": [{\"name\": \"工站\", \"type\": \"String\", \"index\": 0, \"width\": 100, \"format\": \"General\", \"indexColumn\": false}, {\"name\": \"加工时长\", \"type\": \"String\", \"index\": 1, \"width\": 228, \"format\": \"General\", \"indexColumn\": false}, {\"name\": \"加工合格率\", \"type\": \"String\", \"index\": 2, \"width\": 100, \"format\": \"General\", \"indexColumn\": false}, {\"name\": \"MTBF\", \"type\": \"String\", \"index\": 3, \"width\": 100, \"format\": \"General\", \"indexColumn\": false}, {\"name\": \"MTTR\", \"type\": \"String\", \"index\": 4, \"width\": 100, \"format\": \"General\", \"indexColumn\": false}, {\"name\": \"换型\", \"type\": \"String\", \"index\": 5, \"width\": 100, \"format\": \"General\", \"indexColumn\": false}, {\"name\": \"返修成功率\", \"type\": \"String\", \"index\": 6, \"width\": 100, \"format\": \"General\", \"indexColumn\": false}, {\"name\": \"最多返修次\", \"type\": \"String\", \"index\": 7, \"width\": 100, \"format\": \"General\", \"indexColumn\": false}, {\"name\": \"工人\", \"type\": \"String\", \"index\": 8, \"width\": 100, \"format\": \"General\", \"indexColumn\": false}]}}', '[]', '2026-08-02 22:17:34', '2026-08-02 22:17:34');
 
 SET FOREIGN_KEY_CHECKS = 1;
