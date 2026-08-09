@@ -49,11 +49,12 @@ public class McpClientTest {
     }
 
     /** Load a remote simulation model. */
-    public JSONObject loadModel(String userId, String recordId, String modelFileName) {
+    public JSONObject loadModel(String userId, String recordId, String modelFileName, boolean loadInUI) {
         JSONObject args = new JSONObject();
         args.put("userId", userId);
         args.put("recordId", recordId);
         args.put("modelFileName", modelFileName);
+        args.put("loadInUI", loadInUI);
         return callTool("loadRemoteSimulationModel", args);
     }
 
@@ -76,6 +77,70 @@ public class McpClientTest {
         args.put("userId", userId);
         args.put("modelId", modelId);
         return callTool("getRemoteSimulationStatus", args);
+    }
+
+    public JSONObject listAnimationLayers(String userId, String modelId) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        return callTool("listRemoteSimulationAnimationLayers", args);
+    }
+
+    public JSONObject getSvgPicture(String userId, String modelId, String layerId) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("layerId", layerId);
+        return callTool("getSvgPicture", args);
+    }
+
+    public JSONObject getObjectPositionSnapshot(String userId, String modelId, String runId, String layerId,
+            long simTime) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("runId", runId != null ? runId : "");
+        args.put("layerId", layerId != null ? layerId : "root");
+        args.put("simTime", simTime);
+        return callTool("getRemoteSimulationObjectPositionSnapshot", args);
+    }
+
+    public JSONObject getSimulationEvents(String userId, String modelId, String runId, long startSimTime,
+            long duration, int offset, int limit) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("runId", runId != null ? runId : "");
+        args.put("startSimTime", startSimTime);
+        args.put("duration", duration);
+        args.put("offset", offset);
+        args.put("limit", limit);
+        return callTool("getRemoteSimulationEvents", args);
+    }
+
+    public JSONObject selectAnimationLayer(String userId, String modelId, String layerId, int frameRate) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("layerId", layerId);
+        args.put("frameRate", frameRate);
+        return callTool("selectRemoteSimulationAnimationLayer", args);
+    }
+
+    public JSONObject setAnimationEnabled(String userId, String modelId, boolean enabled) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("enabled", enabled);
+        return callTool("setRemoteSimulationAnimationEnabled", args);
+    }
+
+    public JSONObject setAccelerateFactor(String userId, String modelId, int accelerateFactor) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("accelerateFactor", accelerateFactor);
+        return callTool("setRemoteSimulationAccelerateFactor", args);
     }
 
     /** 启动仿真 */
@@ -128,6 +193,19 @@ public class McpClientTest {
         return callTool("getRemoteSimulationResultSnapshot", args);
     }
 
+    /** Get one page from a completed simulation result dataset. */
+    public JSONObject getResultDatasetPage(String userId, String modelId, String runId, String dataset,
+            int offset, int limit) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("runId", runId != null ? runId : "");
+        args.put("dataset", dataset);
+        args.put("offset", offset);
+        args.put("limit", limit);
+        return callTool("getRemoteSimulationResultDatasetPage", args);
+    }
+
     /** 列出参数表 */
     public JSONObject listParameterTables(String userId, String modelId) {
         JSONObject args = new JSONObject();
@@ -153,6 +231,17 @@ public class McpClientTest {
         args.put("tableName", tableName);
         args.put("rowsJson", rowsJson);
         return callTool("updateRemoteSimulationParameterTable", args);
+    }
+
+    /** Replace multiple parameter tables and optionally save the model file. */
+    public JSONObject batchUpdateParameterTables(String userId, String modelId, String tablesJson,
+            boolean bSaveModel) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("tablesJson", tablesJson);
+        args.put("bSaveModel", bSaveModel);
+        return callTool("batchUpdateRemoteSimulationParameterTable", args);
     }
 
     /** 更新参数表 (单元格级) */
@@ -291,25 +380,7 @@ public class McpClientTest {
 
     // ==================== demo runner ====================
 
-    private static final String DEFAULT_MODEL_FILE = resolveDefaultModelFile();
-
-    /**
-     * 从 classpath 下解析模型文件 step-by-step.fs 的绝对路径。
-     * 文件位于 src/test/resources，编译后会复制到 target/test-classes 根目录。
-     * 返回系统对应的绝对路径，跨 Linux/Windows 通用。
-     */
-    private static String resolveDefaultModelFile() {
-        String resourceName = "step-by-step.fs";
-        java.net.URL url = McpClientTest.class.getClassLoader().getResource(resourceName);
-        if (url == null) {
-            throw new IllegalStateException("Model file not found on classpath: " + resourceName);
-        }
-        try {
-            return new File(url.toURI()).getAbsolutePath();
-        } catch (java.net.URISyntaxException e) {
-            return new File(url.getPath()).getAbsolutePath();
-        }
-    }
+    private static final String DEFAULT_MODEL_FILE = "/Users/daaaa/IdeaProjects/factorysimulation/help/examples/step-by-step.fs";
 
     private static void printStep(String title) {
         System.out.println();
@@ -357,6 +428,7 @@ public class McpClientTest {
      *   3: max poll seconds, default 10 when showAnimation=false, 30 when showAnimation=true
      *   4: userId, default demo-{timestamp}
      *   5: unloadAtEnd, default true.
+     *   6: loadInUI, default same as showAnimation.
      */
     public static void main(String[] args) {
         String modelFileName = args.length > 0 ? args[0] : DEFAULT_MODEL_FILE;
@@ -365,6 +437,7 @@ public class McpClientTest {
         int maxPollSeconds = args.length > 3 ? Integer.parseInt(args[3]) : (showAnimation ? 30 : 10);
         String userId = args.length > 4 ? args[4] : "demo-" + System.currentTimeMillis();
         boolean unloadAtEnd = args.length > 5 ? Boolean.parseBoolean(args[5]) : true;
+        boolean loadInUI = args.length > 6 ? Boolean.parseBoolean(args[6]) : showAnimation;
 
         McpClientTest client = new McpClientTest();
         String modelId = null;
@@ -378,6 +451,7 @@ public class McpClientTest {
             System.out.println("recordId      = " + recordId);
             System.out.println("modelFileName = " + modelFileName);
             System.out.println("showAnimation = " + showAnimation);
+            System.out.println("loadInUI      = " + loadInUI);
             System.out.println("maxPollSeconds= " + maxPollSeconds);
             System.out.println("unloadAtEnd  = " + unloadAtEnd);
             System.out.println("MQTTX subscribe topic: factory/sim/#");
@@ -392,8 +466,8 @@ public class McpClientTest {
             JSONObject toolsResp = client.listTools();
             printJson(toolsResp);
 
-            printStep("3. loadRemoteSimulationModel: " + modelFileName);
-            JSONObject loadResp = client.loadModel(userId, recordId, modelFileName);
+            printStep("3. loadRemoteSimulationModel");
+            JSONObject loadResp = client.loadModel(userId, recordId, modelFileName, loadInUI);
             printJson(loadResp);
             JSONObject loadData = requireOk(loadResp, "loadRemoteSimulationModel");
             modelId = loadData.getString("modelId");
@@ -402,6 +476,17 @@ public class McpClientTest {
 
             printStep("4. listRemoteSimulationModels");
             printJson(client.listModels());
+
+            printStep("4.1. animation layer catalog");
+            JSONObject animationLayersResp = client.listAnimationLayers(userId, modelId);
+            printJson(animationLayersResp);
+            requireOk(animationLayersResp, "listRemoteSimulationAnimationLayers");
+            if (showAnimation) {
+                printStep("4.2. select root animation layer at 5 FPS");
+                JSONObject animationLayerResp = client.selectAnimationLayer(userId, modelId, "root", 5);
+                printJson(animationLayerResp);
+                requireOk(animationLayerResp, "selectRemoteSimulationAnimationLayer");
+            }
 
             printStep("5. parameter table catalog and snapshot");
             JSONObject parameterTablesResp = client.listParameterTables(userId, modelId);
@@ -468,7 +553,16 @@ public class McpClientTest {
             printStep("10. getRemoteSimulationResultSnapshot");
             JSONObject resultResp = client.getResultSnapshot(userId, modelId, runId);
             printJson(resultResp);
-            requireOk(resultResp, "getRemoteSimulationResultSnapshot");
+            JSONObject resultData = requireOk(resultResp, "getRemoteSimulationResultSnapshot");
+
+            if ("READY".equals(resultData.getString("resultStatus"))) {
+                printStep("10a. getRemoteSimulationResultDatasetPage (partCycleTime, first 100 rows)");
+                JSONObject pageResp = client.getResultDatasetPage(userId, modelId, runId, "partCycleTime", 0, 100);
+                printJson(pageResp);
+                requireOk(pageResp, "getRemoteSimulationResultDatasetPage");
+            } else {
+                System.out.println("Detailed result datasets are not ready yet: " + resultData.getString("resultStatus"));
+            }
 
             printStep("11. resetRemoteSimulation");
             JSONObject resetResp = client.resetSimulation(userId, modelId);
