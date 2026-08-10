@@ -256,6 +256,31 @@ public class McpClientService {
         return callTool("getSvgPicture", args);
     }
 
+    /** 查询时间轴对象位置快照 */
+    public JSONObject getObjectPositionSnapshot(String userId, String modelId, String runId, String layerId, long simTime) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("runId", runId != null ? runId : "");
+        args.put("layerId", layerId != null ? layerId : "root");
+        args.put("simTime", simTime);
+        return callTool("getRemoteSimulationObjectPositionSnapshot", args);
+    }
+
+    /** 查询时间窗口内的仿真事件 */
+    public JSONObject getSimulationEvents(String userId, String modelId, String runId,
+                                          long startSimTime, long duration, int offset, int limit) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("runId", runId != null ? runId : "");
+        args.put("startSimTime", startSimTime);
+        args.put("duration", duration);
+        args.put("offset", offset);
+        args.put("limit", limit);
+        return callTool("getRemoteSimulationEvents", args);
+    }
+
     // ==================== 底层 JSON-RPC ====================
 
     /**

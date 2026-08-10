@@ -22,6 +22,7 @@ let mqttConnected = false
  *   onAnimationState(data)          — animation/state JSON
  *   onAnimationLayers(data)         — animation/layers JSON
  *   onAnimationFrameMeta(data)      — animation/frameMeta JSON
+ *   onAnimationObjects(data, topic) — animation/{layerId}/objects JSON（结构化对象帧）
  *   onConnect, onDisconnect
  * @returns {object} { client, disconnect }
  */
@@ -81,6 +82,9 @@ export function createMqttClient(userId, modelId, callbacks = {}) {
 					return
 				case 'frameMeta':
 					callbacks.onAnimationFrameMeta?.(data)
+					return
+				case 'objects':
+					callbacks.onAnimationObjects?.(data, topic)
 					return
 			}
 			return

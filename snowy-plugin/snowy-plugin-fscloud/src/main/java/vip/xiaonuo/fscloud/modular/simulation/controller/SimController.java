@@ -751,6 +751,35 @@ public class SimController {
         return CommonResult.data(convertToPlain(mcpResult));
     }
 
+    // ==================== 时间轴数据分析 ====================
+
+    @Operation(summary = "查询时间轴对象位置快照")
+    @SaCheckPermission("/fscloud/sim/getObjectPositionSnapshot")
+    @PostMapping("/fscloud/sim/getObjectPositionSnapshot")
+    public CommonResult<Object> getObjectPositionSnapshot(@RequestBody @Valid GetObjectPositionSnapshotParam param) {
+        String userId = StpUtil.getLoginIdAsString();
+        JSONObject mcpResult = mcpClientService.getObjectPositionSnapshot(
+                userId, param.getModelId(), param.getRunId(), param.getLayerId(), param.getSimTime());
+        log.info("getObjectPositionSnapshot: userId={}, modelId={}, simTime={}, \n\tresult={}",
+                userId, param.getModelId(), param.getSimTime(), mcpResult);
+        return CommonResult.data(convertToPlain(mcpResult));
+    }
+
+    @Operation(summary = "查询时间窗口内的仿真事件")
+    @SaCheckPermission("/fscloud/sim/getSimulationEvents")
+    @PostMapping("/fscloud/sim/getSimulationEvents")
+    public CommonResult<Object> getSimulationEvents(@RequestBody @Valid GetSimulationEventsParam param) {
+        String userId = StpUtil.getLoginIdAsString();
+        JSONObject mcpResult = mcpClientService.getSimulationEvents(
+                userId, param.getModelId(), param.getRunId(),
+                param.getStartSimTime(), param.getDuration(),
+                param.getOffset() != null ? param.getOffset() : 0,
+                param.getLimit() != null ? param.getLimit() : 500);
+        log.info("getSimulationEvents: userId={}, modelId={}, startSimTime={}, duration={}, \n\tresult={}",
+                userId, param.getModelId(), param.getStartSimTime(), param.getDuration(), mcpResult);
+        return CommonResult.data(convertToPlain(mcpResult));
+    }
+
     /** 递归将 Hutool JSONObject 转为 Jackson 友好的 Map/List（消除 JSONNull） */
     @SuppressWarnings("unchecked")
     private Object convertToPlain(Object obj) {

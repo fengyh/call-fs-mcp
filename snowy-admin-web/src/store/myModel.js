@@ -39,6 +39,10 @@ export const useMyModelStore = defineStore('myModel', () => {
 	const animationFrameRate = ref(5)
 	const animationFrameSeq = ref(0)
 
+	// 实时动画对象帧（MQTT animation/{layerId}/objects），最多保留 100 条用于分析
+	const MAX_ANIMATION_OBJECTS = 100
+	const animationObjects = ref([])      // 每条: { topic, timestamp, data }
+
 	// 参数表数据
 	const resultSnapshot = ref(null)       // 仿真结果快照（from getResultSnapshot）
 	const parameterTables = ref([])        // 参数表列表（from listParameterTables）
@@ -93,6 +97,7 @@ export const useMyModelStore = defineStore('myModel', () => {
 		feedbackMsg.value = ''
 		mqttConnected.value = false
 		clearSnapshot()
+		clearAnimationObjects()
 	}
 
 	// 清除控制台日志
@@ -147,6 +152,17 @@ export const useMyModelStore = defineStore('myModel', () => {
 		if (list.length > MAX_CONSOLE_LOG) {
 			list.splice(0, list.length - MAX_CONSOLE_LOG)
 		}
+	}
+
+	// 追加实时动画对象帧（最多保留 100 条，之后不再保存）
+	function addAnimationObject(topic, data, timestamp) {
+		if (animationObjects.value.length >= MAX_ANIMATION_OBJECTS) return
+		animationObjects.value.push({ topic: topic || '', timestamp: timestamp || Date.now(), data: data || null })
+	}
+
+	// 清空实时动画对象帧
+	function clearAnimationObjects() {
+		animationObjects.value = []
 	}
 
 	// 设置操作反馈消息
@@ -216,10 +232,11 @@ export const useMyModelStore = defineStore('myModel', () => {
 		runId, simTime, simProgress, message, mqttConnected, consoleLog, feedbackMsg,
 		isLoaded, record,
 		animationFrameUrl, animationPrevUrl, animationLayers, animationActiveLayer,
-		animationStreaming, animationFrameRate, animationFrameSeq,
+		animationStreaming, animationFrameRate, animationFrameSeq, animationObjects,
 		resultSnapshot,
 		parameterTables, snapshotRaw, snapshotData, snapshotBackup, selectedTableName,
 		setModel, clearModel, clearConsoleLog, setMqttConnected, updateStatus, updateProgress, addConsoleLog, setRecord, setFeedbackMsg,
-		clearSnapshot, parseAndSetSnapshot, setSnapshotFromKeyed, setSelectedTableName, updateSnapshotTable
+		clearSnapshot, parseAndSetSnapshot, setSnapshotFromKeyed, setSelectedTableName, updateSnapshotTable,
+		addAnimationObject, clearAnimationObjects
 	}
 })

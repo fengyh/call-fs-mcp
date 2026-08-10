@@ -77,6 +77,14 @@ export default {
 	fsSimGetSvgPicture(data) {
 		return request('getSvgPicture', data, 'post')
 	},
+	// 查询时间轴对象位置快照
+	fsSimGetObjectPositionSnapshot(data) {
+		return request('getObjectPositionSnapshot', data, 'post')
+	},
+	// 查询时间窗口内的仿真事件
+	fsSimGetSimulationEvents(data) {
+		return request('getSimulationEvents', data, 'post')
+	},
 	// 获取仿真模型的参数表列表
 	fsSimListParameterTables(data) {
 		return request('listParameterTables', data, 'post')
