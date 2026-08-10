@@ -51,7 +51,14 @@
 
 		<!-- 2) 3) 4) 结果显示区（pre 标签） -->
 		<a-card size="small" class="result-card" :title="lastOp">
-			<pre class="result-pre">{{ displayText || '暂无数据，请点击上方按钮获取。' }}</pre>
+			<a-row>
+				<a-col :span="12">
+					<pre class="result-pre">{{ displayText || '暂无数据，请点击上方按钮获取。' }}</pre>
+				</a-col>
+				<a-col :span="12">
+					<pre class="result-pre">{{ myModel.animationObjects.length > 0 ? JSON.stringify(myModel.animationObjects[0], null, 2) : '暂无实时对象帧数据。' }}</pre>
+				</a-col>
+			</a-row>
 		</a-card>
 
 		<!-- 页面尾部：保留原始 todo 说明 -->
