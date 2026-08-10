@@ -1,0 +1,18 @@
+@startuml
+scale 800 width
+title 入库库位筛选流程 （I）-- 空衣架入库规则
+partition <color:red>I. 空衣架入库规则 {
+start
+if (hangerId为空衣架？) then (是)
+	repeat: 遍历rods;
+	:回调App, 取库位数据：\l  -- 已存衣架数 nStored\l  -- 在途衣架数 nOnTheWay\l  -- 容量 nCapacity\l  -- 满光电状态 bFull;
+	backward :下一库位;
+	repeat while (满光电未满，且至少还有1个空位\n（nStored + nOnTheWay < nCapacity）) is (否) not (是)
+	:返回库位;
+	stop
+else (否)
+:<color:red>II. 计算备选库位数据; <<procedure>>
+stop
+endif
+}
+@enduml

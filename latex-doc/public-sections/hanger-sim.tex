@@ -1,0 +1,443 @@
+\section{吊挂系统测试桩设计思路}
+吊挂系统测试桩是对真实吊挂系统主要功能的模拟，为JAR包提供测试环境。功能包括：
+\begin{enumerate}[label=\arabic*)]
+	\item 调用Jar包进行基础数据的初始化：\it{节点表}，\it{桥接表}，\it{库区表}
+	\item 调用Jar包恢复现场业务数据：\it{持久化的站、杆库存}，\it{持久化的排产单及其工序数据}
+	\item 调用Jar包下发新排产单及其工序数据
+	\item 执行排产单
+	\item 驱动工序状态机
+	\item 接收控制测试桩上传的衣架事件
+	\item 发送运输指令到FS（通过控制测试桩）
+	\item 发送工序启停指令到FS（通过控制测试桩）
+	\item 为前端提供 endpoint 
+	\item 为前端提供 websocket 服务
+\end{enumerate}
+生产过程中以工序为单位的工况变化，涉及较多的离散事件以及人工干预，本测试桩的设计思路，引入了状态机的设计理念，将工序按状态进行分解，按不同状态处理这些事件和人工指令，在将复杂问题简单化的同时，可更好更快应对需求的变化。
+\subsection {工序状态机设计}
+本方案的工序分4个状态，如下图所示：
+\begin{figure*}[!h]
+	\centering
+	\resizebox{0.8\linewidth}{!}{\input{out/uml/jack/sm-process/sm-process.latex}}
+	\caption{工序状态机图}\label{fig:sm-process}
+\end{figure*}
+\subsection {通用状态机的封装}
+一般情况说的状态机是指有限状态机，其本质很简单：状态机包含有限个状态，以状态机对象（也叫状态机实例，本方案叫状态机实体）为载体，状态机实体在刚创建时处于初始状态(INIT)，在事件（消息或人工指令）、定时器的触发下，并满足一定条件时，状态机会从当前状态变迁到下一个状态，直到到达终止状态。状态变迁的下一个状态也可以是自身\footnote{\bf{状态变迁到自身}：这是按状态机图的直观理解，在本方案的实现中，没有显式（调用TransferState改变状态）的状态变迁动作。}。
+
+状态迁入时（在OnEnter(int from)回调函数中）可执行相应的操作。由于允许多个状态迁入到当前状态，所以OnEnter回调函数中想要区分是哪个状态迁入的，可根据from参数区分，这时相当于操作是发生在变迁的路上，符合状态机图的表达。
+
+状态迁出时（OnExit(to)回调函数中）也可执行相应的操作。由于允许当前状态迁出到多个状态，所以OnExit回调函数中想要区分迁出的目标状态是哪个，可根据to参数区分，这时相当于操作是发生在变迁的路上，也符合状态机图的表达。
+
+在状态维持期间，OnTimer(float delta)会定期被调用，delta参数表示自上次OnTimer被调用以来经过的时间，单位是ms。有定时任务的场合，可在此函数中执行定时任务，例如计时器、心跳、定时重试某些操作等。
+
+在状态维持期间，可在OnEvent(Event event)回调函数中接收和处理外部事件，如消息、人工指令等。
+
+上述的相应的操作，包括向外部发送消息、修改本地或全局变量、调用函数等。
+
+每个状态可定义自己的本地变量、函数。
+
+为达到此目的，本方案封装了一个通用状态机实现方案，包括3个类，分章节介绍。
+
+\subsubsection{TopicEvent: 带主题的事件}
+\begin{lstlisting}
+package ncdc.jar.statemachine;
+
+import java.util.EventObject;
+
+public class TopicEvent extends EventObject {
+    String topic;
+
+    public TopicEvent(String topic, Object source) {
+        super(source);
+        this.topic = topic;
+    }
+
+    public String getTopic() {
+        return topic;
+    }
+}
+\end{lstlisting}\vspace{-30pt}
+本封装方案约定，当需要向状态机实体发送事件时，需使用TopicEvent对象。TopicEvent在EventObject基础上，增加了topic属性，方便事件的接收函数快速区分处理。发送这类事件的示例代码如下：
+\begin{lstlisting}
+    /**
+     * 恢复某工序的执行， 一般是设备修理完成或已齐料
+     * @param entity
+     */
+    public void ResumeProcessNotify(ProcessEntity entity){
+        entity.EventDispatch(new TopicEvent(EventTopicEnum.TOPIC_RESUME_NOTIFICATION.getName(),null));
+    }
+
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{BaseState: 状态抽象基类}
+\begin{lstlisting}
+package ncdc.jar.statemachine;
+
+/**
+ * class BaseState 定义了一个状态基类
+ * <p>
+ * 本状态机实现原理简介：
+ * <p>
+ * <b>Entity(状态机实体对象)</b>: 使用本状态机处理复杂事物的车间、工段、生产单元或设备, 叫做状态机实体，要求实现 StateMachineEntity 接口。
+ * <p>
+ * <b>State(状态对象)</b>: 状态对象为状态类（从状态基类 BaseState 派生）的实例，一个 Entity 对应多个 State，推荐的方法是，
+ * 在 Entity 类中定义状态 enum，枚举出颗粒度适当的状态，对每一个状态写 BaseState 的派生类 State 类（因状态多，建议设计成 Entity 的
+ * inner class，避免.java文件过多），在 State 类中，只重载带 on 前缀中相关函数（共 4 个）的即可。然后State负责实例化这些State，
+ * 一个 State 类一个 State 对象。总结：<br>
+ *     - Entity 类定义状态 enum
+ *     - Entity 类定义内部 BaseState 派生类 （State类），enum 的每一个状态都要求一个
+ *     - Entity 类负责实例化 State 类，一个类一个对象 「可以用静态类测试下再改进」
+ *     - Entity 初始化时，调用 ChangeState 设置初始状态
+ *     - Entity 收到 Event （通常在事件监听函数中）不需判断当前状态
+ *
+ */
+public abstract class BaseState {
+    /**
+     * 是否打印状态迁入/迁出信息，方便状态机程序的调试
+     */
+
+    private int stateId = 0;
+    String stateName = "";
+
+    /**
+     * 构造函数
+     * @param stateId - int : 状态 id
+     * @param stateName - String : 状态名称
+     */
+    public BaseState(int stateId, String stateName) {
+        this.stateId = stateId;
+        this.stateName = stateName;
+    }
+
+    /**
+     * 取状态id
+     * @return - int : 状态id
+     */
+    public int getStateId() {
+        return stateId;
+    }
+
+    /**
+     * 取状态名称
+     * @return - String : 状态名称
+     */
+    public String getStateName() {
+        return stateName;
+    }
+
+    /**
+     * 状态迁入时执行
+     * @param from - 迁移源状态的id，表示从哪个状态迁入: int
+     */
+    public void onEnter(int from){}
+
+    /**
+     * 状态迁出时执行，当不同迁移目标有不同的处理（变迁伴随动作发生在路上）时可用于参考。
+     *
+     * @param to - 迁移目标状态的id，表示迁出到哪个状态： int
+     */
+    public void onExit(int to) {}
+
+    /**
+     * 状态保持期间定时调用
+     * @param delta - 上次调用到本次调用的时间流逝（ms）: float
+     */
+    public void onTimer(float delta){}
+
+    /**
+     * 在状态保持期间，有事件到达
+     * @param event - 事件对象: TopicEvent
+     */
+    public void onEvent(TopicEvent event){}
+}
+\end{lstlisting}\vspace{-30pt}
+BaseState在状态机实体类中使用，状态机实体类需要派生StateMachineEntity基类，并调用StateMachineEntity的RegisterState函数注册状态实例。状态机实体类需要注册多少个状态实例可自行决定，非常灵活。
+
+BaseState只有一个id用于代表状态标识、一个name用于日志打印。在实际使用时（注册状态实例），调用RegisterState的参数以匿名内部类的方式创建，该匿名内部类派生自BaseState，根据实际需要选择重载BaseState的onEnter、onExit、onTimer、onEvent函数（至少1个）。示例如下：
+\begin{lstlisting}
+        // STATE_INIT 状态
+        RegisterState(new BaseState(eSTATE.STATE_INIT.getId(), eSTATE.STATE_INIT.getName()) {
+            @Override
+            public void onEnter(int from) {
+                // nothing to do
+            }
+
+            @Override
+            public void onExit(int to) {
+                // nothing to do
+            }
+
+            @Override
+            public void onTimer(float delta) {
+                // nothing to do
+            }
+
+            /**
+             * STATE_INIT 状态下，收到 topic 为 “START_PROCESS” 事件，状态变迁为 “STATE_EXECUTING”
+             * @param event - 事件对象: TopicEvent
+             */
+            @Override
+            public void onEvent(TopicEvent event) {
+                String topic = event.getTopic();
+                if (topic.equals(EventTopicEnum.TOPIC_START_EXECUTING.getName())) {
+                    TransferState(eSTATE.STATE_EXECUTING.getId());
+                }
+            }
+        });
+\end{lstlisting}\vspace{-30pt}
+这是工序状态机实体注册工序初始化状态（STATE\_INIT）的代码，其中重载了onEvent()函数，当收到topic为“START\_PROCESS”的事件时，状态变迁为“STATE\_EXECUTING”。其它onEnter、onExit、onTimer函数没有使用到，可不重载。
+
+
+\subsubsection{StateMachineEntity: 状态机实体类基类}
+\begin{lstlisting}
+package ncdc.jar.statemachine;
+
+import ncdc.jar.helper.LogIf;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+
+/**
+ * StateMachineEntity 状态机实体类。<p>
+ * 需要实现状态机的类，如果派生自其它类，可采用「聚合」的方式使用 StateMachineEntity。否则（无派生时）可以采用「继承」方式，当然也可采用「聚合」。
+ *
+ */
+public class StateMachineEntity {
+    private static final Logger log = LoggerFactory.getLogger(StateMachineEntity.class);
+    List<BaseState> states = new LinkedList<>();
+    BaseState curr_state = null;
+	boolean printChangeInfo = false;
+    long smStartTimeMs = 0;
+    long smLastTimeMs = 0;
+    String entityName = "";
+    Timer timer = new Timer();
+    TimerTask task = new TimerTask() {
+        public void run() {
+            if (curr_state != null){
+                long currTimeMs = System.currentTimeMillis();
+                long delta = currTimeMs - smLastTimeMs;
+                smLastTimeMs = System.currentTimeMillis();
+                curr_state.onTimer(delta);
+            }
+        }
+    };
+
+	public StateMachineEntity(boolean printChangeInfo, String entityName) {
+		setPrintChangeInfo(printChangeInfo);
+        this.entityName = entityName;
+		this.smStartTimeMs = System.currentTimeMillis();
+		timer.schedule(task, 0, 10);
+	}
+
+	public boolean isPrintChangeInfo() {
+		return printChangeInfo;
+	}
+
+	public void setPrintChangeInfo(boolean printChangeInfo) {
+		this.printChangeInfo = printChangeInfo;
+	}
+
+    public void RegisterState(BaseState state){
+        states.add(state);
+    }
+
+    /**
+     * 当前状态保持的时间。每次状态变迁时，StateMachineEntity会记录当时的系统时间 (System.currentTimeMillis()),
+     * 本函数调用时
+     * @return 调用时刻的时间 - 本状态开始时刻的时间, 单位为 ms : long
+     */
+    public long CurrentStateRemainMs(){
+        return System.currentTimeMillis() - smStartTimeMs;
+    }
+
+    /**
+     * 状态迁移 从 this.curr_state.getStateId() 到 state_id
+     * @param state_id
+     */
+    public void TransferState(int state_id)
+    {
+        int fromId = -1;
+        String fromStr = "";
+        if (curr_state!=null){
+            fromId = curr_state.getStateId();
+            fromStr = curr_state.getStateName();
+            curr_state.onExit(state_id);
+        }
+        curr_state = null;
+        for (BaseState state : states){
+            if (state.getStateId() == state_id){
+                curr_state = state;
+                smStartTimeMs = System.currentTimeMillis();
+                smLastTimeMs = System.currentTimeMillis();
+            }
+        }
+        if (curr_state!=null){
+            if (isPrintChangeInfo()) {
+                if(LogIf.canLog("sm-transfer,debug")) log.warn("\t\t[ {} ] Change the State: {{}} ==> {{}}",this.entityName, fromStr, curr_state.getStateName());
+            }
+            curr_state.onEnter(fromId);
+        } else {
+            if(LogIf.canLog("sm-transfer")) log.error("The state with ID {} has not been registered.", state_id);
+            if (timer!=null){
+                timer.cancel();
+                timer=null;
+            }
+        }
+    }
+
+    /**
+     * When state-entity received an event, it will call onEvent() of current-state object.
+     * <p>
+     * The back logical: Letting the state object handle the event is easier than letting the entity
+     *  object do so.
+     * @param event
+     */
+    public void EventDispatch(TopicEvent event){
+        if (curr_state!=null){
+            curr_state.onEvent(event);
+        }
+    }
+}
+\end{lstlisting}\vspace{-30pt}
+StateMachineEntity类定义了状态实例对象列表，开始为空列表，随着状态实例对象的注册，将状态实例对象添加到该列表中。内置定时任务，定时回调状态实体类当前状态实例的onTimer()函数。EventDispatch()函数将事件派发给当前状态实例对象时，回调状态机实体类当前状态实例的onEvent()函数。TransferState()函数负责状态的迁移，并回调状态机实体类当前状态实例的onExit()和变迁目标状态实例的onEnter()函数。
+
+\subsection {工序状态机的驱动}
+在前端发起排产时，创建排产单执行类（ProcessFlow）对象，ProcessFlow通过AddProcess()函数给排产单添加工序对象，同时创建工序状态机实体类（ProcessEntity）对象。分步骤说明如下：
+\subsubsection{排产 endpoint}
+吊挂测试桩设计ProductionController类为前端提供两个排产 endpoint，分别是：productionTypeA()、productionTypeB()，分别提交A款排产、B款排产。这两个endpoint的实现逻辑相同，以A款排产为例，如下：
+\begin{lstlisting}
+    /**
+     * A款排产
+     * @return
+     */
+    @Operation(summary = "A款排产")
+    @GetMapping("/typeA")
+    public CommonResult<String> productionTypeA() throws JsonProcessingException {
+        // 构建临时定义排产单
+        String processFlowName = "A款排产";
+        ProcessFlow processFlowA = new ProcessFlow(processFlowName);
+        int capacity = 30;
+        int quantity = 120;
+        List<ProcessDTO4Jar> listP = Arrays.asList(
+                new ProcessDTO4Jar(processFlowName, "挂片", "7-1", "A", "A-空", 120, quantity),
+                new ProcessDTO4Jar(processFlowName, "工序1", "5","A","A", capacity, quantity),
+                new ProcessDTO4Jar(processFlowName, "工序2", "4","C,B","A", capacity, quantity),
+                new ProcessDTO4Jar(processFlowName, "后道", "10","A-空","B,C", capacity, quantity)
+        );
+        for (ProcessDTO4Jar processDTO4Jar : listP){
+            processFlowA.AddProcess(processDTO4Jar);
+            iAlgorithm.initData("tbl_processFlow", processDTO4Jar);
+        }
+        ProcessMonitor.putProcessFlow(processFlowName, listP);
+        processFlowA.StartAllNotify();
+        ObjectMapper objectMapper = new ObjectMapper();
+        String jsonListP = objectMapper.writeValueAsString(listP);
+        return CommonResult.data(jsonListP);
+    }
+\end{lstlisting}\vspace{-30pt}
+其中第10行创建排产单执行类（ProcessFlow）对象，第20行以工序数据（ProcessDTO4Jar实例）为参数调用AddProcess()函数，将工序数据添加到排产单执行类（ProcessFlow）。第21行调用StartAllNotify()函数用于启动该排产单的所有工序执行。
+
+\subsubsection{创建状态机实体类对象}
+\begin{lstlisting}
+    /**
+     * 排产单中增加工序
+     * @param p - Process: 工序对象
+     */
+    public void AddProcess(ProcessDTO4Jar p){
+        listProcess.add(p);
+        processEntityList.add(new ProcessEntity(p, this));
+    }
+\end{lstlisting}\vspace{-30pt}
+这段代码是ProcessFlow.AddProcess()函数，其中第7行创建工序状态机实体类（ProcessEntity）对象，传入参数为工序数据（ProcessDTO4Jar实例）和回调对象（排产单执行类对象）。
+
+
+\subsubsection{工序状态机实体类简介}
+工序状态机实体类实现了图\secref{fig:sm-process}所示的状态机。因为它只负责一个工序的状态处理，无需理会该工序之外的问题，便于实现复杂问题的简单化。
+\begin{lstlisting}
+public class ProcessEntity extends StateMachineEntity {
+    private static final Logger log = LoggerFactory.getLogger(ProcessEntity.class);
+    // jar包接口对象
+    static IAlgorithm iAlgorithm = IAlgorithmImpl.getInstance();
+    //
+    static ICmdPool iCmdPool = new ICmdPoolImpl();
+
+    /**
+     * 工序数据，ProcessEntity 构造函数参数传入
+     */
+    ProcessDTO4Jar process;
+
+    /**
+     * 入站缓存满状态， true - 满， false - 未满
+     */
+    boolean waitingBufferFull = false;
+
+    /**
+     * 物料是否足够，足够则不再请求物料
+     */
+    boolean materialEnough = false;
+
+    /**
+     * 排产单执行类 ProcessFlow 的回调函数
+     */
+    ProcessFlow processFlow_callback;
+
+    /**
+     * 衣架列表
+     */
+    static Map<String, Hanger> hangerMap = null;
+
+    /**
+     * 叫料待出库的衣架列表
+     * <p>
+     *     吊挂测试桩调用出库接口后得到衣架 ID 列表，存放在此。收到存储杆的出站事件后，在此列表中移除对应的 ID。在此列表为空之后，才允许下一次叫料。
+     * </p>
+     */
+    List<String> requestedHangerIds = new ArrayList<>();
+
+    public ProcessEntity(ProcessDTO4Jar p, ProcessFlow cb) {
+        // 不想打印调试信息，可将参数改为false
+        super(true,p.name);
+        // 传入工序数据
+        process = p;
+        // ProcessFlow回调对象
+        processFlow_callback = cb;
+        // 衣架哈希表
+        hangerMap = iAlgorithm.getStorage().getHangerMap();
+        // 注册状态
+        RegisterStates();
+        // 状态机实体创建时，将状态初始化为 STATE_INIT
+        TransferState(eSTATE.STATE_INIT.getId());
+    }
+...... （由于篇幅关系，以下省略，具体可根据状态机图看源码进行理解）
+\end{lstlisting}\vspace{-30pt}
+类成员变量说明如下：
+\begin{itemize}
+	\item \bf{process}：工序数据，ProcessEntity 构造函数参数传入
+	\item \bf{waitingBufferFull}：入站缓存满状态， true - 满， false - 未满
+	\item \bf{materialEnough}：物料是否足够，足够则不再请求物料
+	\item \bf{processFlow\_callback}：排产单执行类 ProcessFlow 对象，用于工序对象回调排产单对象中的函数。
+	\item \bf{hangerMap}：衣架哈希表，可通过衣架id快速查找衣架对象。
+	\item \bf{requestedHangerIds}：叫料待出库的衣架列表
+\end{itemize}
+
+ProcessEntity中，还定义了一个枚举内部类，用作状态标识：
+\begin{lstlisting}
+    @Getter
+    enum eSTATE {
+        STATE_INIT(0,"待执行"),
+        STATE_EXECUTING(1,"执行中"),
+        STATE_PAUSE(2,"暂停（换辅料、缺料、缺人）"),
+        STATE_FINISHED(3,"完成");
+
+        private final int id;
+        private final String name;
+
+        eSTATE(int id, String name) {
+            this.id = id;
+            this.name = name;
+        }
+    }
+\end{lstlisting}\vspace{-30pt}

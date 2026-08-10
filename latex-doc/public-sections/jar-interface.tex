@@ -1,0 +1,771 @@
+\section{JAR包接口简介}
+\subsection{JAR包接口定义（interface）}
+JAR包的对接，主要通过调用 IAlgorithm 接口类的方法完成，定义如下：
+\begin{lstlisting}
+package ncdc.jar;
+
+import ncdc.jar.inventory.Storage;
+import ncdc.jar.param.ParamGetNextStation;
+import ncdc.jar.param.solver.StartStation;
+
+import java.util.Map;
+import java.util.function.Consumer;
+
+/**
+ * IAlgorithm - Jar包接口，吊挂系统（或测试桩）统一通过本接口调用相关功能
+ */
+public interface IAlgorithm {
+
+    /**
+     * 数据初始化接口: 每次调用在表 tblName 中添加一条记录 objRecord
+     * @param tblName - String ：表名,
+     *                 "tbl_node": 节点表、"tbl_edge"：边表、"tbl_inventory"：库存明细表、"tbl_schedule"：排产单、...
+     * @param objRecord - Object : tblName中的记录对象
+     */
+    void initData(String tblName, Object objRecord);
+
+    /**
+     * 初始化完成通知接口：通知 jar 进行后序处理
+     */
+    void initFinished();
+
+    /**
+     * 取全场站、杆库存明细接口
+     * 注意：此接口非必需，此处仅用于吊挂测试桩程序
+     * @return Storage : 全场站、杆库存明细
+     */
+    Storage getStorage();
+
+    /**
+     * 设置 jar 回调业务，排产工站相关的回调（需支持多个排产流程）
+     * 注意：此接口非必需，此处仅用于吊挂测试桩程序
+     * @param flowName - String : 排产单名
+     * @param cb - 函数式接口回调对象
+     */
+    void setJarEventCallback(String flowName, Consumer<Map<String, Object>> cb);
+
+    /**
+     * 设置 jar 回调业务, 需业务继续调用路径求解以及下发运输接力
+     * 注意：此接口非必需，此处仅用于吊挂测试桩程序
+     * @param cb - 函数式接口回调对象
+     */
+    void setJarNoneProcessEventCallback(Consumer<Map<String, Object>> cb);
+
+    /**
+     * 设置衣架的下序信息，建议在站内读卡时设置，解绑衣架时设置为 "" （空串）
+     * @param hangerNo - String : 衣架ID
+     * @param station - String : 下序站
+     * @param processFlowName - String : 排产单名称（或编号）
+     * @param processName - String : 下序名称
+     */
+    void setHangerProcessProperties(String hangerNo, String station, String processFlowName, String processName);
+
+    /**
+     * 入库接口 - 求解入库目标库位
+     * @param processFlowName - String : 排产单名称（或编号）
+     * @param processName - String : 工序名称（或编号）
+     * @param inventoryArea - String : 库区，如"A"表示A仓非空衣架存储杆，"A-空衣架"表示A仓存储杆
+     * @param rules - String : 仓规则Json对象序列化
+     * @return - String : 杆号 (nodeCode)
+     */
+    String getInBoundInventoryPoint(String processFlowName, String processName, String inventoryArea, String rules);
+
+    /**
+     * 出库接口 - 求解出库的库位
+     *
+     * @param processFlowName - String : 排产单名称（或编号）
+     * @param processName - String : 工序名称（或编号）
+     * @param station - String : 站点名称（节点名称）
+     * @param inventoryArea - String : 库区，如"A"表示A仓非空衣架存储杆，"A-空衣架"表示A仓存储杆
+     * @param requiredQty - 出库数量
+     * @return - Json: 序列化的 Json 对象，{hangerNo: 衣架ID, sourceStation: 出库站名称 }
+     */
+    StartStation getOutBoundInventoryPoint(String processFlowName, String processName, String station, String inventoryArea, int requiredQty);
+
+    /**
+     * 路径求解 - 一步一动方式求解下一步走哪儿
+     * @param in_param - ParamGetNextStation : 入参，包含起点、终点
+     * @return 包含下一步桥接信息的JSON对象序列化的出参，包含起点、下一站、终点
+     */
+    ParamGetNextStation getNextBridgeNode(ParamGetNextStation in_param);
+
+    /**
+     * 求边的终止点
+     * @param startNode - String : 边表中边的起始点
+     * @return - String : 边表中边的终止点
+     */
+    String getEdgeEndNode(String startNode);
+
+    /**
+     * 查重新入库（回流）的库区<br>
+     * <p>
+     *     实际上这里的 “库区” 是衣架下序站叫料时该衣架出库的库区
+     * </p>
+     * @param processFlowName - String : 排产单名称（或编号）
+     * @param processName - String : 工序名称（或编号）
+     * @return - String : 库区名，如 “A”、“B”、“B,C”
+     */
+    String getReInBoundInventoryArea(String processFlowName, String processName);
+
+    /**
+     * 事件通知接口 - 事件通知
+     * @param in_param - String : JSON对象序列化入参
+     */
+    void eventNotification(String in_param);
+}
+\end{lstlisting}\vspace{-30pt}
+\subsection{JAR包定义的数据结构}
+\subsubsection{param (参数类)}
+	\begin{enumerate}[label=\arabic*)]
+		\item \bf{Edge}：Jar包自用的结构，定义连接两个节点的边。属性有：\label{sec:param-edge}
+		\begin{itemize}
+			\item \it{nodeFrom}: 边的起点（对应节点表的nodeCode）
+			\item \it{nodeTo}: 边的终点（对应节点表的nodeCode） 
+			\item \it{edgeWeight}: 边的权重（此处为长度，或者边的通行时间），为了不让算法找到存储杆作为路径，进入存储杆的权重为扩大 100 倍处理。
+		\end{itemize}
+		\item \bf{Bridge}：桥接杆\label{sec:param-bridge}
+		\begin{itemize}
+			\item \it{inLineNo}: 衣架进杆线号
+			\item \it{inTrackNo}: 衣架进杆主轨号
+			\item \it{inStationNo}: 衣架进杆主轨轨上入口编号
+			\item \it{outLineNo}: 衣架出杆线号
+			\item \it{outTrackNo}: 衣架出杆主轨号
+			\item \it{outStationNo}: 衣架出杆主轨轨上入口编号 
+		\end{itemize}
+		\item \bf{Node}：节点\label{sec:param-node}
+		\begin{itemize}
+			\item \it{lineNo}: 所属线号
+			\item \it{trackNo}: 所属主轨号
+			\item \it{nodeCode}: 节点编号
+			\item \it{nodeRole}: 站角色
+			\item \it{sort}: 序号（jar不使用）
+			\item \it{stationTimeConsuming}: 同主轨上前驱节点到该节点的运输时间\footnote{\bf{运输时间}: 计算方法：前驱节点到当前节点的长度 / 0.2222 （链速）。\bf{注意}：存储杆的值需扩大 100 倍（4米/0.2222 * 1000 * 100 = 1800180），回流杆、快速通道 设为 1。}
+			\item \it{notes}: 备注（显示用）
+			\item \it{storeType}: ROD - 存储杆/空衣架存储杆/快速通道，STATION - 挂片站/空衣架回收站/加工站
+		\end{itemize}
+		\item \bf{StockArea}：库区\label{sec:param-stockArea}
+		\begin{itemize}
+			\item \it{inLineNo}: 衣架进杆线号
+			\item \it{inTrackNo}: 衣架进杆主轨号
+			\item \it{inStationNo}: 衣架进杆主轨轨上入口编号
+			\item \it{outLineNo}: 衣架出杆线号
+			\item \it{outTrackNo}: 衣架出杆主轨号
+			\item \it{outStationNo}: 衣架出杆主轨轨上入口编号
+			\item \it{rodNo}: 杆号
+			\item \it{areaNo}: 库区号
+		\end{itemize}
+		\item \bf{ParamEnterEvent}: 站杆入口进入（路过）事件
+		\begin{itemize}
+			\item \it{event}: 事件标识
+			\item \it{line}: 线号
+			\item \it{trackNo}: 主轨号
+			\item \it{station}: 站号/存储杆号
+			\item \it{hangerRecordId}: 衣架唯一标识，重新绑定衣服后数据库记录id
+			\item \it{hangerNo}: 衣架号，衣架定的编号
+			\item \it{cardType}: 0 - 路过， 1 - 进入
+		\end{itemize}
+		\item \bf{ParamExitEvent}：出站（杆）事件
+		\begin{itemize}
+			\item \it{event}: 事件标识
+			\item \it{line}: 线号
+			\item \it{trackNo}: 主轨号
+			\item \it{station}: 站号/存储杆号
+			\item \it{hangerRecordId}: 衣架唯一标识，重新绑定衣服后数据库记录id
+			\item \it{hangerNo}: 衣架号，衣架定的编号
+			\item \it{nextLine}: 下一站线号
+			\item \it{nextTrackNo}: 下一站主轨号
+			\item \it{nextStation}: 下一站站号/存储杆号
+			\item \it{targetLine}: 终点站线号
+			\item \it{targetTrackNo}: 终点站主轨号
+			\item \it{targetStation}: 终点站站号/存储杆号
+		\end{itemize}
+		\item \bf{ParamInnerEvent}：站内读卡事件
+		\begin{itemize}
+			\item \it{event}: 事件标识
+			\item \it{line}: 线号
+			\item \it{trackNo}: 主轨号
+			\item \it{station}: 站号/存储杆号
+			\item \it{hangerRecordId}: 衣架唯一标识，重新绑定衣服后数据库记录id
+			\item \it{hangerNo}: 衣架号，衣架定的编号
+		\end{itemize}
+		\item \bf{ParamFullEvent}：站杆满光电事件
+		\begin{itemize}
+			\item \it{event}: 事件标识
+			\item \it{line}: 线号
+			\item \it{trackNo}: 主轨号
+			\item \it{station}: 站号/存储杆号
+			\item \it{type}: 状态 - 0:未满, 1:满
+		\end{itemize}
+		\item \bf{ParamGetNextStation}：路径求解的下一站（一步一动模式适用）\label{sec:param-getNextStation}
+		\begin{itemize}
+			\item \it{line}: 线号
+			\item \it{trackNo}: 主轨号
+			\item \it{station}: 站号/存储杆号
+			\item \it{hangerRecordId}: 衣架唯一标识，重新绑定衣服后数据库记录id
+			\item \it{hangerNo}: 衣架号，衣架定的编号
+			\item \it{nextLine}: 下一站线号
+			\item \it{nextTrackNo}: 下一站主轨号
+			\item \it{nextStation}: 下一站站号/存储杆号
+			\item \it{targetLine}: 终点站线号
+			\item \it{targetTrackNo}: 终点站主轨号
+			\item \it{targetStation}: 终点站站号/存储杆号
+		\end{itemize}
+		\item \bf{ProcessDTO4Jar}：工序数据\label{sec:param-process}
+		\begin{itemize}
+			\item \it{processFlowName}: 排产单名称
+			\item \it{name}: 工序名称，例如: "挂片"
+			\item \it{station}: 站名, 例如："7-2"
+			\item \it{inBoundInventory}: 入库库区
+			\item \it{outBoundInventory}: 出库库区
+			\item \it{stationCapacity}: 站点容量
+			\item \it{taskQuantity}: 加工任务数量, 例如: 500
+			\item \it{waitingNumber}: 入站缓存（待加工）数量
+			\item \it{onTheWayNumber}: 来站在途待加工数量
+			\item \it{inventoryNumber}: 仓内待加工数量（在库数量）
+			\item \it{outGoingNumber}: 出站缓存数量
+			\item \it{producedNumber}: 已加工数量
+		\end{itemize}
+	\end{enumerate}
+\subsubsection{inventory（库存相关）}
+	\begin{enumerate}[label=\arabic*)]
+		\item \bf{struct/Hanger}：衣架数据
+		\begin{itemize}
+			\item \it{HangerNo}: 衣架编号（固定号码，如 RFID ）
+			\item \it{HangerRecordId}: 绑定了衣服的衣架，在数据库中的 ID
+			\item \it{empty}: 是否为空衣架
+			\item \it{processFlowName}: 排产单名称（编号），空衣架忽略此属性
+			\item \it{processName}: 对应工序名称，站内读卡（报工）后修改为下序名称。最后一道工序站内读卡后解绑、回流到出库。
+			\item \it{processStation}: 对应下序工站编号，站内读卡（报工）后修改为下序工站编号。最后一道工序站内读卡后解绑、回流入仓。
+			\item \it{locNodeCode}: 当前所在节点编号
+			\item \it{state}: 状态（HangerStateEnum）: 在杆、出库预订、在站、在途
+			\item \it{tranportTargetStation}: 运输的终点站
+			\item \it{locObj}: 当前所在存储对象（Object）：rod (StorageRod), station (StorageStation), trackNo (String)
+		\end{itemize}
+		\item \bf{struct/StorageRod}：存储杆数据\label{sec:param-storageRod}
+		\begin{itemize}
+			\item \it{lineNo}: 所属线号
+			\item \it{trackNo}: 所属主轨
+			\item \it{inventoryName}: 所属仓库
+			\item \it{station}: 存储杆名称（编号），此处取存储杆节点名称
+			\item \it{role}: 角色，例如查找空衣架存储杆列表时，可以使用角色，此处取存储杆角色
+			\item \it{numberStored}: 存储杆中衣架的数量，设置存储杆中衣架的数量（初始化时用）
+			\item \it{numberOnTheWay}: 以此杆为终点的在途衣架数量，设置在途衣架数
+			\item \it{capacityStorage}: 存储杆容量，设置存储杆存储容量
+			\item \it{capacityOnTheWay}: 以此杆为终点的在途衣架容量（允许的最大数量），设置存储杆在途容量
+			\item \it{bufferFull}: 存储杆满光电状态
+			\item \it{queueInRod}: 杆内衣架队列(CopyOnWriteArrayList <Hanger>)
+			\item \it{listOnTheWay}: 以此杆为终点的在途衣架列表(CopyOnWriteArrayList<Hanger>)
+		\end{itemize}
+		\item \bf{struct/StorageStation}：工站数据\label{sec:param-storageStation}
+		\begin{itemize}
+			\item \it{lineNo}: 所属线号
+			\item \it{trackNo}: 所属主轨
+			\item \it{station}: 站名称（编号），此处为站名称
+			\item \it{role}: 站角色
+			\item \it{numberWaiting}: 站内待加工衣架数量（包括正在加工的）
+			\item \it{numberOutGoing}: 站内已读卡（待出站）数量
+			\item \it{numberOnTheWay}: 在途数量
+			\item \it{capacityWaiting}: 站内待加工衣架缓存容量
+			\item \it{capacityOutGoing}: 站内待出站衣架缓存容量，一般是链条提升器，容量为 2 （放行卡爪 1 个 ，读卡后链条上 1 个）
+			\item \it{capacityOnTheWay}: 在途容量
+			\item \it{bufferFull}: 站点满光电状态（boolean）
+			\item \it{queueWaiting}: 入站缓冲区衣架队列（CopyOnWriteArrayList<Hanger>）
+			\item \it{queueOutGoing}: 出站缓冲区衣架队列（CopyOnWriteArrayList<Hanger>）
+			\item \it{listOnTheWay}: 以本站为目的地的在途衣架列表（CopyOnWriteArrayList<Hanger>）
+			\item 
+		\end{itemize}
+		\item \bf{struct/HangerStateEnum}
+		\begin{itemize}
+			\item \it{HANGER\_STATE\_IN\_STATION}: (1,"IN\_STATION", "在站中")
+			\item \it{HANGER\_STATE\_IN\_ROD}: (2,"IN\_ROD", "在存储杆")
+			\item \it{HANGER\_STATE\_ON\_THE\_WAY}: (3,"ON\_THE\_WAY", "在途")
+			\item \it{HANGER\_STATE\_IN\_ROD\_RESERVED}: (4,"IN\_ROD\_RESERVED", "在杆已预订")
+			\item \it{HANGER\_STATE\_PLACEHOLDER}: (999,"PLACEHOLDER","占位符（不使用）")
+		\end{itemize}
+		\item \bf{Storage}\label{sec:param-storage}
+		\begin{itemize}
+			\item \it{storageRodMap}: 全场存储杆快查哈希表（ConcurrentHashMap<String, StorageRod>，K: 杆编号, V: 存储杆库存对象）
+			\item \it{storageStationMap}: 全场工作站快查哈希表（ConcurrentHashMap<String, StorageStation>, K: 工作站编号，V: 工作站库存对象）
+			\item \it{hangerMap}: 全场衣架快查哈希表（ConcurrentHashMap<String, Hanger>, K: hangerNo, V:衣架对象）
+		\end{itemize}
+	\end{enumerate}
+\subsubsection{helper（辅助类）}
+	\begin{enumerate}[label=\arabic*)]
+		\item \it{LogIf}: log.info过滤器，可按类别过滤log打印，或全部关闭\footnote{\bf{全部关闭日志打印的方法}：LogIf.canLog()直接返回\it{false}。}。
+		\item \it{EdgeNodeQuery}: Jar自用的辅助类，当收到进站事件时，需判断进的是杆还是站。
+		\item \it{IHelper、IHelperImpl}: Jar自用的辅助接口和实现类。
+		\item \it{JsonConfig}: Json配置文件读取封装类，用于定义UDP端口、IP等参数。
+	\end{enumerate}
+\subsection{接口使用示例}
+\subsubsection{获取IAlgorithm实例}
+在\it{吊挂系统测试桩}程序中，有个调用接口进行基础数据初始化示例，`src/main/java/ncdc/app/controller/InitController.java`，第29行是获取IAlgorithm实例的代码，第38行是调用接口的initData函数初始化节点表的方法。
+\begin{lstlisting}
+package ncdc.app.controller;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import ncdc.app.common.CommonResult;
+import ncdc.fake_data.BridgeList;
+import ncdc.fake_data.NodeList;
+import ncdc.fake_data.StockAreaList;
+import ncdc.jar.IAlgorithm;
+import ncdc.jar.helper.LogIf;
+import ncdc.jar.impl.IAlgorithmImpl;
+import ncdc.jar.inventory.struct.Hanger;
+import ncdc.jar.inventory.struct.StorageRod;
+import ncdc.jar.inventory.struct.StorageStation;
+import ncdc.jar.param.Bridge;
+import ncdc.jar.param.Node;
+import ncdc.jar.param.StockArea;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@Tag(name = "Jar包基础数据控制器")
+@RestController
+public class InitController {
+    private static Logger log = LoggerFactory.getLogger(InitController.class);
+    IAlgorithm iAlgorithm = IAlgorithmImpl.getInstance();
+    public enum INIT_FLAG { NODE,BRIDGE,STOCK_AREA}
+    private boolean[] calledFlags = new boolean[INIT_FLAG.values().length];
+
+    @Operation(summary = "节点表初始化")
+    @GetMapping("/init/node")
+    public CommonResult<String> nodeTableInit() {
+        List<Node> nodeList = NodeList.getInstance().getNodes();
+        for (Node node : nodeList) {
+            iAlgorithm.initData("tbl_node", node);
+        }
+        if(LogIf.canLog("tbl")) log.info("节点表初始化完成");
+        markFunctionCalled(INIT_FLAG.NODE);
+        return CommonResult.data("节点表初始化完成");
+    }
+
+    @Operation(summary = "边表初始化")
+    @GetMapping("/init/edge")
+    @Deprecated
+    public CommonResult<String> edgeTableInit() {
+        return CommonResult.data("边表初始化完成 -弃用");
+    }
+    @Operation(summary = "桥接表初始化")
+    @GetMapping("/init/bridge")
+    public CommonResult<String> bridgeTableInit() {
+        List<Bridge> bridgeList = BridgeList.getInstance().getBridges();
+        for (Bridge bridge : bridgeList) {
+            iAlgorithm.initData("tbl_bridge", bridge);
+        }
+        if(LogIf.canLog("tbl")) log.info("桥接表初始化完成");
+        markFunctionCalled(INIT_FLAG.BRIDGE);
+        return CommonResult.data("桥接表初始化完成");
+    }
+    @Operation(summary = "库区表初始化")
+    @GetMapping("/init/stockArea")
+    public CommonResult<String> stockAreaTableInit() {
+        List<StockArea> stockAreaList = StockAreaList.getInstance().getStockAreas();
+        for (StockArea stockArea : stockAreaList) {
+            iAlgorithm.initData("tbl_stockArea", stockArea);
+        }
+        if(LogIf.canLog("tbl")) log.info("库区表初始化完成");
+        markFunctionCalled(INIT_FLAG.STOCK_AREA);
+        return CommonResult.data("库区表初始化完成");
+    }
+
+    @Operation(summary = "初始化工站、存储杆库存")
+    @GetMapping("/init/storage")
+    public CommonResult<String> initStorage() {
+        // 1. 初始化工站内缓存
+        // 按 fs 的 init 控制方法准备数据 : 7-1、7-2、8-2、8-4挂片站有1个待加工衣架
+
+        // 1.1 7-1 有个空衣架
+        StorageStation ss = iAlgorithm.getStorage().getStorageStation("7-1");
+        ss.setCapacityWaiting(120);
+        Hanger hanger = new Hanger("1000402","1000402",true,"7-1");
+        ss.AddHangerWaiting(hanger);
+        iAlgorithm.getStorage().updateStorageStation(ss);
+
+        // 1.2 7-2  有个空衣架
+        ss = iAlgorithm.getStorage().getStorageStation("7-2");
+        ss.setCapacityWaiting(120);
+        hanger = new Hanger("1000401","1000401",true,"7-2");
+        ss.AddHangerWaiting(hanger);
+        iAlgorithm.getStorage().updateStorageStation(ss);
+
+        // 1.2 8-2  有个空衣架
+        ss = iAlgorithm.getStorage().getStorageStation("8-2");
+        ss.setCapacityWaiting(120);
+        hanger = new Hanger("1000403","1000403",true,"8-2");
+        ss.AddHangerWaiting(hanger);
+        iAlgorithm.getStorage().updateStorageStation(ss);
+
+        // 1.2 8-4  有个空衣架
+        ss = iAlgorithm.getStorage().getStorageStation("8-4");
+        ss.setCapacityWaiting(120);
+        hanger = new Hanger("1000404","1000404",true,"8-4");
+        ss.AddHangerWaiting(hanger);
+        iAlgorithm.getStorage().updateStorageStation(ss);
+
+        // 2. 存储杆 A-17、A-18、A-19、A-20 各有 100 个空衣架
+        // 2.1 A-17 有1000301~1000400的衣架
+        StorageRod sr = iAlgorithm.getStorage().getStorageRod("A-17");
+        sr.setCapacityStorage(100);
+        for (int i=1000301; i<=1000400; i++){
+            hanger = new Hanger(String.valueOf(i),String.valueOf(i),true,"A-17");
+            sr.AddHangerToRod(hanger);
+        }
+        // 2.2 A-18 有1000201~1000300的衣架
+        sr = iAlgorithm.getStorage().getStorageRod("A-18");
+        sr.setCapacityStorage(100);
+        for (int i=1000201; i<=1000300; i++){
+            hanger = new Hanger(String.valueOf(i),String.valueOf(i),true,"A-18");
+            sr.AddHangerToRod(hanger);
+        }
+        // 2.3 A-19 有1000001~1000100的衣架
+        sr = iAlgorithm.getStorage().getStorageRod("A-19");
+        sr.setCapacityStorage(100);
+        for (int i=1000001; i<=1000100; i++){
+            hanger = new Hanger(String.valueOf(i),String.valueOf(i),true,"A-19");
+            sr.AddHangerToRod(hanger);
+        }
+        // 2.4 A-20 有1000101~1000200的衣架
+        sr = iAlgorithm.getStorage().getStorageRod("A-20");
+        sr.setCapacityStorage(100);
+        for (int i=1000101; i<=1000200; i++){
+            hanger = new Hanger(String.valueOf(i),String.valueOf(i),true,"A-20");
+            sr.AddHangerToRod(hanger);
+        }
+
+        if(LogIf.canLog("tbl")) log.info("初始化工站、存储杆库存完成");
+        return CommonResult.data("初始化工站、存储杆库存完成");
+    }
+
+    /**
+     * 标记边表、节点表已初始化，如果两表都已完成初始化则调用接口的 initFinished() ，以建立邻接矩阵和初始化站/杆数据结构
+     * @param flag - enum INIT_FLAG : 表示已初始化的是 NODE 或 EDGE
+     */
+    public synchronized void markFunctionCalled(INIT_FLAG flag) {
+        int index = flag.ordinal();
+        calledFlags[index] = true;
+        boolean allCalled = true;
+        for (boolean called : calledFlags) {
+            if (!called) {
+                allCalled = false;
+            }
+        }
+        if (allCalled) {
+
+            iAlgorithm.initFinished();
+        }
+    }
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsection{基础数据初始化接口}
+\subsubsection{initData()}
+初始化\it{节点表}、\it{桥接表}、\it{库区表}，以及提交\it{新排产单}，均可以调用 initData() 函数，定义如下：
+\begin{lstlisting}
+    /**
+     * 数据初始化接口: 每次调用在表 tblName 中添加一条记录 objRecord
+     * @param tblName - String ：表名,
+     *                 "tbl_node": 节点表、"tbl_edge"：边表、"tbl_inventory"：库存明细表、"tbl_schedule"：排产单、...
+     * @param objRecord - Object : tblName中的记录对象
+     */
+    void initData(String tblName, Object objRecord);
+\end{lstlisting}\vspace{-30pt}
+初始化不同数据时，参数 \it{tblName} 的取值约定如下：
+\begin{enumerate}
+    \item \it{tbl\_node} : 节点表，对应的objRecord详见“\hyperref[sec:param-node]{\underline{Node(节点)类定义}}”
+    \item \it{tbl\_edge} : 边表（\textcolor{red}{已弃用，jar中将自动从其它表生成边表}），对应的objRecord详见“\hyperref[sec:param-edge]{\underline{Edge(边)类定义}}”
+    \item \it{tbl\_processFlow} : 排产单，对应的objRecord详见“\hyperref[sec:param-process]{\underline{ProcessDTO4Jar(工序)类定义}}”
+    \item \it{tbl\_bridge} : 桥接表，对应的objRecord详见“\hyperref[sec:param-bridge]{\underline{Bridge(桥接)类定义}}”
+    \item \it{tbl\_stockArea} : 库区表，对应的objRecord详见“\hyperref[sec:param-stockArea]{\underline{StockArea(库区)类定义}}”
+\end{enumerate}
+\subsubsection{initFinished()}
+该函数在\it{节点表}、\it{桥接表}、\it{库区表}初始化完成后调用，用于初始化\it{邻接矩阵}和\it{站点、杆}等数据结构，定义如下：
+\begin{lstlisting}
+    /**
+     * 初始化完成通知接口：通知 jar 进行后序处理
+     */
+    void initFinished();
+\end{lstlisting}\vspace{-30pt}
+\subsection{库存初始化接口}
+\subsubsection{存储杆库存初始化}
+在 \hyperref[sec:param-storage]{\underline{Storage}}  类中，定义了存储杆的哈希表 storageRodMap，用于存储存储杆衣架存储信息(\hyperref[sec:param-storageRod]{\underline{StorageRod}})，定义如下：
+\begin{lstlisting}
+    /**
+     * 全场存储杆快查哈希表<br>
+     * K - String : 杆编号<br>
+     * V - StorageRod : 存储杆库存对象
+     */
+    ConcurrentHashMap<String, StorageRod> storageRodMap = new ConcurrentHashMap<>();
+\end{lstlisting}\vspace{-30pt}
+在存储杆中添加衣架分两种情况：
+\begin{enumerate}[label=\arabic*)]
+    \item 添加衣架到存储杆的存储队列，分两个步骤：
+    \begin{itemize}
+        \item \hypertarget{1}{\it{new Hanger}} % 添加书签
+        创建衣架对象,
+        \item \hypertarget{2}{\it{AddHangerToRod()}} % 添加书签
+        \addcontentsline{toc}{paragraph}{AddHangerToRod()} % 添加到目录
+        调用 StorageRod 的 AddHangerToRod() 函数，将衣架添加到存储杆的存储队列。
+    \end{itemize}
+        举例如下：
+        \begin{lstlisting}
+                // 2.2 A-18 有1000201~1000300的衣架
+                sr = iAlgorithm.getStorage().getStorageRod("A-18");
+                sr.setCapacityStorage(100);
+                for (int i=1000201; i<=1000300; i++){
+                    hanger = new Hanger(String.valueOf(i),String.valueOf(i),true,"A-18");
+                    sr.AddHangerToRod(hanger);
+                }
+        \end{lstlisting}\vspace{-30pt}
+        \tips{在调用 AddHangerToRod() 函数时，要注意顺序是杆头（出库端）到杆尾。}
+    \item 添加衣架到存储杆的在途列表，分两个步骤：
+    \begin{itemize}
+        \item \hypertarget{1}{\it{new Hanger}}
+        创建衣架对象，
+        \item \hypertarget{2}{\it{AddHangerOnTheWay()}}
+        \addcontentsline{toc}{paragraph}{AddHangerOnTheWay()}
+        调用 StorageRod 的  AddHangerOnTheWay() 函数，将衣架添加到存储杆的在途列表。
+    \end{itemize}
+    \textcolor{red}{吊挂测试桩中初始化存储杆时，暂无添加存储杆在途衣架的示例代码。在实际的吊挂系统中，软件启动要恢复现场，需要恢复存储杆在途衣架信息。}
+\end{enumerate}
+\par\tips{在调用 AddHangerToRod() 和 AddHangerOnTheWay() 函数时，Storage的hangerMap会自动更新（put）。}
+\subsubsection{工站库存初始化}
+在 \hyperref[sec:param-storage]{\underline{Storage}} 类中，定义了工站的哈希表 storageStationMap，用于存储工站衣架存储信息(\hyperref[sec:param-storageStation]{\underline{StorageStation}})，定义如下：
+\begin{lstlisting}
+    /**
+     * 全场工作站快查哈希表<br>
+     * K - String : 工作站编号<br>
+     * V - StorageStation : 工作站库存对象
+     */
+    ConcurrentHashMap<String, StorageStation> storageStationMap = new ConcurrentHashMap<>();
+\end{lstlisting}\vspace{-30pt}
+工站有4个存储相关的数据：\it{站内衣架（等待加工\&正在加工）}、\it{待出站衣架}、\it{在途衣架}、\it{在库衣架}。其中在库衣架通过\bf{存储杆库存初始化}完成。同时在初始化工站库存时，对应工站、衣架的工序信息也需要初始化。
+\begin{itemize}
+    \item \hypertarget{1}{\it{new Hanger}}
+    创建衣架对象，
+    \item \hypertarget{2}{\it{AddCapacityWaiting()}}
+    \addcontentsline{toc}{paragraph}{AddCapacityWaiting()}
+    调用 StorageStation 的  AddCapacityWaiting() 函数，设置工站的等待加工衣架容量。
+    \item \hypertarget{3}{\it{AddHangerWaiting()}}
+    \addcontentsline{toc}{paragraph}{AddHangerWaiting()}
+    调用 StorageStation 的  AddHangerWaiting() 函数，将衣架添加到工站的站内队列。
+    \item \hypertarget{3}{\it{AddHangerOutGoing()}}
+    \addcontentsline{toc}{paragraph}{AddHangerOutGoing()}
+    调用 StorageStation 的  AddHangerOutGoing() 函数，将衣架添加到工站的待出站队列。
+    \item \hypertarget{3}{\it{AddHangerOnTheWay()}}
+    \addcontentsline{toc}{paragraph}{AddHangerOnTheWay()}
+    调用 StorageStation 的  AddHangerOnTheWay() 函数，将衣架添加到工站的在途列表。
+    \item \hypertarget{4}{\it{Storage.updateStorageStation()}}
+    \addcontentsline{toc}{paragraph}{Storage.updateStorageStation()}
+    调用 Storage.updateStorageStation()函数，更新工站到Storage。
+\end{itemize}
+\begin{lstlisting}
+    // 1.2 7-2  有个空衣架
+    ss = iAlgorithm.getStorage().getStorageStation("7-2");
+    ss.setCapacityWaiting(120);
+    hanger = new Hanger("1000401","1000401",true,"7-2");
+    ss.AddHangerWaiting(hanger);
+    iAlgorithm.getStorage().updateStorageStation(ss);
+\end{lstlisting}\vspace{-30pt}
+
+\subsection{入仓接口（入仓运输终点存储杆求解）}
+\subsubsection{getInBoundInventoryPoint}
+\begin{lstlisting}
+    /**
+     * 入库接口 - 求解入库目标库位
+     * @param processFlowName - String : 排产单名称（或编号）
+     * @param processName - String : 工序名称（或编号）
+     * @param inventoryArea - String : 库区，如"A"表示A仓非空衣架存储杆，"A-空衣架"表示A仓存储杆
+     * @param rules - String : 仓规则Json对象序列化
+     * @return - String : 杆号 (nodeCode)
+     */
+    String getInBoundInventoryPoint(String processFlowName, String processName, String inventoryArea, String rules);
+\end{lstlisting}\vspace{-30pt}
+\subsubsection{接口调用示例}
+\begin{lstlisting}
+String targetStation = iAlgorithm.getInBoundInventoryPoint(processFlow_callback.getProcessFlowName(), process.getName(), process.getInBoundInventory(),"");
+\end{lstlisting}\vspace{-30pt}
+\begin{itemize}
+    \item\purpletxt{processFlow\_callback.getProcessFlowName()}：此处的入库求解是在\it{工序状态机实体类}中调用，需回调排产单执行类的函数取排产单名称。
+    \item\purpletxt{process.getName()}：取工站名称。
+    \item\purpletxt{process.getInBoundInventory()}：取工序对应工站出站后入库的库区。
+    \item\purpletxt{“”}： 仓规则--现在实现的规则写在代码中，将来完善为可配置的规则。
+\end{itemize}
+\subsection{出仓接口（出仓起始点存储杆、衣架求解）}
+\subsubsection{getOutBoundInventoryPoint}
+\begin{lstlisting}
+    /**
+     * 出库接口 - 求解出库的库位
+     *
+     * @param processFlowName - String : 排产单名称（或编号）
+     * @param processName - String : 工序名称（或编号）
+     * @param station - String : 站点名称（节点名称）
+     * @param inventoryArea - String : 库区，如"A"表示A仓非空衣架存储杆，"A-空衣架"表示A仓存储杆
+     * @param requiredQty - 出库数量
+     * @return - Json: 序列化的 Json 对象，{hangerNo: 衣架ID, sourceStation: 出库站名称 }
+     */
+    StartStation getOutBoundInventoryPoint(String processFlowName, String processName, String station, String inventoryArea, int requiredQty);
+\end{lstlisting}\vspace{-30pt}
+\subsubsection{接口调用示例}
+\begin{lstlisting}
+StartStation startStation = iAlgorithm.getOutBoundInventoryPoint(processFlowName, process.name, process.station,process.getOutBoundInventory(),1); 
+\end{lstlisting}\vspace{-30pt}
+\begin{itemize}
+    \item \purpletxt{processFlowName}: 排产单名称
+    \item \purpletxt{process.name}: 工序名称
+    \item \purpletxt{process.station}: 工站名称
+    \item \purpletxt{process.getOutBoundInventory()}: 出库库区
+    \item \purpletxt{1}: 出库数量
+\end{itemize}
+\subsection{路径求解接口}
+\subsubsection{getNextBridgeNode}
+\begin{lstlisting}
+    /**
+     * 路径求解 - 一步一动方式求解下一步走哪儿
+     * @param in_param - ParamGetNextStation : 入参，包含起点、终点
+     * @return 包含下一步桥接信息的JSON对象序列化的出参，包含起点、下一站、终点
+     */
+    ParamGetNextStation getNextBridgeNode(ParamGetNextStation in_param);
+\end{lstlisting}\vspace{-30pt}
+为便于使用，路径求解接口函数的入参和出参使用同样数据结构，结构定义见\hyperref[sec:param-getNextStation]{\underline{ParamGetNextStation}}。结构中入参、出参的属性填写和变化，以及调用后补全的属性，说明如下：
+\begin{itemize}
+	\item {line}[\bluetxt{出}]: 线号
+	\item {trackNo}[\bluetxt{出}]: 主轨号
+	\item {station}[\redtxt{入}]、[\bluetxt{出}]: 站号/存储杆号
+	\item {hangerRecordId}[\purpletxt{补}]: 衣架唯一标识，重新绑定衣服后数据库记录id
+	\item {hangerNo}[\purpletxt{补}]: 衣架号，衣架定的编号
+	\item {nextLine}[\bluetxt{出}]: 下一站线号
+	\item {nextTrackNo}[\bluetxt{出}]: 下一站主轨号
+	\item {nextStation}[\bluetxt{出}]: 下一站站号/存储杆号
+	\item {targetLine}[\bluetxt{出}]: 终点站线号
+	\item {targetTrackNo}[\bluetxt{出}]: 终点站主轨号
+	\item {targetStation}[\redtxt{入}]、[\bluetxt{出}]: 终点站站号/存储杆号
+\end{itemize}
+\subsubsection{接口调用示例}
+\begin{lstlisting}
+    // 2) 阻挡衣架重新入库处理
+    for (Hanger hangerReInBound: startStation.getBlockedHangers()){
+        // 计算入库运输终点。注意：要使用重入库衣架中的排产单名称、工序名称，库区用排产单名称和工序名称查查询
+        String processFN = hangerReInBound.getProcessFlowName();
+        String processN = hangerReInBound.getProcessName();
+        String invArea = iAlgorithm.getReInBoundInventoryArea(processFN,processN);
+        String targetStation = iAlgorithm.getInBoundInventoryPoint(processFN, processN, invArea,"");
+        if (targetStation!=null){
+            // 求路径
+            ParamGetNextStation inParam = new ParamGetNextStation();
+            // 重入库的起点
+            inParam.station = hangerReInBound.getLocNodeCode();
+            // 从入库的终点
+            inParam.targetStation = targetStation;
+
+            // 如果终点与起点相同，路径求解会异常，需在边表中查找衣架的 locNodeCode 的下一个节点作为入参的起点
+            if (inParam.station.equals(inParam.targetStation)){
+                inParam.station = iAlgorithm.getEdgeEndNode(hangerReInBound.getLocNodeCode());
+            }
+
+            ParamGetNextStation outParam = iAlgorithm.getNextBridgeNode(inParam);
+            outParam.hangerNo = hangerReInBound.getHangerNo();
+            outParam.hangerRecordId = hangerReInBound.getHangerNo();
+            if(LogIf.canLog("path,debug")) log.info("阻挡衣架重入库，路径求解出参... {}", outParam);
+            // 发运输任务给控制，库存数据由事件触发修改
+            ObjectMapper objectMapper = new ObjectMapper();
+            try {
+                String jsonCmdString = objectMapper.writeValueAsString(outParam);
+                iCmdPool.pushCmd(jsonCmdString);
+                if(LogIf.canLog("udp-down,debug")) log.info("阻挡衣架重入库，发送运输任务：{}", outParam);
+            } catch (Exception e) {
+                if(LogIf.canLog("udp-down,debug")) log.error("阻挡衣架重入库，发送运输任务异常：{}", outParam);
+            }
+        }
+    }
+\end{lstlisting}\vspace{-30pt}
+
+\subsection{其它辅助接口}
+\subsubsection{getStorage}
+\begin{lstlisting}
+    /**
+     * 取全场站、杆库存明细接口
+     * 注意：此接口非必需，此处仅用于吊挂测试桩程序
+     * @return Storage : 全场站、杆库存明细
+     */
+    Storage getStorage();
+\end{lstlisting}\vspace{-30pt}
+\tips{为方便设计，Jar包的库存数据、测试桩的库存数据使用同一份。}
+
+\subsubsection{setJarEventCallback}
+\begin{lstlisting}
+    /**
+     * 设置 jar 回调业务，排产工站相关的回调（需支持多个排产流程）
+     * 注意：此接口非必需，此处仅用于吊挂测试桩程序
+     * @param flowName - String : 排产单名
+     * @param cb - 函数式接口回调对象
+     */
+    void setJarEventCallback(String flowName, Consumer<Map<String, Object>> cb);
+\end{lstlisting}\vspace{-30pt}
+\tips{此接口可选，主要用于吊挂测试桩程序，设计该接口的原因是测试桩没有必要再独立处理衣架运输事件的逻辑。例如工站、存储杆有衣架进入和离开事件时，通知排产单执行类，由排产单再通知工站状态机实体类。}
+
+\subsubsection{setJarNoneProcessEventCallback}
+\begin{lstlisting}
+    /**
+     * 设置 jar 回调业务, 需业务继续调用路径求解以及下发运输接力
+     * 注意：此接口非必需，此处仅用于吊挂测试桩程序
+     * @param cb - 函数式接口回调对象
+     */
+    void setJarNoneProcessEventCallback(Consumer<Map<String, Object>> cb);
+\end{lstlisting}\vspace{-30pt}
+\tips{此接口可选，主要用于吊挂测试桩程序。例如在衣架进回流杆、快速通道时，通知测试桩继续控制衣架前往下一站。}
+
+\subsubsection{setHangerProcessProperties}
+\begin{lstlisting}
+    /**
+     * 设置衣架的下序信息，建议在站内读卡时设置，解绑衣架时设置为 "" （空串）
+     * @param hangerNo - String : 衣架ID
+     * @param station - String : 下序站
+     * @param processFlowName - String : 排产单名称（或编号）
+     * @param processName - String : 下序名称
+     */
+    void setHangerProcessProperties(String hangerNo, String station, String processFlowName, String processName);
+\end{lstlisting}\vspace{-30pt}
+\tips{1. 站内读卡，调用此接口函数设置衣架的排产单、下序等信息}\\
+\tips{2. 出站读卡，如果下序为空（表明是最后一道工序），表明是空衣架回库，调用此接口函数清空衣架的排产单、下序等信息}
+
+\subsubsection{getEdgeEndNode}
+\begin{lstlisting}
+    /**
+     * 求边的终止点
+     * @param startNode - String : 边表中边的起始点
+     * @return - String : 边表中边的终止点
+     */
+    String getEdgeEndNode(String startNode);
+
+\end{lstlisting}\vspace{-30pt}
+\tips{如果回流入库时终点与起点相同，路径求解会异常，需在边表中查找衣架的 locNodeCode 的下一个节点作为入参的起点}
+
+\subsubsection{getReInBoundInventoryArea}
+\begin{lstlisting}
+    /**
+     * 查重新入库（回流）的库区<br>
+     * <p>
+     *     实际上这里的 “库区” 是衣架下序站叫料时该衣架出库的库区
+     * </p>
+     * @param processFlowName - String : 排产单名称（或编号）
+     * @param processName - String : 工序名称（或编号）
+     * @return - String : 库区名，如 “A”、“B”、“B,C”
+     */
+    String getReInBoundInventoryArea(String processFlowName, String processName);
+\end{lstlisting}\vspace{-30pt}
+\tips{阻挡衣架带有排产单名称和工序名称属性，与叫料工序不一样，叫料工序状态机实体类以及对应排产单执行类没有阻挡衣架的重入库库区信息，所以设计此接口进行查询。}
+
+\subsubsection{eventNotification}
+\begin{lstlisting}
+    /**
+     * 事件通知接口 - 事件通知
+     * @param in_param - String : JSON对象序列化入参
+     */
+    void eventNotification(String in_param);
+\end{lstlisting}\vspace{-30pt}
+吊挂硬件的事件（FS仿真程序） --> 控制系统（控制测试桩） --> 业务系统（吊挂测试桩）之后，业务系统（吊挂测试桩）负责调用此接口通知 Jar 包。

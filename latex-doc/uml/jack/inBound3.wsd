@@ -1,0 +1,30 @@
+@startuml
+scale 800 width
+title 入库库位筛选流程 （III）-- 筛选适合的混存杆
+partition <color:red>III. 筛选适合的混存杆 {
+start
+:<color:red>II. 计算备选库位数据; <<procedure>>
+:初始化候选杆<color:red>cRod</color>为null，候选杆已存衣架混存度<color:red>cMix</color>为0，\l入参匹配衣架数最多变量<color:red>maxCountMatchedProps</color>为0;
+repeat
+    #palegreen: 遍历候选库位数据哈希表的key\l<color:red>for (String rodCode: mapCandidateRods.keySet())</color>;
+    :回调App, 取库位数据：在杆、在途、杆容量、满光电状态;
+    if (光电未满 && 在杆 + 在途 < 容量) then (是)
+        :取出当前key的value （MixedInfo）\l<color:red>MixedInfo info = mapCandidateRods.get(rodCode)</color>;
+        if (info中（当请杆）混存度<入参混存度 ||\linfo中（当前杆）存有匹配入参props的衣架 ) then (是)
+            if (还没有选中的杆（cRod==null）) then (是)
+                :先选当前杆，并保存混存度:\lcRod=rodCode\lcMix=info.getMixedDegree;
+            elseif (已选杆混存度大于当前杆混存度，\l且已选杆没有入参props匹配的衣架\lmaxCountMatchedProps==0 && cMix>info.getMixedDegree())
+                :重选当前杆，并保存混存度:\lcRod=rodCode\lcMix=info.getMixedDegree;
+            endif
+            if (当前杆匹配入参props的衣架数大于maxCountMatchedProps) then (是)
+                :<color:red>maxCountMatchedProps</color> = info.getCountMatchedProps()\l<color:red>cRod</color> = rodCode\l<color:red>cMix</color> = info.getMixedDegree();;
+            endif
+        endif
+    endif
+    backward :下一候选库位;
+repeat while (遍历结束？) is (否) not (是)
+:返回库位cRod\lcRod有可能是<color:red>null</color>，此时通常是<color:red>所有杆都满了</color>，\l或者<color:red>混存度不符合入参要求</color>;
+stop
+}
+@enduml
+

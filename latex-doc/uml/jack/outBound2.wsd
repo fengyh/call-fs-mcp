@@ -1,0 +1,42 @@
+@startuml
+scale 800 width
+title 出库库位和衣架筛选流程 （II）-- 求非空衣架出库候选杆数组 
+partition <color:red>II. 求非空衣架出库候选杆数组 {
+start
+:<color:red>I. 空衣架筛选出库; <<procedure>>
+:按阻挡深度记录存储杆的数组（假设存储杆最多存200个衣架）\lArrayList<String>[] <color:red>blockDegreeRods</color> = new ArrayList[200]\lint <color:red>maxBlockDegree</color> = 0 :最大阻挡深度（阻挡深度是杆中第一个匹配的衣架是第几个衣架）;
+
+repeat
+	#palegreen: 遍历库位 rods\lfor(String rodCode : rods);
+	if (在杆衣架数 > 0)  then (是)
+		:初始化本地变量：\l <color:red>mapMixedDegree</color>（属性值组合->衣架数量）：按入参props属性取值的衣架数哈希表\lboolean <color:red>foundMatchedProps</color> = false:是否找到入参props属性值组合匹配的衣架\lint <color:red>blockDegree</color> = 0:当前杆阻挡深度清零;
+
+		:计算<color:red>key0</color>(入参props属性值组合)\l取<color:red>hangerrIds</color>（当前杆rodCode在杆衣架id列表）;
+
+		repeat
+			#lightgreen:  遍历衣架 hangerIds\lfor(String hangerId : hangerIds);
+			:计算<color:red>key</color>(取衣架id对应的衣架中props属性值组合);
+			if (key0 == key) then (是)
+				if (foundMatchedProps == false) then (是)
+					:按阻挡深度保存当前杆找到第一个匹配的衣架\l<color:red>blockDegreeRods[blockDegree].add(rodCode)</color>;
+				endif
+				:<color:red>foundMatchedProps = true</color> （当前杆找到入参props属性值组合匹配的衣架）;
+			endif
+			if (mapMixedDegree包含key) then (是)
+				:key对应的衣架数+1\l mapMixedDegree.put(key, mapMixedDegree.get(key) + 1);
+			else (否)
+				:key对应的衣架数置1 mapMixedDegree.put(key, 1)\l本杆混存度+1 <color:red>mixedDegree++</color>;
+			endif
+			backward :下一衣架;
+		repeat while (衣架遍历结束？) is (否) not (是)
+
+		:<color:red>更新最大阻挡深度</color>\l当前杆的阻挡深度比最大阻挡深度大时，最大阻挡深度替换为当前杆的阻挡深度;
+	else (否)
+		:跳过该库位;
+	endif
+	backward :下一库位;
+repeat while (存储杆遍历结束？) is (否) not (是)
+:<color:red>III. 在阻挡深度分类存储杆中筛选出库衣架; <<procedure>>
+stop
+}
+@enduml

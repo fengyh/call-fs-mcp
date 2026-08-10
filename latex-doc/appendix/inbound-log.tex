@@ -1,0 +1,1351 @@
+\section{附录：入库算法日志}\label{sec:inbound-log}
+{\scriptsize
+\begin{verbatim}
+{inBound} - hangerId: 1000402, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=绿色, size=大号}, maxMixture: 3
+{inBound} <3.5 不满足“空衣架”、“混存1”的杆，找空杆> - sEmptyRodCode: B-1
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000402)入库目标库位 B-1
+
+{inBound} - hangerId: 1000301, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=绿色, size=特大}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=1}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=1})}
+{inBound} <3.5 不满足“空衣架”、“混存1”的杆，找空杆> - sEmptyRodCode: B-2
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000301)入库目标库位 B-2
+
+{inBound} - hangerId: 1000302, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=绿色, size=中号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=1}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}),
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=1})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_绿色_特大=1}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_特大=1})}
+{inBound} <3.5 不满足“空衣架”、“混存1”的杆，找空杆> - sEmptyRodCode: B-3
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000302)入库目标库位 B-3
+
+{inBound} - hangerId: 1000303, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=绿色, size=大号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=1}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=1})}
+{inBound} <3.4 找到相同排产单+相同工序的存储杆，且没有其它工序的衣架，则返回该存储杆> - rodCode: B-1
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000303)入库目标库位 B-1
+
+{inBound} - hangerId: 1000304, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=绿色, size=中号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=2}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=2})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_绿色_特大=1}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_特大=1})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=1}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=1})}
+{inBound} <3.4 找到相同排产单+相同工序的存储杆，且没有其它工序的衣架，则返回该存储杆> - rodCode: B-3
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000304)入库目标库位 B-3
+
+{inBound} - hangerId: 1000305, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=绿色, size=大号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=2}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=2})}
+{inBound} <3.4 找到相同排产单+相同工序的存储杆，且没有其它工序的衣架，则返回该存储杆> - rodCode: B-1
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000305)入库目标库位 B-1
+
+{inBound} - hangerId: 1000306, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=绿色, size=大号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=3}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫_绿色=3}), 
+		3=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=3})}
+{inBound} <3.4 找到相同排产单+相同工序的存储杆，且没有其它工序的衣架，则返回该存储杆> - rodCode: B-1
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000306)入库目标库位 B-1
+
+{inBound} - hangerId: 1000307, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=绿色, size=中号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=4}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫_绿色=4}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=4})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_绿色_特大=1}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_特大=1})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=2}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=2})}
+{inBound} <3.4 找到相同排产单+相同工序的存储杆，且没有其它工序的衣架，则返回该存储杆> - rodCode: B-3
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000307)入库目标库位 B-3
+
+{inBound} - hangerId: 1000308, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=红色, size=中号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=4}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=4}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=4})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_绿色_特大=1}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_特大=1})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=3})}
+{inBound} <3.5 不满足“空衣架”、“混存1”的杆，找空杆> - sEmptyRodCode: B-4
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000308)入库目标库位 B-4
+
+{inBound} - hangerId: 1000309, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=绿色, size=大号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=4}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫_绿色=4}), 
+		3=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=4})}
+{inBound} <3.4 找到相同排产单+相同工序的存储杆，且没有其它工序的衣架，则返回该存储杆> - rodCode: B-1
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000309)入库目标库位 B-1
+
+{inBound} - hangerId: 1000310, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=绿色, size=小号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=5, mixedDegree=1, mapMixedDegree={衬衫=5}), 
+		2=MixedData(countMatchedProps=5, mixedDegree=1, mapMixedDegree={衬衫_绿色=5}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=5})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_绿色_特大=1}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_特大=1})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫_绿色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=3})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=1}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=1})}
+{inBound} <3.5 不满足“空衣架”、“混存1”的杆，找空杆> - sEmptyRodCode: B-5
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000310)入库目标库位 B-5
+
+{inBound} - hangerId: 1000311, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=羽绒, color=绿色, size=中号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=5}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=5}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=5})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_绿色_特大=1}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_特大=1})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=3})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=1}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=1})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=1}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=1})}
+{inBound} <3.5 不满足“空衣架”、“混存1”的杆，找空杆> - sEmptyRodCode: B-6
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000311)入库目标库位 B-6
+
+{inBound} - hangerId: 1000312, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=红色, size=大号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=5, mixedDegree=1, mapMixedDegree={衬衫=5}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=5}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=5})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_绿色_特大=1}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_特大=1})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=3})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=1}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=1})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=1}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=1})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=1}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=1})}
+{inBound} <3.5 不满足“空衣架”、“混存1”的杆，找空杆> - sEmptyRodCode: B-7
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000312)入库目标库位 B-7
+
+{inBound} - hangerId: 1000313, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=绿色, size=小号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=5, mixedDegree=1, mapMixedDegree={衬衫=5}), 
+		2=MixedData(countMatchedProps=5, mixedDegree=1, mapMixedDegree={衬衫_绿色=5}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=5})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_绿色_特大=1}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_特大=1})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫_绿色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=3})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=1}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=1})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=1}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=1})}
+{inBound} <3.4 找到相同排产单+相同工序的存储杆，且没有其它工序的衣架，则返回该存储杆> - rodCode: B-5
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000313)入库目标库位 B-5
+
+{inBound} - hangerId: 1000314, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=红色, size=中号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=5, mixedDegree=1, mapMixedDegree={衬衫=5}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=5}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=5})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_绿色_特大=1}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_特大=1})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=3})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=1}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=1})}
+{inBound} <3.4 找到相同排产单+相同工序的存储杆，且没有其它工序的衣架，则返回该存储杆> - rodCode: B-4
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000314)入库目标库位 B-4
+
+{inBound} - hangerId: 1000315, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=蓝色, size=大号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=5, mixedDegree=1, mapMixedDegree={衬衫=5}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=5}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=5})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_绿色_特大=1}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_特大=1})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=3})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=2}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=2})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=1}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=1})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=1}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=1})}
+{inBound} <3.5 不满足“空衣架”、“混存1”的杆，找空杆> - sEmptyRodCode: B-8
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000315)入库目标库位 B-8
+
+{inBound} - hangerId: 1000316, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=羽绒, color=绿色, size=大号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=5}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=5}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=5})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_绿色_特大=1}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_特大=1})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=3})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=2}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=2})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=1}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={羽绒_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=1})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=1}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=1})}
+{inBound} - 杆 B-8 的混存信息（最细）:  {衬衫_蓝色_大号=1}
+{inBound} - 杆 B-8 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色_大号=1})}
+{inBound} <3.5 不满足“空衣架”、“混存1”的杆，找空杆> - sEmptyRodCode: B-9
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000316)入库目标库位 B-9
+
+{inBound} - hangerId: 1000317, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=羽绒, color=红色, size=中号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=5}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=5}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=5})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_绿色_特大=1}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_特大=1})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=3})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=2}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=2})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=1}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=1})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=1}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=1})}
+{inBound} - 杆 B-8 的混存信息（最细）:  {衬衫_蓝色_大号=1}
+{inBound} - 杆 B-8 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色_大号=1})}
+{inBound} - 杆 B-9 的混存信息（最细）:  {羽绒_绿色_大号=1}
+{inBound} - 杆 B-9 的混存信息（全部）:  {
+	1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+	2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=1}), 
+	3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_大号=1})}
+{inBound} <3.5 不满足“空衣架”、“混存1”的杆，找空杆> - sEmptyRodCode: B-10
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000317)入库目标库位 B-10
+
+{inBound} - hangerId: 1000318, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=红色, size=中号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=5, mixedDegree=1, mapMixedDegree={衬衫=5}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=5}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=5})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_绿色_特大=1}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_特大=1})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=3})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=2}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫_红色=2}), 
+		3=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=2})}
+{inBound} <3.4 找到相同排产单+相同工序的存储杆，且没有其它工序的衣架，则返回该存储杆> - rodCode: B-4
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000318)入库目标库位 B-4
+
+{inBound} - hangerId: 1000319, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=羽绒, color=绿色, size=中号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=5}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=5}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=5})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_绿色_特大=1}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_特大=1})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=3})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=3})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=1}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={羽绒_绿色=1}), 
+		3=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=1})}
+{inBound} <3.4 找到相同排产单+相同工序的存储杆，且没有其它工序的衣架，则返回该存储杆> - rodCode: B-6
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000319)入库目标库位 B-6
+
+{inBound} - hangerId: 1000320, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=羽绒, color=蓝色, size=中号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=5}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=5}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_大号=5})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_绿色_特大=1}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_特大=1})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=3})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=3})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=2}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={羽绒=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=2})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=1}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=1})}
+{inBound} - 杆 B-8 的混存信息（最细）:  {衬衫_蓝色_大号=1}
+{inBound} - 杆 B-8 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色_大号=1})}
+{inBound} - 杆 B-9 的混存信息（最细）:  {羽绒_绿色_大号=1}
+{inBound} - 杆 B-9 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_大号=1})}
+{inBound} - 杆 B-10 的混存信息（最细）:  {羽绒_红色_中号=1}
+{inBound} - 杆 B-10 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色_中号=1})}
+{inBound} <5.x 找到混存杆> - cRod: B-1
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000320)入库目标库位 B-1
+
+{inBound} - hangerId: 1000321, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=红色, size=特大}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5, 羽绒_蓝色_中号=1}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=5, mixedDegree=2, mapMixedDegree={羽绒=1, 衬衫=5}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=5, 羽绒_蓝色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色_大号=5, 羽绒_蓝色_中号=1})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_绿色_特大=1}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_特大=1})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=3})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=3})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=2}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=2})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=1}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=1})}
+{inBound} - 杆 B-8 的混存信息（最细）:  {衬衫_蓝色_大号=1}
+{inBound} - 杆 B-8 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色_大号=1})}
+{inBound} - 杆 B-9 的混存信息（最细）:  {羽绒_绿色_大号=1}
+{inBound} - 杆 B-9 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_大号=1})}
+{inBound} - 杆 B-10 的混存信息（最细）:  {羽绒_红色_中号=1}
+{inBound} - 杆 B-10 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色_中号=1})}
+{inBound} <5.x 找到混存杆> - cRod: B-2
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000321)入库目标库位 B-2
+
+{inBound} - hangerId: 1000322, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=绿色, size=特大}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5, 羽绒_蓝色_中号=1}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=5, mixedDegree=2, mapMixedDegree={羽绒=1, 衬衫=5}), 
+		2=MixedData(countMatchedProps=5, mixedDegree=2, mapMixedDegree={衬衫_绿色=5, 羽绒_蓝色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色_大号=5, 羽绒_蓝色_中号=1})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_红色_特大=1, 衬衫_绿色_特大=1}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=2, mapMixedDegree={衬衫_绿色=1, 衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=1, mixedDegree=2, mapMixedDegree={衬衫_红色_特大=1, 衬衫_绿色_特大=1})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫_绿色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=3})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=3})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=2}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=2})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=1}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=1})}
+{inBound} - 杆 B-8 的混存信息（最细）:  {衬衫_蓝色_大号=1}
+{inBound} - 杆 B-8 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色_大号=1})}
+{inBound} - 杆 B-9 的混存信息（最细）:  {羽绒_绿色_大号=1}
+{inBound} - 杆 B-9 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_大号=1})}
+{inBound} - 杆 B-10 的混存信息（最细）:  {羽绒_红色_中号=1}
+{inBound} - 杆 B-10 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色_中号=1})}
+{inBound} <5.x 找到混存杆> - cRod: B-2
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000322)入库目标库位 B-2
+
+{inBound} - hangerId: 1000323, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=红色, size=大号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5, 羽绒_蓝色_中号=1}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=5, mixedDegree=2, mapMixedDegree={羽绒=1, 衬衫=5}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=5, 羽绒_蓝色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色_大号=5, 羽绒_蓝色_中号=1})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_红色_特大=1, 衬衫_绿色_特大=2}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=2, mapMixedDegree={衬衫_绿色=2, 衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_特大=1, 衬衫_绿色_特大=2})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=3})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=3})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=2}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=2})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=1}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=1})}
+{inBound} <3.4 找到相同排产单+相同工序的存储杆，且没有其它工序的衣架，则返回该存储杆> - rodCode: B-7
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000323)入库目标库位 B-7
+
+{inBound} - hangerId: 1000324, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=红色, size=大号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5, 羽绒_蓝色_中号=1}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=5, mixedDegree=2, mapMixedDegree={羽绒=1, 衬衫=5}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=5, 羽绒_蓝色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色_大号=5, 羽绒_蓝色_中号=1})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_红色_特大=1, 衬衫_绿色_特大=2}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=2, mapMixedDegree={衬衫_绿色=2, 衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_特大=1, 衬衫_绿色_特大=2})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=3})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=3})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=2}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=2})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=2}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫_红色=2}), 
+		3=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=2})}
+{inBound} <3.4 找到相同排产单+相同工序的存储杆，且没有其它工序的衣架，则返回该存储杆> - rodCode: B-7
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000324)入库目标库位 B-7
+
+{inBound} - hangerId: 1000325, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=蓝色, size=中号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5, 羽绒_蓝色_中号=1}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=5, mixedDegree=2, mapMixedDegree={羽绒=1, 衬衫=5}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=5, 羽绒_蓝色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色_大号=5, 羽绒_蓝色_中号=1})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_红色_特大=1, 衬衫_绿色_特大=2}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=2, 衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_特大=1, 衬衫_绿色_特大=2})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_中号=3})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=3})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=2}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=2})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=3}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=3})}
+{inBound} - 杆 B-8 的混存信息（最细）:  {衬衫_蓝色_大号=1}
+{inBound} - 杆 B-8 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_蓝色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色_大号=1})}
+{inBound} - 杆 B-9 的混存信息（最细）:  {羽绒_绿色_大号=1}
+{inBound} - 杆 B-9 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_大号=1})}
+{inBound} - 杆 B-10 的混存信息（最细）:  {羽绒_红色_中号=1}
+{inBound} - 杆 B-10 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色_中号=1})}
+{inBound} <5.x 找到混存杆> - cRod: B-3
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000325)入库目标库位 B-3
+
+{inBound} - hangerId: 1000326, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=羽绒, color=蓝色, size=中号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5, 羽绒_蓝色_中号=1}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=2, mapMixedDegree={羽绒=1, 衬衫=5}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=2, mapMixedDegree={衬衫_绿色=5, 羽绒_蓝色=1}), 
+		3=MixedData(countMatchedProps=1, mixedDegree=2, mapMixedDegree={衬衫_绿色_大号=5, 羽绒_蓝色_中号=1})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_红色_特大=1, 衬衫_绿色_特大=2}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=2, 衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_特大=1, 衬衫_绿色_特大=2})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_蓝色_中号=1, 衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=3, 衬衫_蓝色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_蓝色_中号=1, 衬衫_绿色_中号=3})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=3})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=2}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={羽绒=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=2})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=3}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=3})}
+{inBound} - 杆 B-8 的混存信息（最细）:  {衬衫_蓝色_大号=1}
+{inBound} - 杆 B-8 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色_大号=1})}
+{inBound} - 杆 B-9 的混存信息（最细）:  {羽绒_绿色_大号=1}
+{inBound} - 杆 B-9 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_大号=1})}
+{inBound} - 杆 B-10 的混存信息（最细）:  {羽绒_红色_中号=1}
+{inBound} - 杆 B-10 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色_中号=1})}
+{inBound} <5.x 找到混存杆> - cRod: B-1
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000326)入库目标库位 B-1
+
+{inBound} - hangerId: 1000327, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=绿色, size=中号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5, 羽绒_蓝色_中号=2}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=5, mixedDegree=2, mapMixedDegree={羽绒=2, 衬衫=5}), 
+		2=MixedData(countMatchedProps=5, mixedDegree=2, mapMixedDegree={衬衫_绿色=5, 羽绒_蓝色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色_大号=5, 羽绒_蓝色_中号=2})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_红色_特大=1, 衬衫_绿色_特大=2}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=2, mapMixedDegree={衬衫_绿色=2, 衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_特大=1, 衬衫_绿色_特大=2})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_蓝色_中号=1, 衬衫_绿色_中号=3}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=3, mixedDegree=2, mapMixedDegree={衬衫_绿色=3, 衬衫_蓝色=1}), 
+		3=MixedData(countMatchedProps=3, mixedDegree=2, mapMixedDegree={衬衫_蓝色_中号=1, 衬衫_绿色_中号=3})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=3})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=2}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=2})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=3}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=3})}
+{inBound} - 杆 B-8 的混存信息（最细）:  {衬衫_蓝色_大号=1}
+{inBound} - 杆 B-8 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色_大号=1})}
+{inBound} - 杆 B-9 的混存信息（最细）:  {羽绒_绿色_大号=1}
+{inBound} - 杆 B-9 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_大号=1})}
+{inBound} - 杆 B-10 的混存信息（最细）:  {羽绒_红色_中号=1}
+{inBound} - 杆 B-10 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色_中号=1})}
+{inBound} <5.x 找到混存杆> - cRod: B-3
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000327)入库目标库位 B-3
+
+{inBound} - hangerId: 1000328, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=红色, size=小号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5, 羽绒_蓝色_中号=2}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=5, mixedDegree=2, mapMixedDegree={羽绒=2, 衬衫=5}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=5, 羽绒_蓝色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色_大号=5, 羽绒_蓝色_中号=2})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_红色_特大=1, 衬衫_绿色_特大=2}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=2, mapMixedDegree={衬衫_绿色=2, 衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_特大=1, 衬衫_绿色_特大=2})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_蓝色_中号=1, 衬衫_绿色_中号=4}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=5, mixedDegree=1, mapMixedDegree={衬衫=5}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=4, 衬衫_蓝色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_蓝色_中号=1, 衬衫_绿色_中号=4})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_中号=3})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=2}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=2})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=3}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=3})}
+{inBound} - 杆 B-8 的混存信息（最细）:  {衬衫_蓝色_大号=1}
+{inBound} - 杆 B-8 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色_大号=1})}
+{inBound} - 杆 B-9 的混存信息（最细）:  {羽绒_绿色_大号=1}
+{inBound} - 杆 B-9 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_大号=1})}
+{inBound} - 杆 B-10 的混存信息（最细）:  {羽绒_红色_中号=1}
+{inBound} - 杆 B-10 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色_中号=1})}
+{inBound} <5.x 找到混存杆> - cRod: B-4
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000328)入库目标库位 B-4
+
+{inBound} - hangerId: 1000329, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=蓝色, size=中号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5, 羽绒_蓝色_中号=2}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=5, mixedDegree=2, mapMixedDegree={羽绒=2, 衬衫=5}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=5, 羽绒_蓝色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色_大号=5, 羽绒_蓝色_中号=2})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_红色_特大=1, 衬衫_绿色_特大=2}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=2, 衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_特大=1, 衬衫_绿色_特大=2})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_蓝色_中号=1, 衬衫_绿色_中号=4}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=5, mixedDegree=1, mapMixedDegree={衬衫=5}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=2, mapMixedDegree={衬衫_绿色=4, 衬衫_蓝色=1}), 
+		3=MixedData(countMatchedProps=1, mixedDegree=2, mapMixedDegree={衬衫_蓝色_中号=1, 衬衫_绿色_中号=4})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3, 衬衫_红色_小号=1}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=4}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_中号=3, 衬衫_红色_小号=1})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=2}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=2})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=3}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=3})}
+{inBound} - 杆 B-8 的混存信息（最细）:  {衬衫_蓝色_大号=1}
+{inBound} - 杆 B-8 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_蓝色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色_大号=1})}
+{inBound} - 杆 B-9 的混存信息（最细）:  {羽绒_绿色_大号=1}
+{inBound} - 杆 B-9 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_大号=1})}
+{inBound} - 杆 B-10 的混存信息（最细）:  {羽绒_红色_中号=1}
+{inBound} - 杆 B-10 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色_中号=1})}
+{inBound} <5.x 找到混存杆> - cRod: B-3
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000329)入库目标库位 B-3
+
+{inBound} - hangerId: 1000330, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=绿色, size=大号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=5, 羽绒_蓝色_中号=2}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=5, mixedDegree=2, mapMixedDegree={羽绒=2, 衬衫=5}), 
+		2=MixedData(countMatchedProps=5, mixedDegree=2, mapMixedDegree={衬衫_绿色=5, 羽绒_蓝色=2}), 
+		3=MixedData(countMatchedProps=5, mixedDegree=2, mapMixedDegree={衬衫_绿色_大号=5, 羽绒_蓝色_中号=2})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_红色_特大=1, 衬衫_绿色_特大=2}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=2, mapMixedDegree={衬衫_绿色=2, 衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_特大=1, 衬衫_绿色_特大=2})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_蓝色_中号=2, 衬衫_绿色_中号=4}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=6, mixedDegree=1, mapMixedDegree={衬衫=6}), 
+		2=MixedData(countMatchedProps=4, mixedDegree=2, mapMixedDegree={衬衫_绿色=4, 衬衫_蓝色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_蓝色_中号=2, 衬衫_绿色_中号=4})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3, 衬衫_红色_小号=1}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=4}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_中号=3, 衬衫_红色_小号=1})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=2}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=2})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=3}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=3})}
+{inBound} - 杆 B-8 的混存信息（最细）:  {衬衫_蓝色_大号=1}
+{inBound} - 杆 B-8 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色_大号=1})}
+{inBound} - 杆 B-9 的混存信息（最细）:  {羽绒_绿色_大号=1}
+{inBound} - 杆 B-9 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_大号=1})}
+{inBound} - 杆 B-10 的混存信息（最细）:  {羽绒_红色_中号=1}
+{inBound} - 杆 B-10 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色_中号=1})}
+{inBound} <5.x 找到混存杆> - cRod: B-1
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000330)入库目标库位 B-1
+
+{inBound} - hangerId: 1000331, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=蓝色, size=大号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=6, 羽绒_蓝色_中号=2}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=6, mixedDegree=2, mapMixedDegree={羽绒=2, 衬衫=6}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=6, 羽绒_蓝色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色_大号=6, 羽绒_蓝色_中号=2})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_红色_特大=1, 衬衫_绿色_特大=2}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=2, 衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_特大=1, 衬衫_绿色_特大=2})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_蓝色_中号=2, 衬衫_绿色_中号=4}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=6, mixedDegree=1, mapMixedDegree={衬衫=6}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=2, mapMixedDegree={衬衫_绿色=4, 衬衫_蓝色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_蓝色_中号=2, 衬衫_绿色_中号=4})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3, 衬衫_红色_小号=1}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=4}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_中号=3, 衬衫_红色_小号=1})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=2}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=2})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=3}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=3})}
+{inBound} - 杆 B-8 的混存信息（最细）:  {衬衫_蓝色_大号=1}
+{inBound} - 杆 B-8 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_蓝色=1}), 
+		3=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={衬衫_蓝色_大号=1})}
+{inBound} <3.4 找到相同排产单+相同工序的存储杆，且没有其它工序的衣架，则返回该存储杆> - rodCode: B-8
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000331)入库目标库位 B-8
+
+{inBound} - hangerId: 1000332, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=蓝色, size=大号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=6, 羽绒_蓝色_中号=2}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=6, mixedDegree=2, mapMixedDegree={羽绒=2, 衬衫=6}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=6, 羽绒_蓝色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色_大号=6, 羽绒_蓝色_中号=2})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_红色_特大=1, 衬衫_绿色_特大=2}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=2, 衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_特大=1, 衬衫_绿色_特大=2})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_蓝色_中号=2, 衬衫_绿色_中号=4}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=6, mixedDegree=1, mapMixedDegree={衬衫=6}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=2, mapMixedDegree={衬衫_绿色=4, 衬衫_蓝色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_蓝色_中号=2, 衬衫_绿色_中号=4})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3, 衬衫_红色_小号=1}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=4}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_中号=3, 衬衫_红色_小号=1})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=2}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=2})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=3}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=3})}
+{inBound} - 杆 B-8 的混存信息（最细）:  {衬衫_蓝色_大号=2}
+{inBound} - 杆 B-8 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫_蓝色=2}), 
+		3=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫_蓝色_大号=2})}
+{inBound} <3.4 找到相同排产单+相同工序的存储杆，且没有其它工序的衣架，则返回该存储杆> - rodCode: B-8
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000332)入库目标库位 B-8
+
+{inBound} - hangerId: 1000333, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=红色, size=大号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=6, 羽绒_蓝色_中号=2}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=6, mixedDegree=2, mapMixedDegree={羽绒=2, 衬衫=6}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=6, 羽绒_蓝色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色_大号=6, 羽绒_蓝色_中号=2})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_红色_特大=1, 衬衫_绿色_特大=2}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=2, mapMixedDegree={衬衫_绿色=2, 衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_特大=1, 衬衫_绿色_特大=2})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_蓝色_中号=2, 衬衫_绿色_中号=4}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=6, mixedDegree=1, mapMixedDegree={衬衫=6}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=4, 衬衫_蓝色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_蓝色_中号=2, 衬衫_绿色_中号=4})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3, 衬衫_红色_小号=1}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫_红色=4}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_中号=3, 衬衫_红色_小号=1})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=2}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=2})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=3}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫_红色=3}), 
+		3=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=3})}
+{inBound} <3.4 找到相同排产单+相同工序的存储杆，且没有其它工序的衣架，则返回该存储杆> - rodCode: B-7
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000333)入库目标库位 B-7
+
+{inBound} - hangerId: 1000334, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=蓝色, size=大号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=6, 羽绒_蓝色_中号=2}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=6, mixedDegree=2, mapMixedDegree={羽绒=2, 衬衫=6}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=6, 羽绒_蓝色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色_大号=6, 羽绒_蓝色_中号=2})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_红色_特大=1, 衬衫_绿色_特大=2}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=2, 衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_特大=1, 衬衫_绿色_特大=2})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_蓝色_中号=2, 衬衫_绿色_中号=4}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=6, mixedDegree=1, mapMixedDegree={衬衫=6}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=2, mapMixedDegree={衬衫_绿色=4, 衬衫_蓝色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_蓝色_中号=2, 衬衫_绿色_中号=4})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3, 衬衫_红色_小号=1}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=4}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_中号=3, 衬衫_红色_小号=1})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=2}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=2})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=4}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=4}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=4})}
+{inBound} - 杆 B-8 的混存信息（最细）:  {衬衫_蓝色_大号=3}
+{inBound} - 杆 B-8 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫_蓝色=3}), 
+		3=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫_蓝色_大号=3})}
+{inBound} <3.4 找到相同排产单+相同工序的存储杆，且没有其它工序的衣架，则返回该存储杆> - rodCode: B-8
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000334)入库目标库位 B-8
+
+{inBound} - hangerId: 1000335, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=绿色, size=中号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=6, 羽绒_蓝色_中号=2}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=6, mixedDegree=2, mapMixedDegree={羽绒=2, 衬衫=6}), 
+		2=MixedData(countMatchedProps=6, mixedDegree=2, mapMixedDegree={衬衫_绿色=6, 羽绒_蓝色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色_大号=6, 羽绒_蓝色_中号=2})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_红色_特大=1, 衬衫_绿色_特大=2}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=2, mapMixedDegree={衬衫_绿色=2, 衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_特大=1, 衬衫_绿色_特大=2})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_蓝色_中号=2, 衬衫_绿色_中号=4}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=6, mixedDegree=1, mapMixedDegree={衬衫=6}), 
+		2=MixedData(countMatchedProps=4, mixedDegree=2, mapMixedDegree={衬衫_绿色=4, 衬衫_蓝色=2}), 
+		3=MixedData(countMatchedProps=4, mixedDegree=2, mapMixedDegree={衬衫_蓝色_中号=2, 衬衫_绿色_中号=4})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3, 衬衫_红色_小号=1}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=4}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_中号=3, 衬衫_红色_小号=1})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=2}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=2})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=4}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=4}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=4})}
+{inBound} - 杆 B-8 的混存信息（最细）:  {衬衫_蓝色_大号=4}
+{inBound} - 杆 B-8 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色=4}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色_大号=4})}
+{inBound} - 杆 B-9 的混存信息（最细）:  {羽绒_绿色_大号=1}
+{inBound} - 杆 B-9 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_大号=1})}
+{inBound} - 杆 B-10 的混存信息（最细）:  {羽绒_红色_中号=1}
+{inBound} - 杆 B-10 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色_中号=1})}
+{inBound} <5.x 找到混存杆> - cRod: B-3
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000335)入库目标库位 B-3
+
+{inBound} - hangerId: 1000336, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=衬衫, color=绿色, size=大号}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=6, 羽绒_蓝色_中号=2}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=6, mixedDegree=2, mapMixedDegree={羽绒=2, 衬衫=6}), 
+		2=MixedData(countMatchedProps=6, mixedDegree=2, mapMixedDegree={衬衫_绿色=6, 羽绒_蓝色=2}), 
+		3=MixedData(countMatchedProps=6, mixedDegree=2, mapMixedDegree={衬衫_绿色_大号=6, 羽绒_蓝色_中号=2})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_红色_特大=1, 衬衫_绿色_特大=2}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=3, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=2, mapMixedDegree={衬衫_绿色=2, 衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_特大=1, 衬衫_绿色_特大=2})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_蓝色_中号=2, 衬衫_绿色_中号=5}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=7, mixedDegree=1, mapMixedDegree={衬衫=7}), 
+		2=MixedData(countMatchedProps=5, mixedDegree=2, mapMixedDegree={衬衫_绿色=5, 衬衫_蓝色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_蓝色_中号=2, 衬衫_绿色_中号=5})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3, 衬衫_红色_小号=1}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=4}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_中号=3, 衬衫_红色_小号=1})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=2}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=2})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=4}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=4}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=4})}
+{inBound} - 杆 B-8 的混存信息（最细）:  {衬衫_蓝色_大号=4}
+{inBound} - 杆 B-8 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=4, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色=4}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色_大号=4})}
+{inBound} - 杆 B-9 的混存信息（最细）:  {羽绒_绿色_大号=1}
+{inBound} - 杆 B-9 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_大号=1})}
+{inBound} - 杆 B-10 的混存信息（最细）:  {羽绒_红色_中号=1}
+{inBound} - 杆 B-10 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色_中号=1})}
+{inBound} <5.x 找到混存杆> - cRod: B-1
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000336)入库目标库位 B-1
+
+{inBound} - hangerId: 1000337, rods: [B-1, B-2, B-3, B-4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName=羽绒, color=绿色, size=特大}, maxMixture: 3
+{inBound} - 杆 B-1 的混存信息（最细）:  {衬衫_绿色_大号=7, 羽绒_蓝色_中号=2}
+{inBound} - 杆 B-1 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=2, mapMixedDegree={羽绒=2, 衬衫=7}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=7, 羽绒_蓝色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色_大号=7, 羽绒_蓝色_中号=2})}
+{inBound} - 杆 B-2 的混存信息（最细）:  {衬衫_红色_特大=1, 衬衫_绿色_特大=2}
+{inBound} - 杆 B-2 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=3}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=2, 衬衫_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_特大=1, 衬衫_绿色_特大=2})}
+{inBound} - 杆 B-3 的混存信息（最细）:  {衬衫_蓝色_中号=2, 衬衫_绿色_中号=5}
+{inBound} - 杆 B-3 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=7}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_绿色=5, 衬衫_蓝色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_蓝色_中号=2, 衬衫_绿色_中号=5})}
+{inBound} - 杆 B-4 的混存信息（最细）:  {衬衫_红色_中号=3, 衬衫_红色_小号=1}
+{inBound} - 杆 B-4 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=4}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=2, mapMixedDegree={衬衫_红色_中号=3, 衬衫_红色_小号=1})}
+{inBound} - 杆 B-5 的混存信息（最细）:  {衬衫_绿色_小号=2}
+{inBound} - 杆 B-5 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=2}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_绿色_小号=2})}
+{inBound} - 杆 B-6 的混存信息（最细）:  {羽绒_绿色_中号=2}
+{inBound} - 杆 B-6 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={羽绒=2}), 
+		2=MixedData(countMatchedProps=2, mixedDegree=1, mapMixedDegree={羽绒_绿色=2}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_中号=2})}
+{inBound} - 杆 B-7 的混存信息（最细）:  {衬衫_红色_大号=4}
+{inBound} - 杆 B-7 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色=4}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_红色_大号=4})}
+{inBound} - 杆 B-8 的混存信息（最细）:  {衬衫_蓝色_大号=4}
+{inBound} - 杆 B-8 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫=4}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色=4}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={衬衫_蓝色_大号=4})}
+{inBound} - 杆 B-9 的混存信息（最细）:  {羽绒_绿色_大号=1}
+{inBound} - 杆 B-9 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={羽绒_绿色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_绿色_大号=1})}
+{inBound} - 杆 B-10 的混存信息（最细）:  {羽绒_红色_中号=1}
+{inBound} - 杆 B-10 的混存信息（全部）:  {
+		1=MixedData(countMatchedProps=1, mixedDegree=1, mapMixedDegree={羽绒=1}), 
+		2=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色=1}), 
+		3=MixedData(countMatchedProps=0, mixedDegree=1, mapMixedDegree={羽绒_红色_中号=1})}
+{inBound} <5.x 找到混存杆> - cRod: B-5
+<=== [A款排产_后道]末道不解绑入库(衣架: 1000337)入库目标库位 B-5
+\end{verbatim}
+}

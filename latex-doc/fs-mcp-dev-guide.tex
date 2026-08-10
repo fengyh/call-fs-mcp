@@ -1,0 +1,455 @@
+\documentclass[a4paper]{article}
+\usepackage{fontspec, kantlipsum}
+\usepackage{ctex}              %% 据说能解决中文加粗（\textbf）无效问题
+\usepackage{graphicx,subfigure,wrapfig,afterpage}
+\usepackage[export]{adjustbox}  
+\usepackage{xcolor}
+\usepackage{tcolorbox}  %% 带颜色背景框
+\usepackage{listings}   %% 代码框
+\usepackage{courier}    %% 代码框用\ttfamily设置时使用该字体
+\usepackage{enumitem}   %% 可以在enumerate里面指定[label=\Roman*.]、[label=(\Roman*)]
+%\usepackage{enumerate}  %% 可以在enumerate里面指定[1)]，这个包与enumitem冲突。这个包中的[1)]可以用enumerate的[label=\arabic*.]替代，[a)]可以用enumerate的[label=\alph*.]替代
+\usepackage{mystyle}
+\usepackage{xeCJK}
+\usepackage{float}
+\usepackage{ifplatform} %% ifplatform包，用于判断当前操作系统，目前的用法是解决不同操作系统中字体安装问题
+\xeCJKsetup{CJKmath=true,CheckSingle=true}
+% 设置中文为文档语言
+\ifwindows
+    %%  windows的字体
+    \xeCJKsetup{SlantFactor = -0.7}
+    \setCJKmainfont{微软雅黑}
+    % \setCJKmainfont[ItalicFont=仿宋]{微软雅黑}
+    % \setCJKmainfont[BoldFont=Microsoft YaHei,ItalicFont=SimHei]{微软雅黑}
+    % \setCJKmainfont[BoldFont=simhei.ttf, SlantedFont=simkai.ttf]{simsun.ttc}
+    \setCJKsansfont[BoldFont=SimHei]{黑体}
+\else
+% \fi
+% \iflinux
+%     %  linux的字体
+% \fi
+% \ifmacosx
+    %  mac的字体
+    \setCJKmainfont[BoldFont=Yuanti SC, ItalicFont=STKaiti]{STSong}
+    \setCJKsansfont[BoldFont=STHeiti]{STXihei}
+\fi
+% \setCJKmonofont{STFangsong}
+\setCJKmonofont{微软雅黑}
+\setmainfont{Courier New}   %% 设置英文字体
+\usepackage{pdfpages}   %% 通过includepdf插入pdf文件
+\usepackage{amssymb}    %% 数学符号
+\usepackage{titling}    %% title页居中等支持
+\renewcommand\maketitlehooka{\null\mbox{}\vfill}
+\renewcommand\maketitlehookd{\vfill\null}
+\usepackage{caption}    %% 指定表的caption字体支持
+\usepackage{caption3}   %% ?
+\usepackage[top=2.54cm, bottom=2.54cm, left=1.54cm, right=1.54cm]{geometry}
+\usepackage{makecell}  %% table粗线条
+%\XeTeXlinebreaklocale "zh"  %% 自动换行
+%\XeTeXlinebreakskip = 0pt plus 1pt minus 0.1pt
+\usepackage[onehalfspacing]{setspace}  %% 行距支持
+\onehalfspacing  %% 1.5段落距
+\setlength{\parindent}{1.8em} %% 首行缩进 —— 0em表示无缩进
+\usepackage{indentfirst}  %% 首段落也缩进
+%\setlength{\parskip}{1em} %% 段落距
+\usepackage{lastpage}  %% 最后一页
+\usepackage{fancyhdr}  %% 最后一页相关
+\pagestyle{fancy}
+% Ensure header height is sufficient for fancyhdr
+\setlength{\headheight}{13pt}
+\usepackage{rotating}
+\usepackage{tikz}  %% 图形、流程图等
+\usepackage{datetime} %% 日期
+\usepackage{lipsum}  %% dummy text —— 占位用随机文本
+\usepackage[printwatermark]{xwatermark} %% 水印
+\usepackage{lmodern}  %% 解决\textit 不起作用的问题?
+\usepackage{longtable,tablefootnote, supertabular, booktabs}  %% 表格相关
+\usepackage[section]{placeins}
+\usepackage[bottom]{footmisc}  %% 脚注粘在脚上，而不是文本上
+\newcommand  {\lstfont}{\fontsize{6pt}{6pt}\selectfont}
+% \renewcommand{\footnotesize}{\fontsize{7pt}{7pt}\selectfont}  %% 重设脚注大小
+\renewcommand{\footnotesize}{\fontsize{7pt}{0pt}\selectfont}  %% 重设脚注大小
+\setlength{\skip\footins}{1.2pc plus 5pt minus 2pt}
+\usepackage{multirow}  %% 复杂表格相关
+\usepackage{array}  %% 复杂表格相关
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\renewcommand{\baselinestretch}{1}  %% 貌似段间距
+\renewcommand{\arraystretch}{1.5}
+
+\usepackage[hidelinks]{hyperref}  %% 可点击的目录支持  & hyperref如果不是最后一个package，footnote的链接讲不可点击
+\hypersetup{
+    colorlinks=true,
+    linkcolor=teal, %black/blue/brown/cyan/darkgray/gray/green/lime/magenta/olive/orange/pink/purple/red/teal/violet/white/yellow	
+    filecolor=magenta,      
+    urlcolor=blue, %magenta,
+    bookmarksopen=true,       % 默认打开书签
+    bookmarksopenlevel=2,       % 默认打开书签2级
+    bookmarksnumbered=true,   % 书签带章节号
+}
+
+% begin------------ 自定义命令
+\newcommand{\secref}[1]{\underline{\textbf{\textcolor{purple}{{\small \ \ref{#1}\ }}}}}   % #1就是 'sec:production-line'这类的label
+\newcommand{\termref}[1]{\textcolor{purple}{\scriptsize \ [\underline{\textbf{{\ \ref{#1}\ }}}]}}   % #1就是 'sec:production-line'这类的label
+\newcommand{\cnumm}[1]{\textcircled{#1}}
+\newcommand{\cnums}[1]{\textcircled{\scriptsize{#1}}}
+\newcommand{\cnumt}[1]{\textcircled{\tiny{#1}}}
+\renewcommand{\tablename}{表}  %% 默认的表'Table'换成'表'
+\renewcommand{\figurename}{图}  %% 默认的表'Figure'换成'图'
+\renewcommand{\contentsname}{目录} %% 默认的目录'Contents'换成'目录'
+\renewcommand{\bf}[1]{\textbf{#1}} %% textbf用得较多，简化为bf
+%% begin------------- switch...case, color for TRL (technical readiness level)
+\newcommand{\ifequals}[3]{\ifthenelse{\equal{#1}{#2}}{#3}{}}
+\newcommand{\case}[2]{#1 #2} % Dummy, so \renewcommand has something to overwrite...
+\newenvironment{switch}[1]{\renewcommand{\case}{\ifequals{#1}}}{}
+\newcommand{\trl}[1]{
+\begin{switch}{#1}
+\case{0}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{243,110,86}{\textcolor{white}{\bf{0}}}}
+\case{1}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{243,77,43}{\textcolor{white}{\bf{1}}}}
+\case{2}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{243,177,44}{\textcolor{white}{\bf{2}}}}
+\case{3}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{244,140,27}{\textcolor{white}{\bf{3}}}}
+\case{4}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{189,21,71}{\textcolor{white}{\bf{4}}}}
+\case{5}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{215,47,102}{\textcolor{white}{\bf{5}}}}
+\case{6}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{57,194,192}{\textcolor{white}{\bf{6}}}}
+\case{7}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{46,147,153}{\textcolor{white}{\bf{7}}}}
+\case{8}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{73,96,128}{\textcolor{white}{\bf{8}}}}
+\case{9}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{52,67,97}{\textcolor{white}{\bf{9}}}}
+\end{switch}
+}
+\newcommand{\trlx}[2]{
+\begin{switch}{#1}
+\case{0}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{243,110,86}{\textcolor{white}{\bf{#2}}}}
+\case{1}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{243,77,43 }{\textcolor{white}{\bf{#2}}}}
+\case{2}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{243,177,44}{\textcolor{white}{\bf{#2}}}}
+\case{3}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{244,140,27}{\textcolor{white}{\bf{#2}}}}
+\case{4}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{189,21,71 }{\textcolor{white}{\bf{#2}}}}
+\case{5}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{215,47,102}{\textcolor{white}{\bf{#2}}}}
+\case{6}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{57,194,192}{\textcolor{white}{\bf{#2}}}}
+\case{7}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{46,147,153}{\textcolor{white}{\bf{#2}}}}
+\case{8}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{73,96,128 }{\textcolor{white}{\bf{#2}}}}
+\case{9}{\setlength{\fboxsep}{2pt}\colorbox[RGB]{52,67, 97 }{\textcolor{white}{\bf{#2}}}}
+\end{switch}
+}
+%%%%%% 由于switch...case方式定义的命令，输出内容的前后会出现多余空格，所以增加如下命令定义
+\newcommand{\trlZero}[1]{\colorbox[RGB]{243,110,86}{\textcolor{white}{\bf{#1}}}}
+\newcommand{\trlOne}[1]{\colorbox[RGB]{243,77,43 }{\textcolor{white}{\bf{#1}}}}
+\newcommand{\trlTwo}[1]{\colorbox[RGB]{243,177,44}{\textcolor{white}{\bf{#1}}}}
+\newcommand{\trlThree}[1]{\colorbox[RGB]{244,140,27}{\textcolor{white}{\bf{#1}}}}
+\newcommand{\trlFour}[1]{\colorbox[RGB]{189,21,71 }{\textcolor{white}{\bf{#1}}}}
+\newcommand{\trlFive}[1]{\colorbox[RGB]{215,47,102}{\textcolor{white}{\bf{#1}}}}
+\newcommand{\trlSix}[1]{\colorbox[RGB]{57,194,192}{\textcolor{white}{\bf{#1}}}}
+\newcommand{\trlSenven}[1]{\colorbox[RGB]{46,147,153}{\textcolor{white}{\bf{#1}}}}
+\newcommand{\trlEight}[1]{\colorbox[RGB]{73,96,128 }{\textcolor{white}{\bf{#1}}}}
+\newcommand{\trlNine}[1]{\colorbox[RGB]{52,67, 97 }{\textcolor{white}{\bf{#1}}}}
+% end------------- switch...case
+\newcommand{\optchked}[1]{\textcolor{purple}{[\textbf{{$\checkmark$}}]}\textcolor{black}{#1\ \ }}   % #1就是 'sec:production-line'这类的label
+\newcommand{\optunchked}[1]{\textcolor{ashgrey}{[\textbf{{\hspace{2mm}}}]}\textcolor{ashgrey}{#1\ \ }}   % #1就是 'sec:production-line'这类的label
+\renewcommand{\it}[1]{\textcolor{lightseagreen}{\textit{#1}}} %% textit(或textsl)用得较多，简化为it 
+\newcommand{\todo}[1]{\textcolor{uared}{TODO}: 【{#1}】} %% todo
+\newcommand{\tbc}[1]{\textcolor{uared}{TBC}: 【{#1}】} %% to be confirmed
+\newcommand{\tbd}[1]{\textcolor{uared}{TBD}: 【{#1}】} %% to be confirmed
+\newcommand{\tips}[1]{\textcolor{uared}{TIP}: 【{#1}】} %% tip
+\newcommand{\head}[1]{\textnormal{\textbf{#1}}}
+\newcommand{\redtxt}[1]{\textcolor{red}{\textbf{#1}}}
+\newcommand{\bluetxt}[1]{\textcolor{blue}{\textbf{#1}}}
+\newcommand{\purpletxt}[1]{\textcolor{purpleheart}{\textbf{#1}}}
+\newdateformat{formatdt}{\THEYEAR.\twodigit{\THEMONTH}.\twodigit{\THEDAY}}
+
+% \setlength{\fboxsep}{0.005pt}
+\setlength{\fboxsep}{1pt}
+
+% begin--------------- public、private、devteam 三个版本
+% public：只包含public-sections目录中的章节，不包含版本修订信息
+% private：在public版的基础上，加上版本修行信息和除研发团队内容（poc,devlog等）之外的内容
+% devteam: 所有内容
+\newif\ifprivate
+% \privatetrue % 定义private、devteam版本
+\privatefalse % 定义public版本
+\newif\ifdevteam 
+% \devteamtrue % 定义devteam版本
+\devteamfalse % 定义private版本
+
+% end--------------- public、private、devteam 三个版本
+
+\ifprivate
+\ifdevteam
+\newwatermark[allpages,color=red!10,angle=45,scale=1.2,xpos=0,ypos=0]{Confidential \\ For \bf{开发内参} only\\ 国家智能设计与数控技术创新中心}
+\else
+\newwatermark[allpages,color=red!10,angle=45,scale=1.2,xpos=0,ypos=0]{Confidential \\ For \bf{设计内参} only\\ 国家智能设计与数控技术创新中心}
+\fi
+\else
+\newwatermark[allpages,color=red!10,angle=45,scale=1.2,xpos=0,ypos=0]{Confidential \\ \bf{公开文档}\\ 国家智能设计与数控技术创新中心}
+\fi
+%\chead{\includegraphics[width=2cm]{pics/logo1.png}} %% 页眉放logo
+\lfoot{\vtop{\thepage}} %% 
+\cfoot{} %% 
+%\rfoot{\includegraphics[width=12cm]{pics/logo2.png}\hspace{2cm}\includegraphics[width=2cm]{pics/logo1.png}} %% 页眉放logo
+% end------------ 自定义命令
+
+% begin------------ item的引用定义
+\def\itemlabel#1#2{\begingroup
+    #2%
+    \def\@currentlabel{#2}%
+    \phantomsection\label{#1}\endgroup
+}
+\newcommand{\presymb}[1]{\textcolor{purple!60}{$\overbrace{#1}$}}   % #1就是 'sec:production-line'这类的label
+% end--------------
+
+% begin------------ tikz设置
+%\usetikzlibrary{shapes.geometric,backgrounds,positioning-plus,node-families,calc}
+\usetikzlibrary{shapes.geometric,backgrounds,calc}
+\usetikzlibrary{trees,arrows}
+\tikzset{
+  basic box/.style = {
+    shape = rectangle,
+    align = center,
+    draw  = #1,
+    fill  = #1!25,
+    rounded corners},
+  header node/.style = {
+    Minimum Width = header nodes,
+    font          = \strut\Large\ttfamily,
+    text depth    = +0pt,
+    fill          = white,
+    draw},
+  header/.style = {%
+    inner ysep = +1.5em,
+    append after command = {
+      \pgfextra{\let\TikZlastnode\tikzlastnode}
+      node [header node] (header-\TikZlastnode) at (\TikZlastnode.north) {#1}
+      node [span = (\TikZlastnode)(header-\TikZlastnode)]
+        at (fit bounding box) (h-\TikZlastnode) {}
+    }
+  },
+  hv/.style = {to path = {-|(\tikztotarget)\tikztonodes}},
+  vh/.style = {to path = {|-(\tikztotarget)\tikztonodes}},
+  fat blue line/.style = {ultra thick, blue}
+}
+% end------------ tikz设置
+
+% begin------------ 带颜色背景框定义
+\tcbset{
+    frame code={}
+    center title,
+    left=0pt,
+    right=0pt,
+    top=0pt,
+    bottom=0pt,
+    colback=gray!20,
+    colframe=white,
+    width=\dimexpr\textwidth\relax,
+    enlarge left by=0mm,
+    boxsep=3pt,%5pt,
+    arc=0pt,outer arc=0pt,
+    }
+\newcommand{\tcb}[2]{\begin{tcolorbox} {#1}\qquad {#2} \end{tcolorbox} }   % #1就是 'sec:production-line'这类的label
+% end------------ 带颜色背景框定义
+
+% begin -------------- 用\paragraph{title}作为“\subsubsubsection{}” ------ 的方法
+\usepackage{titlesec}
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{4}
+\titleformat{\paragraph}
+{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}
+{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+% end-------------- 用\paragraph{title}作为“\subsubsubsection{}” ------ 的方法
+
+% begin------------ 代码框定义
+\iffalse
+\lstset{
+%  language=[ANSI]c,
+%  basicstyle=\footnotesize,
+  basicstyle=\footnotesize\setmainfont{Courier New},        % the size of the fonts that are used for the code
+  numbers=left,
+  keywordstyle=\color{blue},
+  numberstyle={\scriptsize\color{blue}},
+  stepnumber=1, 
+  numbersep=9pt,
+  commentstyle=\scriptsize\color[rgb]{0.80,0.40,0.3},
+  backgroundcolor=\color[rgb]{0.96,1.0,1.0},
+  showspaces=false,
+  showtabs=false,
+  frame=shadowbox, framexleftmargin=1mm, rulesepcolor=\color{red!20!green!20!blue!20!},
+% frame=single,
+%  TABframe=single,
+  tabsize=2,
+  breaklines=tr,
+  extendedchars=false, 
+  escapeinside=``
+}
+\fi
+
+% \iffalse
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+\lstset{ 
+  % backgroundcolor=\color{white},   % choose the background color; you must add \usepackage{color} or \usepackage{xcolor}; should come as last argument
+  backgroundcolor=\color[rgb]{0.96,1.0,1.0},
+  %basicstyle=\footnotesize\ttfamily,        % the size of the fonts that are used for the code
+  basicstyle=\lstfont\setmainfont{Courier New},        % the size of the fonts that are used for the code
+  breakatwhitespace=false,         % sets if automatic breaks should only happen at whitespace
+  % breaklines=true,                 % sets automatic line breaking
+  breaklines=tr,                 % sets automatic line breaking
+  captionpos=b,                    % sets the caption-position to bottom
+  commentstyle=\color{mygreen},    % comment style
+  commentstyle=\scriptsize\color[rgb]{0.80,0.40,0.3},
+  deletekeywords={...},            % if you want to delete keywords from the given language
+  escapeinside={\%*}{*)},          % if you want to add LaTeX within your code
+  % extendedchars=true,              % lets you use non-ASCII characters; for 8-bits encodings only, does not work with UTF-8
+  extendedchars=false,              % lets you use non-ASCII characters; for 8-bits encodings only, does not work with UTF-8
+  firstnumber=1,                % start line enumeration with line 1000
+  % frame=single,	                   % adds a frame around the code
+  frame=shadowbox, framexleftmargin=1mm, rulesepcolor=\color{red!20!green!20!blue!20!},
+  keepspaces=true,                 % keeps spaces in text, useful for keeping indentation of code (possibly needs columns=flexible)
+  keywordstyle=\color{blue},       % keyword style
+  language=Octave,                 % the language of the code
+  morekeywords={*,...},            % if you want to add more keywords to the set
+  numbers=left,                    % where to put the line-numbers; possible values are (none, left, right)
+  % numbersep=5pt,                   % how far the line-numbers are from the code
+  numbersep=9pt,                   % how far the line-numbers are from the code
+  % numberstyle=\tiny\color{mygray}, % the style that is used for the line-numbers
+  numberstyle={\scriptsize\color{blue}},
+  rulecolor=\color{black},         % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))
+  showspaces=false,                % show spaces everywhere adding particular underscores; it overrides 'showstringspaces'
+  showstringspaces=false,          % underline spaces within strings only
+  showtabs=false,                  % show tabs within strings adding particular underscores
+  stepnumber=1,                    % the step between two line-numbers. If it's 1, each line will be numbered
+  stringstyle=\color{mymauve},     % string literal style
+  tabsize=2,	                   % sets default tabsize to 2 spaces
+  title=\lstname                   % show the filename of files included with \lstinputlisting; also try caption instead of title
+}
+% \fi
+% end------------ 代码框定义
+
+
+%% 例1
+%\begin{lstlisting}[language=Python, caption=Python example]
+%  import numpy as np
+%  def incmatrix(genl1,genl2):
+%\end{lstlisting}
+%% 例2
+%\lstinputlisting[language=Octave]{BitXorMatrix.m}
+% end------------ 代码框定义
+
+%% 试图解决verbatim碰到空行会删除，导致pdf拷贝粘贴代码时两行缩成一行的问题
+
+% begin-------------------- inputt换页后包含章节，inputf不包含章节以便快速编辑和编译
+\newcommand{\inputt}[1]{\clearpage \input{#1}}
+\newcommand{\inputf}[1]{}
+% end-------------------- inputt换页后包含章节，inputf不包含章节以便快速编辑和编译
+
+\makeatletter
+\def\verbatim@processline{\the\verbatim@line\par}
+\makeatother
+
+\begin{document}
+
+\pagenumbering{roman} % 首页、修订信息和目录用罗马数字遍页码
+
+\ifprivate
+\ifdevteam
+  \title{
+  \Huge{WEB应用程序与FS集成开发 \\接口使用说明书}\\
+  \Large{(For customer)}\vspace{1cm}\\
+  \&\vspace{1cm}\\
+  \Huge{WEB应用程序与FS集成开发 \\总体框架和技术方案}\\
+  \Large{(设计内参文档)}\vspace{1cm}\\
+  \&\vspace{1cm}\\
+  \Huge{WEB应用程序与FS集成开发 \\POC、关键技术备忘}\\
+  \Large{(开发内参文档)}\vspace{4cm}}
+\else
+  \title{
+  \Huge{WEB应用程序与FS集成开发 \\接口使用说明书}\\
+  \Large{(For customer)}\vspace{1cm}\\
+  \&\vspace{1cm}\\
+  \Huge{WEB应用程序与FS集成开发\\总体框架和技术方案}\\
+  \Large{(设计内参文档)}\vspace{4cm}\\
+\fi
+\else
+  \title{\Huge{WEB应用程序与FS集成开发 \\接口使用说明书}\vspace{4cm}}
+\fi
+
+\author{
+    NCDC \cnums{研} [2025] \textnumero0003\\
+    国家智能设计与数控技术创新中心 
+}
+\date{最后修订： \formatdt\today}
+\begin{titlingpage}
+\maketitle
+\end{titlingpage}
+\thispagestyle{empty}    % 标题页不要页眉页脚
+\clearpage
+
+%% 修订信息
+% \newpage
+\thispagestyle{plain}    % 修订页不要页眉（header）
+\begin{table}[h!]
+\scriptsize
+\centering
+\captionsetup{font=large}
+\caption*{\textbf{修订记录}}
+\begin{tabular}{llp{8cm}ll}
+    \Xhline{2\arrayrulewidth}   % 粗横线
+    版本号 & 修订日期 & 修订概要 & 修订部门 & 修订人 \\
+    \hline %一般横线
+    v0.1.0   & 2026.8.9 & 初始版本  & 华科国智中心 & 冯禹鹤\\
+    \Xhline{2\arrayrulewidth}   % 粗横线
+\end{tabular}
+\end{table}
+
+\clearpage
+\thispagestyle{plain}   % 目录不要页眉（header）
+\tableofcontents
+
+%\begin{small}
+%\fontsize{9pt}{11pt}\selectfont
+\fontsize{9pt}{0pt}\selectfont
+
+\setlength{\parskip}{1em} %% 段落距, 放在这里不会影响目录的行距
+\setlength{\baselineskip}{1.6em}  %% 段落内行距
+% 项目简介
+\clearpage
+\pagenumbering{arabic}
+
+% 可对外宣传的章节存放于public-sections
+\inputt{public-sections/public-brief}
+\inputt{public-sections/jar-interface}
+\inputt{public-sections/hanger-sim}
+\inputt{public-sections/control-sim}
+\inputt{public-sections/fs-model}
+\inputt{public-sections/new-rules}
+\inputt{public-sections/debug}
+
+\inputt{appendix/inbound-log}
+
+% \inputf{public-sections/dp-based iiot}
+% \inputf{public-sections/showcase}
+
+% 对内的章节存放于sections
+\ifprivate
+% \inputt{sections/prd}
+% \inputf{sections/poc}
+% \inputt{sections/solution}
+
+% \clearpage
+% \input{sections/terminology}
+
+
+\ifdevteam
+% \inputt{sections/appendix-a}
+% \inputf{sections/appendix-b}
+% \inputt{sections/appendix-c}
+% \inputt{sections/appendix-d}
+\fi %end of ifdevteam
+\fi % end of ifprivate
+
+% \clearpage
+% \input{sections/appendix1}
+
+
+% \printbibliography
+
+\end{document}

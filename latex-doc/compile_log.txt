@@ -1,0 +1,861 @@
+This is XeTeX, Version 3.141592653-2.6-0.999997 (TeX Live 2025) (preloaded format=xelatex)
+ restricted \write18 enabled.
+entering extended mode
+(./jack-jar-usage-guide.tex
+LaTeX2e <2024-11-01> patch level 2
+L3 programming layer <2025-01-18>
+(d:/texlive/2025/texmf-dist/tex/latex/base/article.cls
+Document Class: article 2024/06/29 v1.4n Standard LaTeX document class
+(d:/texlive/2025/texmf-dist/tex/latex/base/size10.clo))
+(d:/texlive/2025/texmf-dist/tex/latex/fontspec/fontspec.sty
+(d:/texlive/2025/texmf-dist/tex/latex/l3packages/xparse/xparse.sty
+(d:/texlive/2025/texmf-dist/tex/latex/l3kernel/expl3.sty
+(d:/texlive/2025/texmf-dist/tex/latex/l3backend/l3backend-xetex.def)))
+(d:/texlive/2025/texmf-dist/tex/latex/fontspec/fontspec-xetex.sty
+(d:/texlive/2025/texmf-dist/tex/latex/base/fontenc.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/fontspec/fontspec.cfg)))
+(d:/texlive/2025/texmf-dist/tex/latex/kantlipsum/kantlipsum.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/ctex/ctex.sty
+(d:/texlive/2025/texmf-dist/tex/latex/ctex/ctexhook.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/ctex/ctexpatch.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/base/fix-cm.sty
+(d:/texlive/2025/texmf-dist/tex/latex/base/ts1enc.def))
+(d:/texlive/2025/texmf-dist/tex/latex/ctex/config/ctexopts.cfg)
+(d:/texlive/2025/texmf-dist/tex/latex/ctex/engine/ctex-engine-xetex.def
+(d:/texlive/2025/texmf-dist/tex/xelatex/xecjk/xeCJK.sty
+(d:/texlive/2025/texmf-dist/tex/latex/l3packages/xtemplate/xtemplate.sty)
+(d:/texlive/2025/texmf-dist/tex/xelatex/xecjk/xeCJK.cfg)))
+(d:/texlive/2025/texmf-dist/tex/latex/zhnumber/zhnumber.sty
+(d:/texlive/2025/texmf-dist/tex/latex/zhnumber/zhnumber-utf8.cfg))
+(d:/texlive/2025/texmf-dist/tex/latex/ctex/scheme/ctex-scheme-chinese.def
+(d:/texlive/2025/texmf-dist/tex/latex/ctex/config/ctex-name-utf8.cfg))
+(d:/texlive/2025/texmf-dist/tex/latex/tools/indentfirst.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/ctex/ctex-c5size.clo)
+(d:/texlive/2025/texmf-dist/tex/latex/ctex/fontset/ctex-fontset-windows.def))
+(d:/texlive/2025/texmf-dist/tex/latex/ctex/config/ctex.cfg)
+(d:/texlive/2025/texmf-dist/tex/latex/graphics/graphicx.sty
+(d:/texlive/2025/texmf-dist/tex/latex/graphics/keyval.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/graphics/graphics.sty
+(d:/texlive/2025/texmf-dist/tex/latex/graphics/trig.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/graphics-cfg/graphics.cfg)
+(d:/texlive/2025/texmf-dist/tex/latex/graphics-def/xetex.def)))
+(d:/texlive/2025/texmf-dist/tex/latex/subfigure/subfigure.sty
+****************************************
+* Local config file subfigure.cfg used *
+****************************************
+(d:/texlive/2025/texmf-dist/tex/latex/subfigure/subfigure.cfg))
+(d:/texlive/2025/texmf-dist/tex/latex/wrapfig/wrapfig.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/tools/afterpage.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/adjustbox/adjustbox.sty
+(d:/texlive/2025/texmf-dist/tex/latex/xkeyval/xkeyval.sty
+(d:/texlive/2025/texmf-dist/tex/generic/xkeyval/xkeyval.tex
+(d:/texlive/2025/texmf-dist/tex/generic/xkeyval/xkvutils.tex)))
+(d:/texlive/2025/texmf-dist/tex/latex/adjustbox/adjcalc.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/adjustbox/trimclip.sty
+(d:/texlive/2025/texmf-dist/tex/latex/collectbox/collectbox.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/adjustbox/tc-xetex.def))
+(d:/texlive/2025/texmf-dist/tex/latex/ifoddpage/ifoddpage.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/varwidth/varwidth.sty))
+(d:/texlive/2025/texmf-dist/tex/latex/xcolor/xcolor.sty
+(d:/texlive/2025/texmf-dist/tex/latex/graphics-cfg/color.cfg)
+(d:/texlive/2025/texmf-dist/tex/latex/graphics/mathcolor.ltx))
+(d:/texlive/2025/texmf-dist/tex/latex/tcolorbox/tcolorbox.sty
+(d:/texlive/2025/texmf-dist/tex/latex/pgf/frontendlayer/tikz.sty
+(d:/texlive/2025/texmf-dist/tex/latex/pgf/basiclayer/pgf.sty
+(d:/texlive/2025/texmf-dist/tex/latex/pgf/utilities/pgfrcs.sty
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/utilities/pgfutil-common.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/utilities/pgfutil-latex.def)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/utilities/pgfrcs.code.tex
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/pgf.revision.tex)))
+(d:/texlive/2025/texmf-dist/tex/latex/pgf/basiclayer/pgfcore.sty
+(d:/texlive/2025/texmf-dist/tex/latex/pgf/systemlayer/pgfsys.sty
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/systemlayer/pgfsys.code.tex
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/utilities/pgfkeys.code.tex
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/utilities/pgfkeyslibraryfiltered.co
+de.tex)) (d:/texlive/2025/texmf-dist/tex/generic/pgf/systemlayer/pgf.cfg)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/systemlayer/pgfsys-xetex.def
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/systemlayer/pgfsys-dvipdfmx.def
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/systemlayer/pgfsys-common-pdf.def))
+))
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/systemlayer/pgfsyssoftpath.code.tex
+)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/systemlayer/pgfsysprotocol.code.tex
+)) (d:/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcore.code.tex
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmath.code.tex
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathutil.code.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathparser.code.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.code.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.basic.code.te
+x)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.trigonometric
+.code.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.random.code.t
+ex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.comparison.co
+de.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.base.code.tex
+)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.round.code.te
+x)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.misc.code.tex
+)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.integerarithm
+etics.code.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathcalc.code.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmathfloat.code.tex))
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfint.code.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepoints.code.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepathconstruct.cod
+e.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepathusage.code.te
+x)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorescopes.code.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcoregraphicstate.code
+.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcoretransformations.c
+ode.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorequick.code.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreobjects.code.tex)
+
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepathprocessing.co
+de.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorearrows.code.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreshade.code.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreimage.code.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreexternal.code.tex
+) (d:/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorelayers.code.tex
+)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcoretransparency.code
+.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepatterns.code.tex
+) (d:/texlive/2025/texmf-dist/tex/generic/pgf/basiclayer/pgfcorerdf.code.tex)))
+ (d:/texlive/2025/texmf-dist/tex/generic/pgf/modules/pgfmoduleshapes.code.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/modules/pgfmoduleplot.code.tex)
+(d:/texlive/2025/texmf-dist/tex/latex/pgf/compatibility/pgfcomp-version-0-65.st
+y)
+(d:/texlive/2025/texmf-dist/tex/latex/pgf/compatibility/pgfcomp-version-1-18.st
+y)) (d:/texlive/2025/texmf-dist/tex/latex/pgf/utilities/pgffor.sty
+(d:/texlive/2025/texmf-dist/tex/latex/pgf/utilities/pgfkeys.sty
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/utilities/pgfkeys.code.tex))
+(d:/texlive/2025/texmf-dist/tex/latex/pgf/math/pgfmath.sty
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/math/pgfmath.code.tex))
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/utilities/pgffor.code.tex))
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/frontendlayer/tikz/tikz.code.tex
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/libraries/pgflibraryplothandlers.co
+de.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/modules/pgfmodulematrix.code.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzli
+brarytopaths.code.tex)))
+(d:/texlive/2025/texmf-dist/tex/latex/tools/verbatim.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/environ/environ.sty
+(d:/texlive/2025/texmf-dist/tex/latex/trimspaces/trimspaces.sty))
+(d:/texlive/2025/texmf-dist/tex/latex/etoolbox/etoolbox.sty))
+(d:/texlive/2025/texmf-dist/tex/latex/listings/listings.sty
+(d:/texlive/2025/texmf-dist/tex/latex/listings/lstpatch.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/listings/lstmisc.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/listings/listings.cfg))
+(d:/texlive/2025/texmf-dist/tex/xelatex/xecjk/xeCJK-listings.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/psnfss/courier.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/enumitem/enumitem.sty) (./mystyle.sty
+(d:/texlive/2025/texmf-dist/tex/latex/imakeidx/imakeidx.sty
+(d:/texlive/2025/texmf-dist/tex/generic/iftex/ifxetex.sty
+(d:/texlive/2025/texmf-dist/tex/generic/iftex/iftex.sty))
+(d:/texlive/2025/texmf-dist/tex/generic/iftex/ifluatex.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/tools/multicol.sty))
+(d:/texlive/2025/texmf-dist/tex/generic/xstring/xstring.sty
+(d:/texlive/2025/texmf-dist/tex/generic/xstring/xstring.tex)))
+(d:/texlive/2025/texmf-dist/tex/latex/float/float.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/ifplatform/ifplatform.sty
+(d:/texlive/2025/texmf-dist/tex/latex/tools/shellesc.sty)
+(d:/texlive/2025/texmf-dist/tex/generic/pdftexcmds/pdftexcmds.sty
+(d:/texlive/2025/texmf-dist/tex/generic/infwarerr/infwarerr.sty)
+(d:/texlive/2025/texmf-dist/tex/generic/ltxcmds/ltxcmds.sty))
+(d:/texlive/2025/texmf-dist/tex/generic/catchfile/catchfile.sty
+(d:/texlive/2025/texmf-dist/tex/generic/etexcmds/etexcmds.sty))
+
+Package ifplatform Warning: 
+    shell escape is disabled, so I can only detect \ifwindows.
+
+)
+
+Package xeCJK Warning: Redefining CJKfamily `\CJKrmdefault' (SimSun(0)).
+
+
+Package xeCJK Warning: Redefining CJKfamily `\CJKsfdefault' (Microsoft YaHei).
+
+
+Package xeCJK Warning: Redefining CJKfamily `\CJKttdefault' (FangSong).
+
+(d:/texlive/2025/texmf-dist/tex/latex/pdfpages/pdfpages.sty
+(d:/texlive/2025/texmf-dist/tex/latex/base/ifthen.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/tools/calc.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/eso-pic/eso-pic.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/pdfpages/ppxetex.def))
+(d:/texlive/2025/texmf-dist/tex/latex/amsfonts/amssymb.sty
+(d:/texlive/2025/texmf-dist/tex/latex/amsfonts/amsfonts.sty))
+(d:/texlive/2025/texmf-dist/tex/latex/titling/titling.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/caption/caption.sty
+(d:/texlive/2025/texmf-dist/tex/latex/caption/caption3.sty))
+(d:/texlive/2025/texmf-dist/tex/latex/geometry/geometry.sty
+(d:/texlive/2025/texmf-dist/tex/generic/iftex/ifvtex.sty))
+(d:/texlive/2025/texmf-dist/tex/latex/makecell/makecell.sty
+(d:/texlive/2025/texmf-dist/tex/latex/tools/array.sty))
+(d:/texlive/2025/texmf-dist/tex/latex/setspace/setspace.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/lastpage/lastpage.sty
+(d:/texlive/2025/texmf-dist/tex/latex/lastpage/lastpage2e.sty
+(d:/texlive/2025/texmf-dist/tex/latex/lastpage/lastpagemodern.sty) 
+)) (d:/texlive/2025/texmf-dist/tex/latex/fancyhdr/fancyhdr.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/graphics/rotating.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/datetime/datetime.sty
+(d:/texlive/2025/texmf-dist/tex/latex/fmtcount/fmtcount.sty
+(d:/texlive/2025/texmf-dist/tex/latex/fmtcount/fcprefix.sty
+(d:/texlive/2025/texmf-dist/tex/latex/fmtcount/fcnumparser.sty))
+(d:/texlive/2025/texmf-dist/tex/latex/amsmath/amsgen.sty))
+(d:/texlive/2025/texmf-dist/tex/latex/datetime/datetime-defaults.sty))
+(d:/texlive/2025/texmf-dist/tex/latex/lipsum/lipsum.sty
+(d:/texlive/2025/texmf-dist/tex/latex/l3packages/l3keys2e/l3keys2e.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/lipsum/lipsum.ltd.tex))
+(d:/texlive/2025/texmf-dist/tex/latex/xwatermark/xwatermark.sty
+(d:/texlive/2025/texmf-dist/tex/latex/catoptions/catoptions.sty
+
+Package catoptions Warning: 
+(catoptions)                catoptions modifies package option handling and is
+(catoptions)                incompatible with many other packages.
+(catoptions)                For new documents it is recommended to use
+(catoptions)                The built in option processor:
+(catoptions)                \ProcessKeyOptions, see clsguide.
+
+) (d:/texlive/2025/texmf-dist/tex/latex/picture/picture.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/base/atbegshi-ltx.sty
+
+LaTeX Warning: You have requested package `atbegshi',
+               but the package provides `atbegshi-ltx'.
+
+) (d:/texlive/2025/texmf-dist/tex/latex/base/atveryend-ltx.sty
+
+LaTeX Warning: You have requested package `atveryend',
+               but the package provides `atveryend-ltx'.
+
+) (d:/texlive/2025/texmf-dist/tex/latex/ltxkeys/ltxkeys.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/framed/framed.sty)
+(./jack-jar-usage-guide.xwm))
+(d:/texlive/2025/texmf-dist/tex/latex/lm/lmodern.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/tools/longtable.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/tablefootnote/tablefootnote.sty
+(d:/texlive/2025/texmf-dist/tex/latex/letltxmacro/letltxmacro.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/xifthen/xifthen.sty
+(d:/texlive/2025/texmf-dist/tex/latex/ifmtarg/ifmtarg.sty)))
+(d:/texlive/2025/texmf-dist/tex/latex/supertabular/supertabular.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/booktabs/booktabs.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/placeins/placeins.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/footmisc/footmisc.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/multirow/multirow.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/hyperref/hyperref.sty
+(d:/texlive/2025/texmf-dist/tex/latex/kvsetkeys/kvsetkeys.sty)
+(d:/texlive/2025/texmf-dist/tex/generic/kvdefinekeys/kvdefinekeys.sty)
+(d:/texlive/2025/texmf-dist/tex/generic/pdfescape/pdfescape.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/hycolor/hycolor.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/hyperref/nameref.sty
+(d:/texlive/2025/texmf-dist/tex/latex/refcount/refcount.sty)
+(d:/texlive/2025/texmf-dist/tex/generic/gettitlestring/gettitlestring.sty
+(d:/texlive/2025/texmf-dist/tex/latex/kvoptions/kvoptions.sty)))
+(d:/texlive/2025/texmf-dist/tex/generic/stringenc/stringenc.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/hyperref/pd1enc.def)
+(d:/texlive/2025/texmf-dist/tex/generic/intcalc/intcalc.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/hyperref/puenc.def)
+(d:/texlive/2025/texmf-dist/tex/latex/url/url.sty)
+(d:/texlive/2025/texmf-dist/tex/generic/bitset/bitset.sty
+(d:/texlive/2025/texmf-dist/tex/generic/bigintcalc/bigintcalc.sty)))
+(d:/texlive/2025/texmf-dist/tex/latex/hyperref/hxetex.def
+(d:/texlive/2025/texmf-dist/tex/latex/rerunfilecheck/rerunfilecheck.sty
+(d:/texlive/2025/texmf-dist/tex/generic/uniquecounter/uniquecounter.sty)))
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzli
+braryshapes.geometric.code.tex
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/libraries/shapes/pgflibraryshapes.g
+eometric.code.tex))
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzli
+brarybackgrounds.code.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzli
+brarycalc.code.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzli
+brarytrees.code.tex)
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzli
+braryarrows.code.tex
+(d:/texlive/2025/texmf-dist/tex/generic/pgf/libraries/pgflibraryarrows.code.tex
+)) (d:/texlive/2025/texmf-dist/tex/latex/titlesec/titlesec.sty)
+(d:/texlive/2025/texmf-dist/tex/latex/listings/lstlang1.sty)
+No file jack-jar-usage-guide.aux.
+(d:/texlive/2025/texmf-dist/tex/latex/pdflscape/pdflscape.sty
+(d:/texlive/2025/texmf-dist/tex/latex/pdflscape/pdflscape-nometadata.sty
+(d:/texlive/2025/texmf-dist/tex/latex/graphics/lscape.sty)))
+(d:/texlive/2025/texmf-dist/tex/latex/caption/ltcaption.sty)
+*geometry* driver: auto-detecting
+*geometry* detected driver: xetex
+(d:/texlive/2025/texmf-dist/tex/latex/fmtcount/fc-english.def)
+
+Package hyperref Warning: Rerun to get /PageLabels entry.
+
+(d:/texlive/2025/texmf-dist/tex/latex/lm/ot1lmr.fd)
+(d:/texlive/2025/texmf-dist/tex/latex/lm/omllmm.fd)
+(d:/texlive/2025/texmf-dist/tex/latex/lm/omslmsy.fd)
+(d:/texlive/2025/texmf-dist/tex/latex/lm/omxlmex.fd)
+(d:/texlive/2025/texmf-dist/tex/latex/amsfonts/umsa.fd)
+(d:/texlive/2025/texmf-dist/tex/latex/amsfonts/umsb.fd)
+(d:/texlive/2025/texmf-dist/tex/latex/lm/omslmr.fd)
+
+LaTeX Font Warning: Font shape `TU/bch/b/n' undefined
+(Font)              using `TU/lmr/m/n' instead on input line 382.
+
+[1]
+[1]
+No file jack-jar-usage-guide.toc.
+
+[2] (./public-sections/public-brief.tex
+
+LaTeX Font Warning: Font shape `TU/微软雅黑(0)/m/it' undefined
+(Font)              using `TU/微软雅黑(0)/m/n' instead on input line 18.
+
+)
+
+LaTeX Font Warning: Font shape `TU/微软雅黑(0)/m/sl' undefined
+(Font)              using `TU/微软雅黑(0)/m/n' instead on input line 425.
+
+[1] (./public-sections/jar-interface.tex
+[2]
+[3]
+[4]
+[5]
+[6]
+[7]
+[8]
+
+LaTeX Warning: Hyper reference `sec:param-node' on page 9 undefined on input li
+ne 479.
+
+
+LaTeX Warning: Hyper reference `sec:param-edge' on page 9 undefined on input li
+ne 480.
+
+
+LaTeX Warning: Hyper reference `sec:param-process' on page 9 undefined on input
+ line 481.
+
+
+LaTeX Warning: Hyper reference `sec:param-bridge' on page 9 undefined on input 
+line 482.
+
+
+LaTeX Warning: Hyper reference `sec:param-stockArea' on page 9 undefined on inp
+ut line 483.
+
+
+LaTeX Warning: Hyper reference `sec:param-storage' on page 9 undefined on input
+ line 495.
+
+
+LaTeX Warning: Hyper reference `sec:param-storageRod' on page 9 undefined on in
+put line 495.
+
+
+[9]
+
+LaTeX Warning: Hyper reference `sec:param-storage' on page 10 undefined on inpu
+t line 537.
+
+
+LaTeX Warning: Hyper reference `sec:param-storageStation' on page 10 undefined 
+on input line 537.
+
+
+[10]
+
+LaTeX Warning: Hyper reference `sec:param-getNextStation' on page 11 undefined 
+on input line 634.
+
+
+[11]
+[12]
+[13])
+[14] (./public-sections/hanger-sim.tex
+(./out/uml/jack/sm-process/sm-process.latex)
+[15]
+[16]
+Overfull \hbox (8.37622pt too wide) in paragraph at lines 187--188
+\TU/微软雅黑(0)/m/n/9 这 是 工 序 状 态 机 实 体 注 册 工 序 初 始 化 状 态  |（\TU/lmr/m/n/9 STATE_IN
+IT\TU/微软雅黑(0)/m/n/9 ）|  的 代 码，|  其 中 重 载 了 \TU/lmr/m/n/9 onEvent() \TU/微软雅黑(0)/
+m/n/9 函 数，|  当 收 到 \TU/lmr/m/n/9 topic \TU/微软雅黑(0)/m/n/9 为  |“\TU/lmr/m/n/9 STA
+RT_PROCESS\TU/微软雅黑(0)/m/n/9 ”|
+
+[17]
+[18]
+
+LaTeX Warning: Reference `fig:sm-process' on page 19 undefined on input line 35
+8.
+
+
+[19])
+[20] (./public-sections/control-sim.tex
+Overfull \hbox (55.96683pt too wide) in paragraph at lines 36--37
+\TU/lmr/m/n/9 post \TU/微软雅黑(0)/m/n/9 上 报。|  第 \TU/lmr/m/n/9 13 \TU/微软雅黑(0)/m/n/
+9 行 设 置 该 回 调 接 口 对 象，|  第 \TU/lmr/m/n/9 14 \TU/微软雅黑(0)/m/n/9 行 调 用 \TU/lmr/m/n
+/9 startReceiving() \TU/微软雅黑(0)/m/n/9 启 动 接 收 器，|  监 听 端 口 通 过 \TU/lmr/m/n/9 co
+nfig.getPortHangerControllerUdpReceiver()
+
+[21]
+[22]
+
+LaTeX Warning: Hyper reference `code:simapp' on page 23 undefined on input line
+ 167.
+
+)
+[23] (./public-sections/fs-model.tex
+
+LaTeX Warning: Reference `fig:jack-fs-sim' on page 24 undefined on input line 8
+.
+
+
+[24]
+
+LaTeX Warning: Reference `fig:conveyorline' on page 25 undefined on input line 
+60.
+
+
+LaTeX Warning: Reference `fig:connector' on page 25 undefined on input line 64.
+
+
+
+[25]
+[26]
+
+LaTeX Warning: Reference `fig:workstation' on page 27 undefined on input line 8
+3.
+
+
+LaTeX Warning: Reference `fig:rod' on page 27 undefined on input line 99.
+
+
+[27]
+[28]
+[29]
+[30]
+
+LaTeX Warning: Reference `fig:stockarea-user-attributes' on page 31 undefined o
+n input line 359.
+
+
+LaTeX Warning: Reference `sec:active-model:init' on page 31 undefined on input 
+line 359.
+
+
+[31]
+
+LaTeX Warning: Reference `tbl:stockarea-table' on page 32 undefined on input li
+ne 370.
+
+
+[32]
+
+LaTeX Warning: Reference `tbl:node-table' on page 33 undefined on input line 46
+4.
+
+
+LaTeX Warning: Reference `tbl:bridge-table' on page 33 undefined on input line 
+464.
+
+
+LaTeX Warning: Reference `tbl:stockarea-table' on page 33 undefined on input li
+ne 464.
+
+
+LaTeX Warning: Reference `tbl:node-table-append' on page 33 undefined on input 
+line 464.
+
+
+[33]
+[34]
+[35]
+[36]
+Missing character: There is no ; (U+037E) in font [lmroman9-italic]:mapping=tex
+-text;!
+
+[37]
+[38]
+[39]
+[40]
+[41]
+
+LaTeX Warning: Reference `fig:station_exit_buffer' on page 42 undefined on inpu
+t line 926.
+
+
+[42])
+[43] (./public-sections/new-rules.tex
+[44]
+[45]
+[46]
+[47]
+Overfull \hbox (9.87634pt too wide) in paragraph at lines 136--136
+[]\TU/lmtt/m/n/9 public String inBound(String hangerId, List<String> rods, Link
+edHashMap<String, String> props, int maxMixture) 
+(./out/uml/jack/inBound1/inBound1.latex)
+
+LaTeX Warning: Reference `fig:inbound2' on page 48 undefined on input line 152.
+
+
+(./out/uml/jack/inBound2/inBound2.latex)
+
+LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+
+LaTeX Warning: Reference `fig:inbound3' on page 48 undefined on input line 159.
+
+
+(./out/uml/jack/inBound3/inBound3.latex)
+
+LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+
+[48]
+
+LaTeX Warning: Text page 49 contains only floats.
+
+
+[49]
+[50]
+
+LaTeX Warning: Reference `fig:inbound-rule-width-first' on page 51 undefined on
+ input line 174.
+
+
+LaTeX Warning: Reference `fig:inbound-rule-depth-first' on page 51 undefined on
+ input line 184.
+
+
+[51]
+
+LaTeX Warning: Reference `sec:inbound-log' on page 52 undefined on input line 1
+94.
+
+
+Overfull \hbox (18.7549pt too wide) in paragraph at lines 197--197
+ []\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000335, rods: [B-1, B-2, B-3, B-
+4, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬
+ 衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.524
+37 , size= \TU/微软雅黑(0)/m/n/6.52437 中 号 \TU/lmtt/m/n/6.52437 }, 
+
+[52]
+[53]
+[54]
+Overfull \hbox (38.22633pt too wide) in paragraph at lines 335--335
+[]\TU/lmtt/m/n/9 public Map<String, List<String>> outBound(List<String> rods, L
+inkedHashMap<String, String> props, int numberRequest) 
+
+LaTeX Warning: Reference `fig:outbound1' on page 55 undefined on input line 339
+.
+
+(./out/uml/jack/outBound1/outBound1.latex)
+
+LaTeX Warning: Reference `fig:outbound2' on page 55 undefined on input line 346
+.
+
+
+Overfull \hbox (42.50578pt too wide) in paragraph at lines 356--356
+ []\TU/lmtt/m/n/7 //     blockDegreeRods[0] -> [A-2, A-4]       -- A-2 \TU/微软雅黑
+(0)/m/it/7 、 \TU/lmtt/m/n/7 A-4 \TU/微软雅黑(0)/m/it/7 两 杆 的 第 \TU/lmtt/m/n/7 1 \TU
+/微软雅黑(0)/m/it/7 个 衣 架 就 是 出 库 \TU/lmtt/m/n/7 props \TU/微软雅黑(0)/m/it/7 匹 配 的 衣 架
+ ， 可 能 第 \TU/lmtt/m/n/7 2 \TU/微软雅黑(0)/m/it/7 、 \TU/lmtt/m/n/7 3... \TU/微软雅黑(0)/
+m/it/7 个 衣 架 也 是 匹 配 的 ， 但 此 处 不 关  心 [] 
+(./out/uml/jack/outBound2/outBound2.latex)
+
+LaTeX Warning: Float too large for page by 13.50485pt on input line 366.
+
+
+LaTeX Warning: `!h' float specifier changed to `!ht'.
+
+
+[55]
+[56]
+
+LaTeX Warning: Reference `fig:outbound3' on page 57 undefined on input line 369
+.
+
+(./out/uml/jack/outBound3/outBound3.latex)
+[57])
+[58] (./public-sections/debug.tex
+[59]
+[60]
+[61]
+
+LaTeX Warning: Reference `fig:lost-hanger-case3' on page 62 undefined on input 
+line 74.
+
+
+[62])
+[63] (./appendix/inbound-log.tex
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 4--4
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000402, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 大 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 8--8
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000301, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 特 大 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 17--17
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000302, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 中 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 31--31
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000303, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 大 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 40--40
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000304, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 中 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 59--59
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000305, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 大 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 68--68
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000306, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 大 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 77--77
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000307, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 中 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+[64]
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 96--96
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000308, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 红 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 中 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 115--115
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000309, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 大 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 124--124
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000310, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 小 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 148--148
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000311, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 羽 
+绒 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 中 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 177--177
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000312, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 红 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 大 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+[65]
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 211--211
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000313, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 小 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 240--240
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000314, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 红 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 中 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 264--264
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000315, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 蓝 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 大 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+[66]
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 303--303
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000316, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 羽 
+绒 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 大 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 347--347
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000317, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 羽 
+绒 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 红 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 中 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+[67]
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 396--396
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000318, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 红 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 中 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 420--420
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000319, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 羽 
+绒 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 中 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+[68]
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 454--454
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000320, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 羽 
+绒 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 蓝 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 中 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 508--508
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000321, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 红 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 特 大 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+[69]
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 562--562
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000322, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 特 大 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 616--616
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000323, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 红 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 大 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+[70]
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 655--655
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000324, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 红 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 大 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 694--694
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000325, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 蓝 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 中 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+[71]
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 748--748
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000326, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 羽 
+绒 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 蓝 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 中 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+[72]
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 802--802
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000327, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 中 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 856--856
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000328, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 红 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 小 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+[73]
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 910--910
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000329, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 蓝 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 中 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 964--964
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000330, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 大 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+[74]
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 1018--1018
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000331, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 蓝 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 大 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 1062--1062
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000332, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 蓝 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 大 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+[75]
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 1106--1106
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000333, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 红 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 大 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 1145--1145
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000334, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 蓝 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 大 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+[76]
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 1189--1189
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000335, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 中 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 1243--1243
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000336, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 衬 
+衫 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 大 号 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+[77]
+Overfull \hbox (13.25711pt too wide) in paragraph at lines 1297--1297
+[]\TU/lmtt/m/n/6.52437 {inBound} - hangerId: 1000337, rods: [B-1, B-2, B-3, B-4
+, B-5, B-6, B-7, B-8, B-9, B-10], props: {styleName= \TU/微软雅黑(0)/m/n/6.52437 羽 
+绒 \TU/lmtt/m/n/6.52437 , color= \TU/微软雅黑(0)/m/n/6.52437 绿 色 \TU/lmtt/m/n/6.5243
+7 , size= \TU/微软雅黑(0)/m/n/6.52437 特 大 \TU/lmtt/m/n/6.52437 }, maxMixture: 3[] 
+
+[78])
+[79] 
+enddocument/afterlastpage (AED): lastpage setting LastPage.
+(./jack-jar-usage-guide.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+
+LaTeX Warning: There were undefined references.
+
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+
+Package rerunfilecheck Warning: File `jack-jar-usage-guide.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+
+Package lastpage Warning: Rerun to get the references right on input line 461.
+
+ )
+(see the transcript file for additional information)
+Output written on jack-jar-usage-guide.pdf (82 pages).
+Transcript written on jack-jar-usage-guide.log.

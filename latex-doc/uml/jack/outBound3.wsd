@@ -1,0 +1,21 @@
+@startuml
+scale 800 width
+title 入库库位筛选流程 （III）-- 在阻挡深度分类存储杆中筛选出库衣架
+partition <color:red>III. 在阻挡深度分类存储杆中筛选出库衣架 {
+start
+:<color:red>II. 求非空衣架出库候选杆数组; <<procedure>>
+repeat
+	#palegreen: 按阻挡深度横向遍历匹配存储杆: for (int i = 0; i < maxBlockDegree; i++)\l其中maxBlockDegree实质上是存储衣架最多的杆的衣架数;
+	:取出深度 i 的匹配存储杆列表: ArrayList<String> list = blockDegreeRods[i];
+	if (list不为空) then (是)
+		:取第1个存储杆 rodNode = list.get(0)\l注：可扩展为对list遍历;
+		if (rodNode中的衣架没有被预订\l(需回调App)) then (是)
+		:回调App得到选择和预订的衣架: hangersToOutBound;
+		:return: LinkedHashMap<String, List<String>> rodsAndHangers\l其中key: rodNode, value: hangersToOutBound;
+		stop
+		endif
+	endif
+repeat while (衣架遍历结束？) is (否) not (是)
+stop
+}
+@enduml

@@ -1,0 +1,25 @@
+@startuml
+scale 800 width
+title 出库库位和衣架筛选流程 （I）-- 空衣架筛选出库
+partition <color:red>I. 空衣架筛选出库 {
+start
+if (回调App，判断 rods[0]是否为空衣架存储杆?\l(如果是空衣架出库，rods都是空衣架存储杆)) then (是)
+	:String <color:red>rodToOutBound</color>=null;
+	repeat: 遍历<color:red>rods</color>\l for (String rodCode : rods);
+	:回调App, 取当前库位<color:red>是否有被预订</color>的衣架，\l以及<color:red>杆内衣架数</color>;
+	backward :下一库位;
+	repeat while ((有预订 || 杆内衣架数为0) && 且有下一库位) is ( 是) not (否)
+	if (找到<color:red>未被预订且有库存</color>的杆) then (是)
+		:找到的杆保存于<color:red>rodToOutBound</color>;
+		:回调App，获取杆中可出库的<color:red>衣架列表</color>: List<String> <color:red>hangersToOutBound</color> = \liJackDgOpenService.pickHangersInRod(rodToOutBound, mapProps, 1);
+		:返回杆及其衣架列表：LinkedHashMap<String, List<String>>\l其中 key: rodToOutBound, value: hangersToOutBound;
+	else (否)
+		: return 空哈希表;
+	endif
+	stop
+else (否)
+	:<color:red>II. 求非空衣架出库候选杆数组</color>; <<procedure>>
+	stop
+endif
+}
+@enduml

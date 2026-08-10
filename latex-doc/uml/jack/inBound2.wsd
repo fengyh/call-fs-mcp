@@ -1,0 +1,48 @@
+@startuml
+scale 1000 width
+title 入库库位筛选流程 （II）-- 计算备选库位数据
+
+partition <color:red>II. 计算备选库位数据 {
+start
+:<color:red>I. 空衣架入库规则; <<procedure>>
+:Map<String, MixedInfo> mapCandidateRods = new LinkedHashMap<>()；\l<color:red>MixedInfo</color>：｛杆内符合props的衣架数，按props区分的混存度｝;
+repeat
+	#palegreen: 遍历库位 rods;
+	if (满光电状态为“未满” && 在杆+在途 < 杆容量)  then (是)
+		:初始化存储杆按入参props属性取值的衣架数哈希表\l <color:red>mapMixedDegree</color>（属性值组合->衣架数量）;
+		:计算<color:red>key0</color>(入参props属性值组合);
+		if (在杆+在途 > 0) then ( 是（非空杆）)
+			:<color:red>hangerIds</color> <-- 在杆衣架id + 在途衣架id;
+			repeat
+				#lightgreen:  遍历衣架 hangerIds;
+				:计算<color:red>key1</color>(取衣架id对应的衣架中props属性值组合);
+				if (key0 == key1) then (是)
+					:<color:red>foundMatchedProps <-- true</color> （当前杆找到入参props属性值组合匹配的衣架）\l<color:red>countMatchedProps++</color> <-- 当前杆匹配的衣架数;
+				endif
+				if (mapMixedDegree包含key) then (是)
+					:key对应的衣架数+1\l mapMixedDegree.put(key, mapMixedDegree.get(key) + 1);
+				else (否)
+					:key对应的衣架数置1 mapMixedDegree.put(key, 1)\l本杆混存度+1 <color:red>mixedDegree++</color>;
+				endif
+				backward :下一衣架;
+			repeat while (遍历结束？) is (否) not (是)
+			if (当前杆匹配入参props, 且混存度为1) then (是)
+				:return <color:red>当前杆号</color>;
+			endif
+		else ( 否（空杆）)
+			:<color:red>sEmptyRodCode</color> <-- 记录第一个空杆;
+		endif
+	else (否)
+		:跳过该库位;
+	endif
+	backward :下一库位;
+	:记录当前杆中匹配入参props的衣架数，该杆的混存度。\lmapCandidateRods.put(当前库位号, MixedInfo{countMatchedProps, mixedDegreee});
+repeat while (遍历结束？) is (否) not (是)
+if (有空杆) then (是)
+	:return <color:red>sEmptyRodCode</color>;
+endif
+:<color:red>III. 筛选适合的混存杆; <<procedure>>
+stop
+
+}
+@enduml

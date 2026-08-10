@@ -1,0 +1,24 @@
+@startuml
+scale 800 width
+
+title 工序状态机图（虚拟调试模式才发送FS指令）
+
+state "0.待执行\nSTATE_INIT" as init #FFFF77;line:red
+state "1.执行中\nSTATE_EXECUTING" as executing #AliceBlue;line:red
+state "2.暂停\nSTATE_PAUSE" as pause #FFFF77;line:red
+state "3.完成\nSTATE_FINISHED" as finished #palegreen;line:red
+
+[*] -right-> init: 排产单下发到工序 
+init -right-> executing: OnEvent\l1)启动工序生产\l2)<color:#0000FF>向FS发送工站可以生产</color> 
+init:
+executing -left-> executing : OnEvent\l1)入站事件\l2)出站事件\l3)站内读卡事件\l4)满光电事件\l\lOnTimer\l1)出站处理\l2)叫料
+executing:
+executing -[#red]-> pause : OnEvent\l1)换辅料\l2)缺料\l3)缺人\l4)硬件故障
+executing --> finished: 完成生产任务
+pause -right-> executing : OnEvent\l1)恢复生产
+pause:OnEnter\l1)标记变量，不接收上序衣架推送\l2)<color:#0000FF>向FS发送工站停止生产</color>
+pause:OnExit\l1)标记变量，可接收上序衣架推送\l2)<color:#0000FF>向FS发送工站可以生产</color>
+finished:OnEnter\l1)<color:#0000FF>向FS发送工站停止生产</color>
+finished ->[*]
+
+@enduml

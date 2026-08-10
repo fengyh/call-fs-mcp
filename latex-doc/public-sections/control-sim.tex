@@ -1,0 +1,167 @@
+\section{控制系统测试桩设计思路}
+控制系统测试桩，相当于FS和吊挂测试桩之间的\bf{通讯中间件}。\it{北向}：从FS接收UDP数据报为载体的衣架事件（进入/路过站点、离开站点、站内读卡、站/杆满光电），再封装成http用post方法发送到吊挂测试桩。\it{南向}：定时（约50$\sim$200ms，闲时200ms，忙时50ms）\footnote{\bf{闲时}：指令池为空，没有取到指令。\bf{忙时}: 取到指令，指令池可能还有待下发的指令。}向吊挂测试桩通过http轮询下载运输指令和FS属性设置指令，再转换成UDP数据报发送到FS。
+
+\subsection{UDPManager - UDP监听器}
+UDPManager 类是一个 UDP 监听器，它使用单例模式来确保整个应用程序中只有一个 UDPManager 实例。类中三个需说明的成员变量是：
+\begin{itemize}
+	\item DatagramSocket \bf{socket}: 用于接收 UDP 数据报。
+	\item ExecutorService \bf{executor}: 使用单线程执行器来处理接收到的数据报，这样可以避免多线程并发问题。
+	\item UDPReceiverCallback \bf{callback}: 这是一个回调接口对象，用于在接收到 UDP 消息时通知调用者。它定义了一个方法 onMessageReceived，该方法接收一个字符串消息。
+\end{itemize}
+\it{executor}和\it{callback}在构造函数中被初始化。使用UDPManager时（本例在Application类中使用），需设置回调接口对象，并启动执行器：\label{code:simapp}
+\begin{lstlisting}
+public class SimApp {
+    private static final Logger log = LoggerFactory.getLogger(SimApp.class);
+    private static final UDPManager.UDPReceiverCallback dataProcess = new DataProcess();
+    private static final IConfig config = new IConfigImpl();
+
+    /**
+     * UDPManager.UDPReceiverCallback UDP监听器回调类实例
+     * @param args
+     */
+    public static void main(String[] args) {
+        SpringApplication.run(SimApp.class, args);
+        int portCtrl = config.getPortHangerControllerUdpReceiver();
+        UDPManager.getInstance().setCallback(dataProcess);
+        UDPManager.getInstance().startReceiving(portCtrl);
+        if(LogIf.canLog("others")) log.info("SimApp is running");
+    }
+
+    @Bean
+    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+        return builder.build();
+    }
+}
+\end{lstlisting}\vspace{-30pt}
+第3行创建的 DataProcess 实例，派生自 UDPManager.UDPReceiverCallback 接口类，用于处理接收到的 UDP 消息，并通过 http post 上报。第13行设置该回调接口对象，第14行调用startReceiving()启动接收器，监听端口通过 config.getPortHangerControllerUdpReceiver() 获取。其中startReceiving()函数定义如下：
+\begin{lstlisting}
+    // 启动接收线程
+    public void startReceiving(int port) {
+        if(LogIf.canLog("udp-up")) log.info("吊挂控制系统（测试桩）启动UDP接收线程，监听端口：{}", port);
+        executor.submit(new UDPReceiverThread(port, callback));
+    }
+\end{lstlisting}\vspace{-30pt}
+第4行将线程对象作为参数提交给执行器，启动UDP的接收。在UDPReceiverThread线程函数run()中，使用socket接收UDP数据报，然后调用回调接口对象的onMessageReceived()方法处理接收到的数据报。
+
+UDP监听器回调类DataProcess的两个函数说明如下：
+\begin{lstlisting}
+    /**
+     * <b>回调函数</b>
+     * <p/>
+     * 将收到的消息，通过调用post()函数透传到控制（测试桩）
+     * @param message
+     */
+    @Override
+    public void onMessageReceived(String message) {
+        if(LogIf.canLog("upd-up")) log.info("Received message: {}", message);
+        post("http://localhost:8090/ctrlSim/pushEvent", message);
+    }
+
+    /**
+     * 将事件消息体（udpEvent）通过http用post方法透传到控制（测试桩）
+     * @param strUrl
+     * @param udpEvent
+     */
+    private void post(String strUrl, String udpEvent) {
+        try {
+            // 创建URL对象
+            URL url = new URL(strUrl);
+
+            // 打开连接
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+
+            // 设置请求方法为POST
+            connection.setRequestMethod("POST");
+
+            // 设置请求头
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setRequestProperty("Accept", "application/json");
+
+            // 允许输出
+            connection.setDoOutput(true);
+
+            // 写入请求体
+            try (DataOutputStream outputStream = new DataOutputStream(connection.getOutputStream())) {
+                byte[] input = udpEvent.getBytes(StandardCharsets.UTF_8);
+                outputStream.write(input, 0, input.length);
+                outputStream.flush();
+            }
+
+            // 获取响应码
+            int responseCode = connection.getResponseCode();
+
+            // 读取响应
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+                String inputLine;
+                StringBuilder content = new StringBuilder();
+                while ((inputLine = in.readLine()) != null) {
+                    content.append(inputLine);
+                }
+            }
+
+            // 关闭连接
+            connection.disconnect();
+        } catch (Exception e) {
+            // e.printStackTrace();
+            if(LogIf.canLog("upd-up")) log.error("控制透传事件至业务，连接不可用");
+        }
+    }
+\end{lstlisting}\vspace{-30pt}
+其中onMessageReceived为回调函数，将收到的消息，通过调用post()函数透传到吊挂测试桩。
+
+\subsection{CmdPullingManager 指令拉取管理器}
+CmdPullingManager定义为Spring组件\footnote{\bf{Spring组件}：用“@Component”注解的类，直接由Spring容器管理。}，其中的fetchDataFromController()函数用“@Scheduled(fixedRate = 50)”注解为50ms的定时任务，用于定时从吊挂测试桩拉取指令。该函数使用org.springframework.web.client.RestTemplate拉取指令。拉取得到的指令通过sendMessage(strUdpPayload, ipFs, portFs)函数发送到FS。
+\begin{lstlisting}
+/**
+ * 指令拉取管理器
+ */
+@Component
+public class CmdPullingManager {
+    private static final Logger log = LoggerFactory.getLogger(CmdPullingManager.class);
+    private static final IConfig config = new IConfigImpl();
+    @Autowired
+    private final RestTemplate restTemplate;
+
+    public CmdPullingManager(RestTemplateBuilder restTemplateBuilder) {
+        this.restTemplate = restTemplateBuilder.build();
+    }
+
+    /**
+     * 定时任务
+     * <p>
+     *     闲时(返回的 response 为 null)，200ms 一次轮询
+     *     忙时，100ms 一次轮询
+     * </p>
+     */
+    long lastReqTimeMs = System.currentTimeMillis();
+    boolean busy = true;
+    @Scheduled(fixedRate = 50)
+    public void fetchDataFromController() {
+        long nowMs = System.currentTimeMillis();
+        if (!busy && (nowMs - lastReqTimeMs < 200)) {return;}
+        try {
+            lastReqTimeMs = System.currentTimeMillis();
+            String url = "http://localhost:8090//ctrlSim/pullCmd";
+            String response = restTemplate.getForObject(url, String.class);
+            busy = false;
+            if (response != null) {
+                busy = true;
+                String strUdpPayload = null;
+                ObjectMapper objectMapper = new ObjectMapper();
+                try {
+                    JsonNode rootNode = objectMapper.readTree(response);
+                    strUdpPayload = rootNode.toString();
+                } catch (Exception e) {
+                    if(LogIf.canLog("udp-down")) log.error(e.getMessage());
+                }
+                String ipFs = config.getIpHangerHardwareUdpReceiver();
+                int portFs = config.getPortHangerHardwareUdpReceiver();
+                UDPManager.getInstance().sendMessage(strUdpPayload, ipFs, portFs);
+            }
+        } catch (Exception e) {
+            if(LogIf.canLog("udp-down")) log.error(e.getMessage());
+        }
+    }
+}
+\end{lstlisting}\vspace{-30pt}
+其中第9行通过“@Autowired”注解注入的Spring Bean在Application类中\hyperref[code:simapp]{\underline{定义}}。第27行判断闲或忙，fetchDataFromController函数每50ms被调用一次，使用busy布尔变量标记忙闲。36$\sim$42的代码是旧版本代码的处理，可以删除。第45行发送UDP数据报至FS。
