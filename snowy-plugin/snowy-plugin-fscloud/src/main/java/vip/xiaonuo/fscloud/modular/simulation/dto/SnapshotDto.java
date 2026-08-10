@@ -14,6 +14,7 @@ package vip.xiaonuo.fscloud.modular.simulation.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+
 import java.util.Date;
 
 /**
@@ -30,6 +31,9 @@ public class SnapshotDto {
 
     @Schema(description = "模型库记录 ID")
     private String modelFileId;
+
+    @Schema(description = "仿真运行 ID（成对落库标识，NULL=单独落库）")
+    private String runId;
 
     @Schema(description = "快照时间戳")
     private Long snapshotAt;

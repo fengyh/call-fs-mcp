@@ -17,9 +17,9 @@ import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
-import cn.hutool.json.JSONUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
@@ -32,35 +32,10 @@ import vip.xiaonuo.common.pojo.CommonResult;
 import vip.xiaonuo.fscloud.modular.modelfile.entity.FsModelFile;
 import vip.xiaonuo.fscloud.modular.modelfile.service.FsModelFileService;
 import vip.xiaonuo.fscloud.modular.simulation.SimStatusEnum;
-import vip.xiaonuo.fscloud.modular.simulation.dto.GetResultSnapshotDto;
-import vip.xiaonuo.fscloud.modular.simulation.dto.SaveParamSnapshotToModelDto;
-import vip.xiaonuo.fscloud.modular.simulation.dto.GetParameterSnapshotDto;
-import vip.xiaonuo.fscloud.modular.simulation.dto.GetModelParamsDto;
-import vip.xiaonuo.fscloud.modular.simulation.dto.GetLoadedModelDto;
-import vip.xiaonuo.fscloud.modular.simulation.dto.LoadModelDto;
-import vip.xiaonuo.fscloud.modular.simulation.dto.RunModelDto;
-import vip.xiaonuo.fscloud.modular.simulation.dto.SnapshotDto;
-import vip.xiaonuo.fscloud.modular.simulation.param.GetResultDatasetPageParam;
-import vip.xiaonuo.fscloud.modular.simulation.param.GetResultSnapshotParam;
-import vip.xiaonuo.fscloud.modular.simulation.param.SaveParamSnapshotToModelParam;
-import vip.xiaonuo.fscloud.modular.simulation.param.GetParameterSnapshotParam;
-import vip.xiaonuo.fscloud.modular.simulation.param.AnimationLayerParam;
-import vip.xiaonuo.fscloud.modular.simulation.param.GetModelParamsParam;
-import vip.xiaonuo.fscloud.modular.simulation.param.LoadModelParam;
-import vip.xiaonuo.fscloud.modular.simulation.param.RunModelParam;
-import vip.xiaonuo.fscloud.modular.simulation.param.SaveSnapshotParam;
-import vip.xiaonuo.fscloud.modular.simulation.param.SelectAnimationLayerParam;
-import vip.xiaonuo.fscloud.modular.simulation.param.SetAccelerateFactorParam;
-import vip.xiaonuo.fscloud.modular.simulation.param.SetAnimationEnabledParam;
-import vip.xiaonuo.fscloud.modular.simulation.param.GetSvgPictureParam;
-import vip.xiaonuo.fscloud.modular.simulation.param.SnapshotIdParam;
-import vip.xiaonuo.fscloud.modular.simulation.param.SnapshotListParam;
-import vip.xiaonuo.fscloud.modular.simulation.service.FsSimParamSnapshotService;
-import vip.xiaonuo.fscloud.modular.simulation.service.McpClientService;
-import vip.xiaonuo.fscloud.modular.simulation.service.SimulationModelRecord;
-import vip.xiaonuo.fscloud.modular.simulation.service.SimulationModelTrackingMap;
+import vip.xiaonuo.fscloud.modular.simulation.dto.*;
+import vip.xiaonuo.fscloud.modular.simulation.param.*;
+import vip.xiaonuo.fscloud.modular.simulation.service.*;
 
-import jakarta.annotation.Resource;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -635,6 +610,9 @@ public class SimController {
     @Resource
     private FsSimParamSnapshotService fsSimParamSnapshotService;
 
+    @Resource
+    private FsSimResultSnapshotService fsSimResultSnapshotService;
+
     @Operation(summary = "保存参数快照")
     @SaCheckPermission("/fscloud/sim/saveSnapshot")
     @CommonLog("保存参数快照")
@@ -668,6 +646,58 @@ public class SimController {
     public CommonResult<Void> deleteSnapshot(@RequestBody @Valid SnapshotIdParam param) {
         fsSimParamSnapshotService.deleteById(param.getId());
         log.info("deleteSnapshot success: id={}", param.getId());
+        return CommonResult.ok();
+    }
+
+    // ==================== 结果快照（成对落库） ====================
+
+    @Operation(summary = "保存结果快照（成对落库：参数+结果）")
+    @SaCheckPermission("/fscloud/sim/saveResultSnapshot")
+    @CommonLog("保存结果快照")
+    @PostMapping("/fscloud/sim/saveResultSnapshot")
+    public CommonResult<Long> saveResultSnapshot(@RequestBody @Valid SaveResultSnapshotParam param) {
+        String userId = StpUtil.getLoginIdAsString();
+        log.info("saveResultSnapshot: userId={}, modelId={}, runId={}",
+                userId, param.getModelId(), param.getRunId());
+        Long id = fsSimResultSnapshotService.saveResultSnapshot(userId, param.getModelId(), param.getRunId());
+        log.info("saveResultSnapshot success: id={}, runId={}", id, param.getRunId());
+        return CommonResult.data(id);
+    }
+
+    @Operation(summary = "查询某模型的所有结果快照列表")
+    @SaCheckPermission("/fscloud/sim/listResultSnapshots")
+    @PostMapping("/fscloud/sim/listResultSnapshots")
+    public CommonResult<List<ResultSnapshotDto>> listResultSnapshots(@RequestBody @Valid ResultSnapshotListParam param) {
+        List<ResultSnapshotDto> list = fsSimResultSnapshotService.listByModelFileId(param.getModelFileId());
+        return CommonResult.data(list);
+    }
+
+    @Operation(summary = "查询单个结果快照详情")
+    @SaCheckPermission("/fscloud/sim/getResultSnapshotById")
+    @PostMapping("/fscloud/sim/getResultSnapshotById")
+    public CommonResult<ResultSnapshotDto> getResultSnapshotById(@RequestBody @Valid ResultSnapshotIdParam param) {
+        ResultSnapshotDto dto = fsSimResultSnapshotService.getById(param.getId());
+        return CommonResult.data(dto);
+    }
+
+    @Operation(summary = "按页读取结果快照某数据集数据")
+    @SaCheckPermission("/fscloud/sim/getResultDatasetPageInDb")
+    @PostMapping("/fscloud/sim/getResultDatasetPageInDb")
+    public CommonResult<ResultDatasetPageDto> getResultDatasetPageInDb(@RequestBody @Valid ResultDatasetPageInDbParam param) {
+        int limit = param.getLimit() != null ? param.getLimit() : 25;
+        int offset = param.getOffset() != null ? param.getOffset() : 0;
+        ResultDatasetPageDto dto = fsSimResultSnapshotService.getDatasetPage(
+                param.getId(), param.getDataset(), limit, offset);
+        return CommonResult.data(dto);
+    }
+
+    @Operation(summary = "删除结果快照（连带成对参数快照与 partCycleTime 文件）")
+    @SaCheckPermission("/fscloud/sim/deleteResultSnapshot")
+    @CommonLog("删除结果快照")
+    @PostMapping("/fscloud/sim/deleteResultSnapshot")
+    public CommonResult<Void> deleteResultSnapshot(@RequestBody @Valid ResultSnapshotIdParam param) {
+        fsSimResultSnapshotService.deleteById(param.getId());
+        log.info("deleteResultSnapshot success: id={}", param.getId());
         return CommonResult.ok();
     }
 
