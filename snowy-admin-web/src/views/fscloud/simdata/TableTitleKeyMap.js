@@ -3,6 +3,7 @@
  *
  * 结构: tableTitleKeyMap[groupKey][datasetKey] = {
  *   show: 是否显示该 dataset 子tab,
+ *   compareKey: 横向对比时的对齐键（列名）；空串 "" 表示该 dataset 不做横向对比，对比模式下只显示主体快照,
  *   tabTitle: tab tooltip 完整标题,
  *   tabBrief: tab 上显示的短名称,
  *   columns: { [columnKey]: { title, unit, type, decimals } }
@@ -15,6 +16,7 @@ export const tableTitleKeyMap = {
     overview: {
       taktTime: {
         show: true,
+        compareKey: "objectName",
         tabTitle: "节拍时间",
         tabBrief: "节拍",
         columns: {
@@ -76,6 +78,7 @@ export const tableTitleKeyMap = {
       },
       uph: {
         show: true,
+        compareKey: "objectName",
         tabTitle: "小时产出量(UPH)",
         tabBrief: "产量/小时",
         columns: {
@@ -125,6 +128,7 @@ export const tableTitleKeyMap = {
       },
       utilRate: {
         show: true,
+        compareKey: "objectName",
         tabTitle: "设备利用率",
         tabBrief: "设备利用率",
         columns: {
@@ -228,12 +232,14 @@ export const tableTitleKeyMap = {
       },
       leanMetrics: {
         show: true,
+        compareKey: "",
         tabTitle: "精益指标",
         tabBrief: "精益指标",
         columns: {}
       },
       energyAnalysis: {
         show: true,
+        compareKey: "",
         tabTitle: "能耗分析",
         tabBrief: "能耗分析",
         columns: {}
@@ -242,6 +248,7 @@ export const tableTitleKeyMap = {
     basic: {
       partCycleTime: {
         show: true,
+        compareKey: "",
         tabTitle: "单品循环时间",
         tabBrief: "循环时间",
         columns: {
@@ -327,6 +334,7 @@ export const tableTitleKeyMap = {
       },
       rbData: {
         show: true,
+        compareKey: "objectName",
         tabTitle: "资源缓冲区数据",
         tabBrief: "缓冲区",
         columns: {
@@ -364,6 +372,7 @@ export const tableTitleKeyMap = {
       },
       taktTime: {
         show: true,
+        compareKey: "objectName",
         tabTitle: "节拍时间",
         tabBrief: "节拍",
         columns: {
@@ -425,6 +434,7 @@ export const tableTitleKeyMap = {
       },
       uph: {
         show: true,
+        compareKey: "objectName",
         tabTitle: "小时产出量(UPH)",
         tabBrief: "UPH",
         columns: {
@@ -474,6 +484,7 @@ export const tableTitleKeyMap = {
       },
       utilRate: {
         show: true,
+        compareKey: "objectName",
         tabTitle: "资源/设备利用率",
         tabBrief: "利用率",
         columns: {
@@ -577,6 +588,7 @@ export const tableTitleKeyMap = {
       },
       "wip.timeline": {
         show: true,
+        compareKey: "",
         tabTitle: "在制品时间趋势",
         tabBrief: "WIP趋势",
         columns: {
@@ -596,6 +608,7 @@ export const tableTitleKeyMap = {
       },
       "wip.distribution": {
         show: true,
+        compareKey: "",
         tabTitle: "在制品分布",
         tabBrief: "WIP分布",
         columns: {
@@ -629,6 +642,7 @@ export const tableTitleKeyMap = {
     lean: {
       "lean.productLines": {
         show: true,
+        compareKey: "componentId",
         tabTitle: "产线信息",
         tabBrief: "产线",
         columns: {
@@ -696,6 +710,7 @@ export const tableTitleKeyMap = {
       },
       "lean.lt": {
         show: true,
+        compareKey: "componentId",
         tabTitle: "生产前置时间(LT)",
         tabBrief: "LT",
         columns: {
@@ -769,6 +784,7 @@ export const tableTitleKeyMap = {
       },
       "lean.fpy": {
         show: true,
+        compareKey: "componentId",
         tabTitle: "一次合格率(FPY)",
         tabBrief: "FPY",
         columns: {
@@ -860,6 +876,7 @@ export const tableTitleKeyMap = {
       },
       "lean.wip": {
         show: true,
+        compareKey: "componentId",
         tabTitle: "在制品存量",
         tabBrief: "WIP",
         columns: {
@@ -921,6 +938,7 @@ export const tableTitleKeyMap = {
       },
       "lean.wipTimeline": {
         show: true,
+        compareKey: "",
         tabTitle: "在制品时序曲线",
         tabBrief: "WIP时序",
         columns: {
@@ -970,6 +988,7 @@ export const tableTitleKeyMap = {
       },
       "lean.capacity": {
         show: true,
+        compareKey: "componentId",
         tabTitle: "产能",
         tabBrief: "产能",
         columns: {
@@ -1079,6 +1098,7 @@ export const tableTitleKeyMap = {
       },
       "lean.cycleTime": {
         show: true,
+        compareKey: "componentId",
         tabTitle: "工序循环时间",
         tabBrief: "工序CT",
         columns: {
@@ -1140,6 +1160,7 @@ export const tableTitleKeyMap = {
       },
       "lean.processEfficiency": {
         show: true,
+        compareKey: "componentId",
         tabTitle: "工艺效率",
         tabBrief: "工艺效率",
         columns: {
@@ -1243,6 +1264,7 @@ export const tableTitleKeyMap = {
       },
       "lean.changeover": {
         show: true,
+        compareKey: "componentId",
         tabTitle: "换型切换",
         tabBrief: "换型",
         columns: {
@@ -1316,6 +1338,7 @@ export const tableTitleKeyMap = {
       },
       "lean.changeoverRecords": {
         show: true,
+        compareKey: "",
         tabTitle: "换型记录",
         tabBrief: "换型记录",
         columns: {
@@ -1365,6 +1388,7 @@ export const tableTitleKeyMap = {
       },
       "lean.oee": {
         show: true,
+        compareKey: "componentId",
         tabTitle: "设备综合效率(OEE)",
         tabBrief: "OEE",
         columns: {
@@ -1450,6 +1474,7 @@ export const tableTitleKeyMap = {
       },
       "lean.pplh": {
         show: true,
+        compareKey: "componentId",
         tabTitle: "人时产出量(PPLH)",
         tabBrief: "PPLH",
         columns: {
@@ -1513,6 +1538,7 @@ export const tableTitleKeyMap = {
     energy: {
       "energy.mediums": {
         show: true,
+        compareKey: "mediumId",
         tabTitle: "能源介质",
         tabBrief: "介质",
         columns: {
@@ -1556,6 +1582,7 @@ export const tableTitleKeyMap = {
       },
       "energy.params": {
         show: true,
+        compareKey: "deviceName",
         tabTitle: "能耗参数",
         tabBrief: "参数",
         columns: {
@@ -1611,6 +1638,7 @@ export const tableTitleKeyMap = {
       },
       "energy.rows": {
         show: true,
+        compareKey: "",
         tabTitle: "能耗明细数据行",
         tabBrief: "明细",
         columns: {
@@ -1702,6 +1730,7 @@ export const tableTitleKeyMap = {
       },
       "energy.mediumSummary": {
         show: true,
+        compareKey: "mediumId",
         tabTitle: "能源介质汇总",
         tabBrief: "介质汇总",
         columns: {
@@ -1769,6 +1798,7 @@ export const tableTitleKeyMap = {
       },
       "energy.powerCurve": {
         show: true,
+        compareKey: "",
         tabTitle: "功率曲线",
         tabBrief: "功率曲线",
         columns: {
