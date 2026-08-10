@@ -1,25 +1,181 @@
-\section{吊挂系统 JAR 包简介}
-\bf{主要功能}有3个：1）衣架入库时计算运输的目标库位，2）衣架出库时计算运输的起始库位、待出库衣架编号、阻挡衣架（存储杆中排在待出库衣架之前的衣架）列表，3）以及运输的路径求解。
+\section{简介}
+本文档以 \bf{MCP（Model Context Protocol）}接口的使用为核心，介绍在 \bf{snowy} 快速开发框架的基础上，开发 \bf{Web 应用程序（WEBAPP）}与 \bf{FactorySimulation（FS）}仿真引擎集成的总体方法、开发步骤和重点事项。文档面向的读者是：需要在 snowy 框架上开发 FS 仿真控制功能的云端后端工程师、前端工程师以及测试人员。
 
-\bf{JAR包的形态}：JAR包工程编译后，生成两个.Jar文件：\bf{Algorithm-1.0.jar}和\bf{Algorithm-1.0-sources.jar}。前者可用于吊挂系统的对接和集成，后者是用于参考和调试的源代码包。
+FS 仿真引擎通过内置的 MCP Server 对外提供模型加载、仿真运行控制、状态与结果查询、参数表读写、动画画面获取等能力。WEBAPP 不需要直接操作仿真引擎的内部 API，只需按照 MCP 协议以 \bf{HTTP JSON-RPC 2.0} 的方式调用 MCP 工具，即可完成一次仿真任务的完整生命周期管理。
 
-\bf{JAR包的特性}：1）普适性：设计的目标是，通过配置基础数据，满足不同场景的吊挂硬件系统的业务调度和排产。2）可维护性：可根据吊挂业务系统的功能需求，对JAR包（源代码）进行扩展和调整，例如业务数据的维护和共享方式。
+本文的总体调用链如下：
+\begin{lstlisting}
+Vue 前端 (snowy-admin-web)
+   |   REST /fscloud/sim/*  (axios)
+   v
+云端后端 (snowy-plugin-fscloud 插件模块)
+   |   MCP tools/call  (HTTP JSON-RPC 2.0, X-API-Key 鉴权)
+   v
+FS 仿真引擎 MCP Server  (默认 http://127.0.0.1:8081/mcp)
+   |   引擎内部仿真 API
+   v
+FactorySimulation 仿真模型实例
+\end{lstlisting}\vspace{-30pt}
+\par 仿真引擎运行期间的状态、进度、控制台日志以及浏览器动画帧，通过 \bf{MQTT} 实时消息通道推送给后端和前端，与 MCP 的请求-响应式调用形成互补，共同构成 WEBAPP 与 FS 集成的完整数据通路。
 
-\subsection{3个基础数据表}
+\subsection{MCP 介绍}
+\bf{MCP（Model Context Protocol，模型上下文协议）}是由 Anthropic 于 2024 年底提出并开源的开放标准协议，用于标准化\it{应用程序/大语言模型}与\it{外部数据源、工具}之间的交互方式。它解决了传统上每个应用都要为每种外部能力单独实现一套对接协议的问题，把\it{能力暴露}与\it{能力调用}统一为一种标准形态。
+
+MCP 体系中有三个核心角色：
 \begin{enumerate}[label=\arabic*)]
-	\item \bf{节点表}：每个吊挂主轨上按逆时针排列的衣架进出轨的节点的列表。节点的具体的数据组成见后序章节\todo{引用后序章节号}。
-	\item \bf{桥接表}：主轨之间的通道（桥接杆），主要指回流通道和快速通道，桥接表无顺序要求。桥接杆的具体的数据组成见后序章节\todo{引用后序章节号}。
-	\item \bf{库区表}：主轨之间用于存放衣架的存储杆，包括空衣架和已挂片衣架，库区无顺序要求。库区的具体的数据组成见后序章节\todo{引用后序章节号}。
+	\item \bf{Host（宿主）}：发起连接的应用程序，例如 AI 助手、IDE 或本文中的云端后端。
+	\item \bf{Client（客户端）}：在 Host 内部运行，负责与 Server 建立连接、交换消息。
+	\item \bf{Server（服务端）}：暴露能力的一方，把内部功能封装为标准化的\it{能力原语}。
 \end{enumerate}
-
-\subsection{2个业务数据表}
-\tbc{文档组织确认：业务数据主要是吊挂系统维护，JAR包需要查询哪些数据？}
+MCP 定义了三种能力原语：
 \begin{enumerate}[label=\arabic*)]
-	\item \bf{库存表}：库存表是指在吊挂软件启动时，车缝站、存储杆中存储的衣架库存数据。对于车缝站，包括\it{站内衣架数量 \& 队列}、\it{待出站衣架数量 \& 队列}、\it{在途衣架数量 \& 队列}、\it{在库衣架数量}。对于存储杆，包括\it{库内数量 \& 队列}、\it{在途衣架数量 \& 列表}。具体的数据组成和数据结构见后序章节\todo{引用后序章节号}。
-	\item \bf{排产数据}，此处的排产单包含两种：
+	\item \bf{Tools（工具）}：可被调用的函数，有名称、参数 schema（JSON Schema）和返回结果，是\it{请求-响应}式的，例如“启动仿真”“查询状态”。
+	\item \bf{Resources（资源）}：可被读取的数据，例如文件内容、数据库记录。
+	\item \bf{Prompts（提示词）}：可被复用的提示模板，主要服务于 AI 场景。
+\end{enumerate}
+MCP 支持多种传输方式：\it{stdio}（本地子进程通信）、\it{HTTP}（基于 JSON-RPC 2.0 的 Streamable HTTP）、\it{SSE}（Server-Sent Events）等。本文使用的 FS 仿真控制接口采用\bf{HTTP JSON-RPC 2.0} 传输方式。
+
+需要特别说明的是：\bf{MCP 并不只服务于 AI 助手场景}。它本质上是“结构化工具调用”的标准协议。在本文的集成方案中，MCP Server 就是 FS 仿真引擎的能力网关，云端后端把它当作一个普通的远程服务调用即可，不涉及任何大语言模型（LLM）。这样 WEBAPP 获得了三个好处：一是\it{工具定义标准化}，通过 \texttt{tools/list} 即可发现仿真引擎的全部能力及参数；二是\it{调用格式统一}，所有仿真操作都走同一种 JSON-RPC 请求/响应结构；三是\it{职责清晰}，仿真引擎的复杂内部逻辑被隔离在 MCP Server 内部，WEBAPP 无需关心。
+
+\subsection{FS 仿真控制 MCP 接口介绍}
+\bf{FactorySimulation（FS）}是面向工厂物流与生产系统的仿真引擎。FS 的 MCP Server 运行在仿真引擎进程中，默认端点地址为 \texttt{http://127.0.0.1:8081/mcp}（生产环境可按部署修改），鉴权方式为请求头 \texttt{X-API-Key}，请求体为 JSON-RPC 2.0 格式。会话初始化先发送 \texttt{initialize}，再发送 \texttt{notifications/initialized}，之后通过 \texttt{tools/list} 查询工具清单、通过 \texttt{tools/call} 调用具体工具。
+
+FS 仿真控制 MCP 接口按功能分为以下七类：
+\begin{table}[h!]
+\scriptsize
+\centering
+\captionsetup{font=large}
+\caption*{\textbf{FS 仿真控制 MCP 工具分类}}
+\begin{tabular}{lp{9.5cm}l}
+    \Xhline{2\arrayrulewidth}
+    分类 & 工具名 & 说明 \\
+    \hline
+    模型管理 & \texttt{loadRemoteSimulationModel}、\texttt{unloadRemoteSimulationModel}、\texttt{listRemoteSimulationModels} & 加载/卸载模型，列出 MCP Server 内存中已加载的模型 \\
+    运行控制 & \texttt{startRemoteSimulation}、\texttt{pauseRemoteSimulation}、\texttt{resumeRemoteSimulation}、\texttt{resetRemoteSimulation}、\texttt{stopRemoteSimulation} & 仿真启动、暂停、恢复、重置、停止 \\
+    状态查询 & \texttt{getRemoteSimulationStatus} & 查询模型状态与运行信息 \\
+    结果获取 & \texttt{getRemoteSimulationResultSnapshot}、\texttt{getRemoteSimulationResultDatasetPage} & 第一层有界结果摘要 + 第二层全量数据分页读取 \\
+    参数表读写 & \texttt{listRemoteSimulationParameterTables}、\texttt{getRemoteSimulationParameterSnapshot}、\texttt{updateRemoteSimulationParameterTable}、\texttt{updateRemoteSimulationParameterCells}、\texttt{batchUpdateRemoteSimulationParameterTable} & 读取/修改模型中由 \texttt{mcp} 表开放出来的参数表 \\
+	动画与画面 & \texttt{listRemoteSimulationAnimationLayers}、\texttt{selectRemoteSimulationAnimationLayer}、\texttt{setRemoteSimulationAnimationEnabled}、\texttt{setRemoteSimulationAccelerateFactor}、\texttt{getSvgPicture} & 动画层级、推流开关、加速因子、SVG 画面 \\
+    时间轴 & \texttt{getRemoteSimulationObjectPositionSnapshot}、\texttt{getRemoteSimulationEvents} & 按仿真时间查询对象位置快照与仿真事件 \\
+    \Xhline{2\arrayrulewidth}
+\end{tabular}
+\end{table}
+
+\tips{MCP 工具清单以实际部署版本的 \texttt{tools/list} 返回为准，上表列出的是当前版本的完整工具集。}
+
+\subsubsection{统一业务响应格式}
+所有仿真工具调用成功后的业务结果，存放在 MCP 响应的 \texttt{result.content[0].text} 字段中，是一个 JSON 字符串。该 JSON 采用统一的业务响应结构：
+\begin{lstlisting}
+{
+  "success": true,          // 是否成功
+  "code": "OK",             // 业务错误码
+  "message": "success",     // 提示信息
+  "data": { ... }           // 业务数据
+}
+\end{lstlisting}\vspace{-30pt}
+常见业务错误码有：\texttt{INVALID\_ARGUMENT}（参数非法）、\texttt{MODEL\_FILE\_NOT\_FOUND}（模型文件不存在）、\texttt{USER\_MODEL\_LIMIT\_EXCEEDED}（单用户模型数超限）、\texttt{GLOBAL\_MODEL\_LIMIT\_EXCEEDED}（全局模型数超限）、\texttt{GLOBAL\_RUNNING\_LIMIT\_EXCEEDED}（全局运行数超限）、\texttt{MODEL\_NOT\_FOUND}（模型不存在）、\texttt{INVALID\_STATE}（当前状态不允许该操作）、\texttt{SIMULATION\_START\_FAILED}、\texttt{PARAMETER\_TABLE\_NOT\_FOUND}、\texttt{RESULT\_NOT\_READY}、\texttt{DATASET\_NOT\_FOUND}、\texttt{INTERNAL\_ERROR} 等。WEBAPP 后端解析出该 JSON 后，应将 \texttt{success/code/message/data} 原样（或按公司统一响应格式转换后）返回给前端。
+
+\subsubsection{模型状态机}
+FS 远程仿真模型的状态取值及常见流转如下：
+\begin{lstlisting}
+NOT_LOADED -> LOADED -> RUNNING -> PAUSED -> RUNNING -> FINISHED
+RUNNING / PAUSED -> STOPPED -> LOADED (reset 后)
+任何启动异常 -> FAILED
+\end{lstlisting}\vspace{-30pt}
+\begin{itemize}
+	\item \texttt{loadRemoteSimulationModel} 成功后状态为 \texttt{LOADED}。
+	\item \texttt{startRemoteSimulation} 成功后状态为 \texttt{RUNNING}。
+	\item 仿真自然结束后状态为 \texttt{FINISHED}，可读取结果。
+	\item \texttt{resetRemoteSimulation} 只允许在非运行/非暂停状态调用，成功后回到 \texttt{LOADED}。
+\end{itemize}
+同时存在资源配额限制：\bf{单用户最多加载 1 个模型，全局最多加载 10 个模型，全局最多 5 个模型同时运行}。
+
+\subsubsection{MQTT 实时消息通道}
+仿真运行期间，引擎通过内置 MQTT Broker 发布实时消息，主题结构为 \texttt{factory/sim/\{username\}/\{modelId\}/...}：
+\begin{itemize}
+	\item \texttt{status}：状态事件（如 \texttt{simulationStart}、\texttt{resultReady}），携带状态、仿真时间等；
+	\item \texttt{progress}：运行进度与仿真时间；
+	\item \texttt{console}：控制台日志（级别、内容、序号）；
+	\item \texttt{animation/layers}、\texttt{animation/state}、\texttt{animation/frameMeta}：动画层级目录、推流状态、帧元数据；
+	\item \texttt{animation/\{layerId\}/frame}：原始 JPEG 二进制动画帧（默认 5 FPS，最高 10 FPS）；
+	\item \texttt{animation/\{layerId\}/objects}：结构化对象帧（JSON，用于数字孪生渲染）。
+\end{itemize}
+其中动画帧是 Qos 0、非 Retain 的二进制消息，不能按 UTF-8/JSON 解析；状态、进度、控制台消息由后端订阅，动画帧由前端通过 WebSocket 桥接订阅。
+
+\subsection{在 snowy 框架基础上开发通过 MCP 接口进行 WEBAPP 与 FS 仿真集成的步骤}
+\bf{snowy} 是国内开源的前后端分离快速开发平台，采用 SpringBoot 3 + MyBatis-Plus + Sa-Token + AntDesignVue 3 + Vite 等技术栈，提供代码生成、权限管理（含 Sa-Token 鉴权）、国密加密等开箱即用的能力。FS 集成业务放在独立的业务插件模块 \texttt{snowy-plugin-fscloud} 中实现，WEBAPP 的启动模块 \texttt{snowy-web-app} 只负责启动与数据库/Web 配置。总体开发步骤如下：
+
+\begin{enumerate}[label=\arabic*)]
+	\item \bf{工程搭建与环境准备}\label{sec:brief-step1}
 	\begin{itemize}
-		\item 在吊挂软件启动时，正在执行的排产单，在JAR包初始化时，需要恢复排产单各工序的状态。
-		\item 在吊挂软件启动后，下发的新排产单。
+		\item 拉取 snowy 框架代码，创建业务插件模块 \texttt{snowy-plugin-fscloud}，并在 \texttt{snowy-web-app} 中引入该模块依赖。
+		\item 准备 MySQL 8.0 数据库（本项目约定库名 \texttt{fp\_mysql}）与 Redis，导入框架初始化脚本。
+		\item 运行 FS 仿真引擎（\texttt{fs-mcp} 版，可作桌面端也可作服务端），确认 MCP 端点可用；必要时启动 MQTT Broker（FS 内置）。
 	\end{itemize}
-	
+	\item \bf{配置 MCP 连接参数}
+	通过 \texttt{@ConfigurationProperties} 定义 \texttt{McpProperties}，读取配置项 \texttt{fscloud.mcp.endpoint-url}（默认 \texttt{http://127.0.0.1:8081/mcp}）与 \texttt{fscloud.mcp.api-key}，生产环境可在 \texttt{application-prod.properties} 中覆盖。API Key 属于敏感信息，\bf{不应下发给前端}。
+	\item \bf{封装 MCP 客户端服务（McpClientService）}\label{sec:brief-step3}
+	在后端封装一个 \texttt{McpClientService}，集中实现与 MCP Server 的通信，供所有 Controller 复用，避免重复实现 HTTP 通信逻辑。关键实现点：
+	\begin{itemize}
+		\item \texttt{call()}：发送 \texttt{initialize}、\texttt{tools/list} 等非工具类 JSON-RPC 方法；
+		\item \texttt{callTool(toolName, args)}：构造 \texttt{tools/call} 请求，\texttt{params.name} 为工具名，\texttt{params.arguments} 为参数对象；
+		\item HTTP 发送使用 \texttt{HttpURLConnection}，POST + \texttt{Content-Type: application/json} + 请求头 \texttt{X-API-Key}，建议连接超时 10s、读超时 60s；
+		\item \texttt{unwrapResult()}：两层解析——先解析 MCP 响应取 \texttt{result.content[0].text}，再将该字符串解析为业务 JSON；
+		\item 响应含 \texttt{error} 字段或连接异常时，抛出统一的 \texttt{McpServiceException}，由上层转为业务错误。
+	\end{itemize}
+	示例（启动仿真）：
+	\begin{lstlisting}
+// 构造 MCP tools/call 请求
+JSONObject args = new JSONObject();
+args.put("userId", userId);
+args.put("modelId", modelId);
+args.put("showAnimation", showAnimation);
+// callTool 内部: {jsonrpc, id, method: "tools/call",
+//                params: {name: "startRemoteSimulation", arguments: args}}
+return callTool("startRemoteSimulation", args);
+	\end{lstlisting}\vspace{-30pt}
+	\item \bf{建立模型库}\label{sec:brief-step4}
+	\begin{itemize}
+		\item 数据库建表 \texttt{fs\_model\_file}，保存模型元数据（名称、引擎版本、文件路径、\texttt{sim\_status}、\texttt{model\_id} 等），对应实体 \texttt{FsModelFile} 与 Service/Impl。
+		\item 后端支持 \texttt{fs-cloud-plugin} 建模器插件的登录，提供模型上传接口 \texttt{POST /fscloud/modelfile/upload}：文件落盘到静态目录，\texttt{.zfs} 压缩包解压，随后把元数据写入 \texttt{fs\_model\_file} 完成“上传、落盘、落库”。
+		\item 开发前端模型库页面，展示模型列表，提供上传、加载、卸载操作。
+	\end{itemize}
+	\item \bf{开发仿真控制后端接口（SimController）}\label{sec:brief-step5}
+	开发 \texttt{SimController}，对外暴露 \texttt{/fscloud/sim/*} 形式的 REST 接口（如 \texttt{loadModel}、\texttt{runModel}、\texttt{pauseModel}、\texttt{resumeModel}、\texttt{stopModel}、\texttt{resetModel}、\texttt{unloadModel}、\texttt{getLoadedModel}、\texttt{getResultSnapshot}、\texttt{getResultDatasetPage}、参数表与动画相关接口），每个接口：
+	\begin{itemize}
+		\item 用 \texttt{@SaCheckPermission} 声明权限码，接入 snowy 的登录鉴权；
+		\item 调用 \texttt{McpClientService} 对应的封装方法完成 MCP 调用；
+		\item 维护内存态 \texttt{SimulationModelTrackingMap}：以 \texttt{userId/modelId} 记录当前加载的模型、状态、运行 ID，并把 MCP 返回的 \texttt{modelId} 写回数据库 \texttt{fs\_model\_file}；
+		\item 通过定时任务 \texttt{SimulationSyncTask}（每 10s）调用 \texttt{listRemoteSimulationModels} 同步内存与数据库中的模型状态，支撑后端重启后的状态恢复。
+	\end{itemize}
+	\item \bf{开发前端页面}\label{sec:brief-step6}
+	\begin{itemize}
+		\item 用 \texttt{@/api/fscloud/fsSimApi.js} 统一封装对后端 \texttt{/fscloud/sim/*} 的 axios 调用；
+		\item 开发仿真控制页：加载模型、启动、暂停、恢复、停止、重置、卸载按钮，状态卡片（\texttt{modelId}、\texttt{modelFileName}、\texttt{status}、\texttt{runId}、\texttt{simTime}、\texttt{message} 等），结果卡片（\texttt{totalOutput}、\texttt{throughputPerHour}、\texttt{currentWip} 等）；
+		\item 用 Pinia 定义 \texttt{myModel.js} 状态 store，保存当前模型与仿真状态，并把 MCP 状态映射为前端本地状态机，按状态禁用/启用按钮；
+		\item 开发模型库页与参数管理页（参数表展示、编辑、快照保存/加载）。
+	\end{itemize}
+	\item \bf{MQTT 实时对接}\label{sec:brief-step7}
+	\begin{itemize}
+		\item 后端：用 Paho（\texttt{org.eclipse.paho.client.mqttv3}）实现 \texttt{MqttClientService}，订阅主题 \texttt{factory/sim/+/+/+}，解析 topic 末段区分 \texttt{status/progress/console}，分别更新内存记录并同步写回 \texttt{fs\_model\_file.sim\_status}；
+		\item 前端：用 \texttt{mqtt.js} 通过 WebSocket 连接 MQTT Broker（\texttt{ws://127.0.0.1:8083/mqtt}）；
+		\item 订阅 \texttt{factory/sim/\{userId\}/\{modelId\}/+} 与 \texttt{.../animation/\#} 主题：JSON 消息按尾段类型分发，动画帧的二进制 payload 转为 \texttt{Blob('image/jpeg')} 显示在页面上。
+	\end{itemize}
+	\item \bf{参数表读写}\label{sec:brief-step8}
+	\begin{itemize}
+		\item 在 FS 建模器的模型中定义 \texttt{mcp}（或 \texttt{MCP}）表，把要开放给 Web 端读写参数表登记到该表第一列；后端只允许读写 \texttt{mcp} 表中列出的参数表；
+		\item 参数管理页通过 \texttt{listRemoteSimulationParameterTables} 获取可读写表清单；
+		\item 通过 \texttt{getRemoteSimulationParameterSnapshot} 读取表内容（\texttt{columns + rows}）并展示为表格；
+		\item 修改后通过 \texttt{batchUpdateRemoteSimulationParameterTable}（整批原子写回，可选 \texttt{bSaveModel} 保存到 \texttt{.fs} 文件）或 \texttt{updateRemoteSimulationParameterTable} / \texttt{updateRemoteSimulationParameterCells} 写回模型；
+		\item 模型处于 \texttt{RUNNING/PAUSED} 时禁止写参数；新一轮仿真前先 \texttt{reset} 再 \texttt{start}；
+		\item 参数快照可落库保存（表 \texttt{fs\_sim\_param\_snapshot}），供历史回放。
+	\end{itemize}
+	\item \bf{测试与联调}\label{sec:brief-step9}
+	\begin{itemize}
+		\item \texttt{McpClientTest.java}：独立运行的端到端冒烟测试（\texttt{main} 方法），按 \texttt{initialize → tools/list → load → start → 轮询状态 → stop → 结果快照 → 分页 → reset → unload} 的顺序验证 MCP 全流程，可作为联调参考与回归用例；
+		\item \texttt{MqttClientTest.java}：MQTT 模拟器，同时扮演发布者与订阅者，验证后端 \texttt{MqttClientService} 的状态机与日志处理；
+		\item 前后端联调：按“后端能解析 \texttt{result.content[0].text}、前端能展示各状态并禁用按钮、能展示结果快照”等清单逐项核对。
+	\end{itemize}
 \end{enumerate}
+
+\par 以上步骤在本文后续章节中会展开为更详细的接口使用说明（各 MCP 工具的入参、出参、调用示例）、吊挂系统仿真与控制的集成方案、FS 模型与参数管理的细节，以及开发调试过程中的注意事项，供开发人员按需查阅。
