@@ -141,7 +141,7 @@ return callTool("startRemoteSimulation", args);
 		\item 开发前端模型库页面，展示模型列表，提供上传、加载、卸载操作。
 	\end{itemize}
 	\item \bf{开发仿真控制后端接口（SimController）}\label{sec:brief-step5}
-	开发 \texttt{SimController}，对外暴露 \texttt{/fscloud/sim/*} 形式的 REST 接口（如 \texttt{loadModel}、\texttt{runModel}、\texttt{pauseModel}、\texttt{resumeModel}、\texttt{stopModel}、\texttt{resetModel}、\texttt{unloadModel}、\texttt{getLoadedModel}、\texttt{getResultSnapshot}、\texttt{getResultDatasetPage}、参数表与动画相关接口），每个接口：
+	开发 \texttt{SimController}，对外暴露 \texttt{/fscloud/sim/*} 形式的 REST 接口（如 \texttt{loadModel}、\texttt{runModel}、\texttt{pauseModel}、\texttt{resumeModel}、\texttt{stopModel}、\texttt{resetModel}、\texttt{unloadModel}、\texttt{getLoadedModel}、\texttt{getResultSnapshot}、\texttt{getResultDatasetPage}、\texttt{getObjectPositionSnapshot}（对象位置快照）、\texttt{getSimulationEvents}（时间窗仿真事件）、参数表与动画相关接口），每个接口：
 	\begin{itemize}
 		\item 用 \texttt{@SaCheckPermission} 声明权限码，接入 snowy 的登录鉴权；
 		\item 调用 \texttt{McpClientService} 对应的封装方法完成 MCP 调用；
@@ -153,13 +153,13 @@ return callTool("startRemoteSimulation", args);
 		\item 用 \texttt{@/api/fscloud/fsSimApi.js} 统一封装对后端 \texttt{/fscloud/sim/*} 的 axios 调用；
 		\item 开发仿真控制页：加载模型、启动、暂停、恢复、停止、重置、卸载按钮，状态卡片（\texttt{modelId}、\texttt{modelFileName}、\texttt{status}、\texttt{runId}、\texttt{simTime}、\texttt{message} 等），结果卡片（\texttt{totalOutput}、\texttt{throughputPerHour}、\texttt{currentWip} 等）；
 		\item 用 Pinia 定义 \texttt{myModel.js} 状态 store，保存当前模型与仿真状态，并把 MCP 状态映射为前端本地状态机，按状态禁用/启用按钮；
-		\item 开发模型库页与参数管理页（参数表展示、编辑、快照保存/加载）。
+		\item 开发模型库页、参数管理页（参数表展示、编辑、快照保存/加载）与事件回放页（时间轴数据分析）。
 	\end{itemize}
 	\item \bf{MQTT 实时对接}\label{sec:brief-step7}
 	\begin{itemize}
 		\item 后端：用 Paho（\texttt{org.eclipse.paho.client.mqttv3}）实现 \texttt{MqttClientService}，订阅主题 \texttt{factory/sim/+/+/+}，解析 topic 末段区分 \texttt{status/progress/console}，分别更新内存记录并同步写回 \texttt{fs\_model\_file.sim\_status}；
 		\item 前端：用 \texttt{mqtt.js} 通过 WebSocket 连接 MQTT Broker（\texttt{ws://127.0.0.1:8083/mqtt}）；
-		\item 订阅 \texttt{factory/sim/\{userId\}/\{modelId\}/+} 与 \texttt{.../animation/\#} 主题：JSON 消息按尾段类型分发，动画帧的二进制 payload 转为 \texttt{Blob('image/jpeg')} 显示在页面上。
+		\item 订阅 \texttt{factory/sim/\{userId\}/\{modelId\}/+} 与 \texttt{.../animation/\#} 主题：JSON 消息按尾段类型分发，动画帧的二进制 payload 转为 \texttt{Blob('image/jpeg')} 显示在页面上，\texttt{animation/\{layerId\}/objects} 结构化对象帧存入 store 供实时事件分析。
 	\end{itemize}
 	\item \bf{参数表读写}\label{sec:brief-step8}
 	\begin{itemize}
@@ -170,7 +170,16 @@ return callTool("startRemoteSimulation", args);
 		\item 模型处于 \texttt{RUNNING/PAUSED} 时禁止写参数；新一轮仿真前先 \texttt{reset} 再 \texttt{start}；
 		\item 参数快照可落库保存（表 \texttt{fs\_sim\_param\_snapshot}），供历史回放。
 	\end{itemize}
-	\item \bf{测试与联调}\label{sec:brief-step9}
+	\item \bf{时间轴数据分析（事件回放）}\label{sec:brief-step9}
+	利用\it{对象位置快照}、\it{仿真事件}两个 MCP 工具和 \texttt{objects} 实时订阅，可以按仿真时间轴对仿真过程进行回放与数据分析：
+	\begin{itemize}
+		\item 后端在 \texttt{SimController} 增加两个 REST 接口，分别透传 MCP 工具 \texttt{getRemoteSimulationObjectPositionSnapshot}（参数：\texttt{runId}、\texttt{layerId}、\texttt{simTime}）与 \texttt{getRemoteSimulationEvents}（参数：\texttt{runId}、\texttt{startSimTime}、\texttt{duration}、\texttt{offset}、\texttt{limit}）；前端在 \texttt{fsSimApi.js} 中封装对应 API；
+		\item 开发事件回放页（\texttt{eventplayback/index.vue}）：用 \texttt{a-slider} 展示从 0 至总仿真时长的时间轴，用变量 \texttt{timeWindowCursor} 保存当前光标对应的时间点（仿真毫秒）并显示在 slider 上方；
+		\item 取位置快照：按光标位置调用 \texttt{getRemoteSimulationObjectPositionSnapshot}，获取该时刻的对象位置快照（对象 ID、类型、所在层、容器、相对位置等），用于还原仿真画面；
+		\item 步进播放/回退：调用 \texttt{getRemoteSimulationEvents} 按 10 秒窗口（\texttt{duration=10000}）获取仿真事件（对象进入/离开工站等）；步进播放时光标后移 10 秒（\texttt{timeWindowCursor += 10000}），步进回退时光标前移 10 秒；
+		\item 实时事件订阅：前端自建 MQTT 连接订阅 \texttt{factory/sim/\{username\}/\{modelId\}/animation/\{layerId\}/objects}，将接收到的结构化对象帧保存到 store（\texttt{myModel.animationObjects}），最多保存 100 条用于分析，之后不再保存。
+	\end{itemize}
+	\item \bf{测试与联调}\label{sec:brief-step10}
 	\begin{itemize}
 		\item \texttt{McpClientTest.java}：独立运行的端到端冒烟测试（\texttt{main} 方法），按 \texttt{initialize → tools/list → load → start → 轮询状态 → stop → 结果快照 → 分页 → reset → unload} 的顺序验证 MCP 全流程，可作为联调参考与回归用例；
 		\item \texttt{MqttClientTest.java}：MQTT 模拟器，同时扮演发布者与订阅者，验证后端 \texttt{MqttClientService} 的状态机与日志处理；

@@ -1,0 +1,20 @@
+@startuml
+!define RECTANGLE class
+rectangle "前端 snowy-admin-web\nVue3 + TypeScript + Vite" as FE
+rectangle "后端 snowy-web-app\nSpringBoot + Java\nsnowy-plugin-fscloud" as BE {
+component McpClientService
+component MqttClientService
+component SimController
+}
+rectangle "FS 云服务 / 仿真引擎\nMCP Server + MQTT Broker" as FS
+rectangle "mysql8 / redis" as DB
+rectangle "FS 建模器 + FS-Cloud-Plugin" as PLUGIN
+rectangle "MQTTX / Reasonix / Cherry Studio" as TOOL
+FE --> SimController : REST /fscloud/*
+FE -right-> FS : MQTT over WebSocket (animation)
+McpClientService -left-> FS : MCP tools/call (HTTP JSON-RPC)
+FS --> MqttClientService : MQTT (status/progress/console)
+BE -up-> DB : 模型库/快照
+PLUGIN -up-> BE : 上传 .fs（封面/用途/共享）
+TOOL --> FS : MCP 调用（辅助调试）
+@enduml

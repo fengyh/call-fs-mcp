@@ -1,0 +1,539 @@
+# getRemoteSimulationResultSnapshot 调用日志
+
+日期：2026-07-22
+
+## 入参
+
+```json
+{
+  "userId": "1543837863788879871",
+  "modelId": "c8a9b186f0aa",
+  "runId": "a62568c5-2d36-4e0b-8cb2-12b8a06781c8"
+}
+```
+
+### 入参说明
+
+| 参数 | 类型 | 值 | 说明 |
+|---|---|---|---|
+| userId | String | 1543837863788879871 | 当前登录用户 ID |
+| modelId | String | c8a9b186f0aa | MCP 内存中的模型实例 ID |
+| runId | String | a62568c5-2d36-4e0b-8cb2-12b8a06781c8 | 仿真运行 ID（为空时获取最后一次运行结果） |
+
+## 出参（完整返回）
+
+```json
+{
+  "success": true,
+  "code": "OK",
+  "message": "success",
+  "data": {
+    "userId": "1543837863788879871",
+    "runId": "a62568c5-2d36-4e0b-8cb2-12b8a06781c8",
+    "recordId": "2079040955206836226",
+    "modelId": "c8a9b186f0aa",
+    "modelFileName": "YH-F01-F06-F08-Base-v1-260716-nobg-norec.fs",
+    "status": "STOPPED",
+    "simTime": 32023840986,
+    "startedAt": 1784713184925,
+    "finishedAt": 1784716037797,
+    "totalOutput": 0,
+    "throughputPerHour": 0.0,
+    "currentWip": 660949,
+    "parameterSnapshotAt": 1784713184926,
+    "resultStatus": "READY",
+    "resultSnapshotAt": 1784716037852,
+    "summaryResults": {
+      "taktTime": {
+        "source": "TaktTimeDataDialog",
+        "rowCount": 137,
+        "rows": [
+          {
+            "objectName": "F01.P01_DEV_WKTJ_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 98186919,
+            "lastProcessTime": 9363497534,
+            "effectiveTime": 3872510615,
+            "processedCount": 2690,
+            "taktTime": 1439595.0241635689,
+            "uph": 2.5007032808352934
+          },
+          {
+            "objectName": "F01.P01_DEV_FDSMJ_01(WorkStation)",
+            "objectType": "WorkStation",
+            "unit": "0",
+            "firstProcessTime": 101809478,
+            "lastProcessTime": 9368920093,
+            "effectiveTime": 3874310615,
+            "processedCount": 1350,
+            "taktTime": 2869859.7148148147,
+            "uph": 1.2544167164046551
+          },
+          {
+            "objectName": "F01.P01_DEV_WKBMTJ_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 105421604,
+            "lastProcessTime": 9421138927,
+            "effectiveTime": 3872517323,
+            "processedCount": 2690,
+            "taktTime": 1439597.5178438663,
+            "uph": 2.500698949100608
+          },
+          {
+            "objectName": "F01.P01_ASM_GJHSLJ_01(AssemblyStation)",
+            "objectType": "AssemblyStation",
+            "unit": "0",
+            "firstProcessTime": 107236418,
+            "lastProcessTime": 9421230127,
+            "effectiveTime": 3870793709,
+            "processedCount": 269,
+            "taktTime": 1.4389567691449814E7,
+            "uph": 0.250181247775713
+          },
+          {
+            "objectName": "F01.P03_DEV_PM_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 193985796,
+            "lastProcessTime": 9444912584,
+            "effectiveTime": 3858126788,
+            "processedCount": 1490,
+            "taktTime": 2589346.8375838925,
+            "uph": 1.39031200754826
+          },
+          {
+            "objectName": "F01.P03_DEV_JY_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 194439922,
+            "lastProcessTime": 9445366710,
+            "effectiveTime": 3858126788,
+            "processedCount": 1343,
+            "taktTime": 2872767.526433358,
+            "uph": 1.2531469974075926
+          },
+          {
+            "objectName": "F01.P03_DEV_QM_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 194212859,
+            "lastProcessTime": 9445139647,
+            "effectiveTime": 3858126788,
+            "processedCount": 1430,
+            "taktTime": 2697990.760839161,
+            "uph": 1.334326289123498
+          },
+          {
+            "objectName": "F01.P03_DEV_PM_02(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 193922421,
+            "lastProcessTime": 9510056115,
+            "effectiveTime": 3872933694,
+            "processedCount": 1500,
+            "taktTime": 2581955.796,
+            "uph": 1.3942918796585007
+          },
+          {
+            "objectName": "F01.P03_DEV_QM_02(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 194149484,
+            "lastProcessTime": 9510283178,
+            "effectiveTime": 3872933694,
+            "processedCount": 1423,
+            "taktTime": 2721668.0913562896,
+            "uph": 1.322718229836031
+          },
+          {
+            "objectName": "F01.P03_DEV_JY_02(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 194376547,
+            "lastProcessTime": 9510487178,
+            "effectiveTime": 3872910631,
+            "processedCount": 1349,
+            "taktTime": 2870949.318754633,
+            "uph": 1.2539406308856809
+          },
+          {
+            "objectName": "F01.P03_DEV_FZ_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 194819922,
+            "lastProcessTime": 9510945424,
+            "effectiveTime": 3872925502,
+            "processedCount": 2554,
+            "taktTime": 1516415.6233359436,
+            "uph": 2.3740193286062334
+          },
+          {
+            "objectName": "F01.P03_DEV_CCD_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 195713575,
+            "lastProcessTime": 9511503496,
+            "effectiveTime": 3872589921,
+            "processedCount": 2554,
+            "taktTime": 1516284.2290524668,
+            "uph": 2.3742250503058107
+          },
+          {
+            "objectName": "F01.P03_DEV_TJZJ_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 196015358,
+            "lastProcessTime": 9511627496,
+            "effectiveTime": 3872412138,
+            "processedCount": 2415,
+            "taktTime": 1603483.2869565217,
+            "uph": 2.2451122685743425
+          },
+          {
+            "objectName": "F01.P03_DEV_GP12_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 196183137,
+            "lastProcessTime": 9511822585,
+            "effectiveTime": 3872439448,
+            "processedCount": 2415,
+            "taktTime": 1603494.5954451347,
+            "uph": 2.2450964351399203
+          },
+          {
+            "objectName": "F01.Q01_DEV_IQC_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 196962799,
+            "lastProcessTime": 9512010254,
+            "effectiveTime": 3871847455,
+            "processedCount": 2984,
+            "taktTime": 1297536.0103887399,
+            "uph": 2.7744894717191277
+          },
+          {
+            "objectName": "F01.N01_DEV_BLPCL_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 195383217,
+            "lastProcessTime": 9509649334,
+            "effectiveTime": 3871066117,
+            "processedCount": 726,
+            "taktTime": 5332046.993112948,
+            "uph": 0.6751628417097377
+          },
+          {
+            "objectName": "F02.P01_DEV_CY_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 1800000,
+            "lastProcessTime": 32023701000,
+            "effectiveTime": 13356000000,
+            "processedCount": 71167,
+            "taktTime": 187671.25212528277,
+            "uph": 19.182479784366578
+          },
+          {
+            "objectName": "F03.P02_DEV_HJ_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 17658259,
+            "lastProcessTime": 32023840986,
+            "effectiveTime": 13340141741,
+            "processedCount": 35568,
+            "taktTime": 375060.21539023845,
+            "uph": 9.5984587334978
+          },
+          {
+            "objectName": "F03.P02_DEV_DM_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 20399107,
+            "lastProcessTime": 32010606276,
+            "effectiveTime": 13337400893,
+            "processedCount": 35560,
+            "taktTime": 375067.5166760405,
+            "uph": 9.59827188423105
+          },
+          {
+            "objectName": "F02.P02_DEV_HJ_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 9995748,
+            "lastProcessTime": 32017985302,
+            "effectiveTime": 13347804252,
+            "processedCount": 17790,
+            "taktTime": 750298.1591905565,
+            "uph": 4.79809253948295
+          },
+          {
+            "objectName": "F02.P02_DEV_DM_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 10423196,
+            "lastProcessTime": 32018412750,
+            "effectiveTime": 13347376804,
+            "processedCount": 17790,
+            "taktTime": 750274.1317594154,
+            "uph": 4.798246197770263
+          },
+          {
+            "objectName": "F02.P02_DEV_HJ_02(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 17653010,
+            "lastProcessTime": 32023653010,
+            "effectiveTime": 13340146990,
+            "processedCount": 17785,
+            "taktTime": 750078.5487770593,
+            "uph": 4.799497340471209
+          },
+          {
+            "objectName": "F02.P02_DEV_DM_02(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 18080458,
+            "lastProcessTime": 32023680458,
+            "effectiveTime": 13339719542,
+            "processedCount": 17784,
+            "taktTime": 750096.6903958614,
+            "uph": 4.799381261234615
+          },
+          {
+            "objectName": "F02.P04_DEV_BCPJY_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 24703143,
+            "lastProcessTime": 32023747538,
+            "effectiveTime": 13333096857,
+            "processedCount": 35559,
+            "taktTime": 374957.0251413144,
+            "uph": 9.601100282474308
+          },
+          {
+            "objectName": "F02.P04_DEV_ZX_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 17447030,
+            "lastProcessTime": 32023596584,
+            "effectiveTime": 13340352970,
+            "processedCount": 35563,
+            "taktTime": 375118.8867643337,
+            "uph": 9.596957463412604
+          },
+          {
+            "objectName": "F02.P04_DEV_QMCS_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 30720435,
+            "lastProcessTime": 9368807064,
+            "effectiveTime": 3894886629,
+            "processedCount": 5394,
+            "taktTime": 722077.6101223582,
+            "uph": 4.985613664700072
+          },
+          {
+            "objectName": "F02.P03_DEV_RGBH_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 14772448,
+            "lastProcessTime": 32021362002,
+            "effectiveTime": 13343027552,
+            "processedCount": 35570,
+            "taktTime": 375120.2572954737,
+            "uph": 9.596922400179421
+          },
+          {
+            "objectName": "F02.P05_DEV_QX_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": 95038050,
+            "lastProcessTime": 9360058061,
+            "effectiveTime": 3872220011,
+            "processedCount": 5380,
+            "taktTime": 719743.4964684015,
+            "uph": 5.0017819093389315
+          },
+          {
+            "objectName": "F03.P01_DEV_QH_01(Device)",
+            "objectType": "Device",
+            "unit": "0",
+            "firstProcessTime": -1,
+            "lastProcessTime": 32023840986,
+            "effectiveTime": 13356000000,
+            "processedCount": 0,
+            "taktTime": 0.0,
+            "uph": 0.0
+          },
+          {
+            "objectName": "F02.P05_WS_PT_01(WorkStation)",
+            "objectType": "WorkStation",
+            "unit": "0",
+            "firstProcessTime": 95970012,
+            "lastProcessTime": 9360166594,
+            "effectiveTime": 3871396582,
+            "processedCount": 538,
+            "taktTime": 7195904.427509294,
+            "uph": 0.5002845766318859
+          }
+        ],
+        "success": true,
+        "message": "success"
+      },
+      "uph": {
+        "source": "UphCalculator",
+        "rowCount": 137,
+        "rows": [
+          { "objectName": "...", "objectType": "...", "unit": "0", "startTime": ..., "endTime": ..., "processedCount": ..., "uph": ... }
+        ],
+        "success": true,
+        "message": "success"
+      },
+      "utilRate": {
+        "source": "UtilRateCalculator",
+        "rowCount": 328,
+        "rows": [
+          {
+            "objectName": "设备/工站名称",
+            "objectType": "Device|WorkStation|AssemblyStation",
+            "unit": "单元号",
+            "actualSimTime": 32023840986,
+            "waitingTime": 等待时间,
+            "waitingRate": 等待率,
+            "workingTime": 工作时间,
+            "workingRate": 工作率,
+            "settingUpTime": 换型时间,
+            "settingUpRate": 换型率,
+            "blockedTime": 阻塞时间,
+            "blockedRate": 阻塞率,
+            "failedTime": 故障时间,
+            "failedRate": 故障率,
+            "unplannedTime": 非计划停机时间,
+            "unplannedRate": 非计划停机率
+          }
+        ],
+        "success": true,
+        "message": "success"
+      },
+      "leanMetrics": {
+        "source": "LeanMetricsComponent",
+        "componentCount": 0,
+        "components": [],
+        "success": true,
+        "message": "success"
+      },
+      "energyAnalysis": {
+        "source": "EnergyAnalysisComponent",
+        "componentCount": 0,
+        "components": [],
+        "success": true,
+        "message": "success"
+      }
+    },
+    "datasets": [
+      { "name": "partCycleTime", "type": "table", "description": "Per-part production cycle records." },
+      { "name": "rbData", "type": "table", "description": "Reliability records." },
+      { "name": "taktTime", "type": "table", "description": "Station and exit takt-time rows." },
+      { "name": "uph", "type": "table", "description": "Station and exit UPH rows." },
+      { "name": "utilRate", "type": "table", "description": "Station utilization rows." },
+      { "name": "wip.timeline", "type": "timeSeries", "description": "Object WIP timeline points." },
+      { "name": "wip.distribution", "type": "table", "description": "Object WIP duration distribution." },
+      { "name": "lean.productLines", "type": "table", "description": "Lean production-line configuration." },
+      { "name": "lean.lt", "type": "table", "description": "Lean lead-time records." },
+      { "name": "lean.fpy", "type": "table", "description": "Lean first-pass-yield rows." },
+      { "name": "lean.wip", "type": "table", "description": "Lean WIP summaries." },
+      { "name": "lean.wipTimeline", "type": "timeSeries", "description": "Lean WIP timeline points." },
+      { "name": "lean.capacity", "type": "table", "description": "Lean capacity rows." },
+      { "name": "lean.cycleTime", "type": "table", "description": "Lean cycle-time rows." },
+      { "name": "lean.processEfficiency", "type": "table", "description": "Lean process-efficiency rows." },
+      { "name": "lean.changeover", "type": "table", "description": "Lean changeover summaries." },
+      { "name": "lean.changeoverRecords", "type": "table", "description": "Individual lean changeover records." },
+      { "name": "lean.oee", "type": "table", "description": "Lean OEE rows." },
+      { "name": "lean.pplh", "type": "table", "description": "Lean PPLH rows." },
+      { "name": "energy.mediums", "type": "table", "description": "Energy medium definitions." },
+      { "name": "energy.params", "type": "table", "description": "Device energy parameters." },
+      { "name": "energy.rows", "type": "table", "description": "Device energy result rows." },
+      { "name": "energy.mediumSummary", "type": "table", "description": "Energy totals by medium and device." },
+      { "name": "energy.powerCurve", "type": "timeSeries", "description": "Energy power-curve points." }
+    ],
+    "message": "Simulation stopped."
+  }
+}
+```
+
+## 字段说明
+
+### 顶层 data 字段
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| userId | String | 用户 ID |
+| runId | String | 仿真运行 ID |
+| recordId | String | 后端模型库记录 ID |
+| modelId | String | MCP 内存模型 ID |
+| modelFileName | String | 模型文件名 |
+| status | String | 模型状态（LOADED / RUNNING / PAUSED / STOPPED） |
+| simTime | Long | 仿真总时间（时间单位） |
+| startedAt | Long | 仿真启动时间戳（ms） |
+| finishedAt | Long | 仿真结束时间戳（ms） |
+| totalOutput | Integer | 总产出数 |
+| throughputPerHour | Double | 每小时产出率 |
+| currentWip | Integer | 当前在制品数量 |
+| parameterSnapshotAt | Long | 参数快照时间戳（ms） |
+| resultStatus | String | 结果状态（READY / PENDING / FAILED） |
+| resultSnapshotAt | Long | 结果快照时间戳（ms） |
+
+### summaryResults 字段
+
+| 字段 | 类型 | 行数 | 说明 |
+|---|---|---|---|
+| taktTime | Object | 137 行 | 节拍数据（每个设备/工站的节拍、UPH） |
+| uph | Object | 137 行 | UPH 数据 |
+| utilRate | Object | 328 行 | 设备利用率（等待率、工作率、换型率、阻塞率、故障率等） |
+| leanMetrics | Object | 0 | 精益指标（该模型未配置精益分析组件） |
+| energyAnalysis | Object | 0 | 能耗分析（该模型未配置能耗分析组件） |
+
+### datasets 字段（24 个数据集）
+
+可通过 `getRemoteSimulationResultDatasetPage` 分页获取每个数据集的详细内容：
+
+| name | type | description |
+|---|---|---|
+| partCycleTime | table | 零件生产周期记录 |
+| rbData | table | 可靠性记录 |
+| taktTime | table | 工站/出口节拍 |
+| uph | table | 工站/出口 UPH |
+| utilRate | table | 工站利用率 |
+| wip.timeline | timeSeries | 对象 WIP 时间线 |
+| wip.distribution | table | 对象 WIP 持续时间分布 |
+| lean.productLines | table | 精益产线配置 |
+| lean.lt | table | 精益提前期 |
+| lean.fpy | table | 精益直通率 |
+| lean.wip | table | 精益 WIP 摘要 |
+| lean.wipTimeline | timeSeries | 精益 WIP 时间线 |
+| lean.capacity | table | 精益产能 |
+| lean.cycleTime | table | 精益周期时间 |
+| lean.processEfficiency | table | 精益工艺效率 |
+| lean.changeover | table | 精益换型摘要 |
+| lean.changeoverRecords | table | 精益换型记录 |
+| lean.oee | table | 精益 OEE |
+| lean.pplh | table | 精益 PPLH |
+| energy.mediums | table | 能耗介质定义 |
+| energy.params | table | 设备能耗参数 |
+| energy.rows | table | 设备能耗结果 |
+| energy.mediumSummary | table | 按介质/设备汇总能耗 |
+| energy.powerCurve | timeSeries | 能耗功率曲线 |
+
+## 调用链路
+
+```
+前端 (暂未对接)
+  ↓ (需新增后端 endpoint)
+SimController.getResultSnapshot()
+  ↓
+McpClientService.getResultSnapshot(userId, modelId, runId)
+  ↓
+MCP工具: getRemoteSimulationResultSnapshot
+```

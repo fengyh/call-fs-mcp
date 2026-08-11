@@ -1,0 +1,731 @@
+\section{MCP接口函数说明}
+本章按功能分组列出 FS 仿真控制 MCP 接口的全部工具（以当前部署版本的 \texttt{tools/list} 返回为准），每个工具说明\bf{方法名}、\bf{方法描述}、\bf{入参类型与举例}、\bf{出参类型与举例}。
+
+\bf{调用方式}：所有工具均通过 MCP \texttt{tools/call} 调用，请求结构为：
+\begin{lstlisting}
+{
+    "jsonrpc": "2.0",
+    "id": "call-1",
+    "method": "tools/call",
+    "params": {
+        "name": "工具名",
+        "arguments": {
+            "参数名": "参数值"
+        }
+    }
+}
+\end{lstlisting}\vspace{-30pt}
+\bf{通用约定}：
+\begin{itemize}
+	\item 除 \texttt{listRemoteSimulationModels} 外，所有工具都通过 \texttt{userId + modelId} 定位仿真模型实例；\texttt{userId} 由后端登录态生成（前端不直接传），\texttt{modelId} 是 \texttt{loadRemoteSimulationModel} 返回的内存实例 ID。
+	\item 业务结果存放在 MCP 响应的 \texttt{result.content[0].text} 中，为统一结构的 JSON：\texttt{\{success, code, message, data\}}。
+	\item \texttt{runId} 表示一次仿真运行，传空字符串 \texttt{""} 表示当前运行。
+	\item 时间类字段 \texttt{simTime}、\texttt{startSimTime}、\texttt{duration} 等单位为\bf{仿真毫秒}；\texttt{loadedAt}/\texttt{startedAt}/\texttt{finishedAt} 等为 Java 毫秒时间戳。
+\end{itemize}
+本章举例中的 \texttt{userId="demo-1786434116021"}、\texttt{modelId="a2c00999f195"}、\texttt{runId="a4a2d328-3289-4c0b-866c-86cba1e75e72"} 取自 \texttt{McpClientTest} 的实际运行日志，仅作示意。
+
+\subsection{模型管理}
+\subsubsection{loadRemoteSimulationModel}
+\bf{方法描述}：加载仿真模型文件到 FS 引擎，并通过 \texttt{loadInUI} 决定是否同时在 FS 桌面程序中创建模型 tab。同一 \texttt{userId} 同时只能加载 1 个模型；全局最多加载 10 个。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String) 用户标识；\texttt{recordId}(String) 后端模型库记录 ID（必填，透传）；\texttt{modelFileName}(String) 模型文件路径或文件名（可自动补 \texttt{.fs} 后缀）；\texttt{loadInUI}(Boolean) 是否创建桌面 UI tab（云端无人值守建议 \texttt{false}）。
+	\item \it{出参}（\texttt{data}）：\texttt{userId}、\texttt{recordId}、\texttt{modelId}(加载后的内存实例 ID)、\texttt{modelFileName}、\texttt{modelFilePath}、\texttt{uiLoaded}(Boolean)、\texttt{status}("LOADED")、\texttt{runId}(null)、\texttt{simTime}(0)、\texttt{message}、\texttt{loadedAt}/\texttt{startedAt}/\texttt{finishedAt}(毫秒时间戳)。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "recordId": "record-1786434116010",
+    "modelFileName": "step-by-step.fs",
+    "loadInUI": false
+}
+// 出参（data 关键字段）
+{
+    "modelId": "a2c00999f195",
+    "modelFileName": "step-by-step.fs",
+    "uiLoaded": false,
+    "status": "LOADED",
+    "runId": null,
+    "simTime": 0,
+    "message": "Model loaded."
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{unloadRemoteSimulationModel}
+\bf{方法描述}：停止并卸载模型；若模型加载了 UI，同时移除对应桌面 tab。运行/暂停中会先停止再卸载。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)。
+	\item \it{出参}：\texttt{data} 含 \texttt{userId}、\texttt{recordId}、\texttt{modelId}、\texttt{uiLoaded}(Boolean) 等（见下）。
+	\item \bf{错误}：运行线程 5 秒内无法退出时返回 \texttt{SIMULATION\_CONTROL\_FAILED}，模型保持加载，可稍后重试。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195"
+}
+// 出参（data）
+{
+    "userId": "demo-1786434116021",
+    "recordId": "record-1786434116010",
+    "modelId": "a2c00999f195",
+    "uiLoaded": false
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{listRemoteSimulationModels}
+\bf{方法描述}：列出 MCP Server 进程内所有已加载的远程模型，用于后端恢复内存中的模型列表（无需 \texttt{userId}）。
+\begin{itemize}
+	\item \it{入参}：无（\texttt{\{\}}）。
+	\item \it{出参}（\texttt{data.models}）：\texttt{\{userId, recordId, modelId, modelFileName, status\}} 数组，最多 10 条（全局上限）。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{}
+// 出参（data 关键字段）
+{
+    "models": [
+        {
+            "userId": "demo-1786434116021",
+            "recordId": "record-1786434116010",
+            "modelId": "a2c00999f195",
+            "modelFileName": "step-by-step.fs",
+            "status": "LOADED"
+        }
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsection{运行控制}
+\subsubsection{startRemoteSimulation}
+\bf{方法描述}：启动仿真，生成新的 \texttt{runId}。全局最多 5 个模型同时运行。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{showAnimation}(Boolean) 是否开启引擎动画并启动 MQTT JPEG 推帧（默认 \texttt{false}，高速无动画计算时不传）。
+	\item \it{出参}：\texttt{data} 含 \texttt{runId}、\texttt{status}("RUNNING")、\texttt{simTime} 等。
+	\item \bf{注意}：启动前校验失败（如未编译的 \texttt{ControlMethod}）返回 \texttt{SIMULATION\_START\_FAILED}，不会进入仿真线程。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "showAnimation": false
+}
+// 出参（data 关键字段）
+{
+    "status": "RUNNING",
+    "runId": "a4a2d328-3289-4c0b-866c-86cba1e75e72",
+    "simTime": 0,
+    "message": "Simulation started."
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{pauseRemoteSimulation}
+\bf{方法描述}：暂停运行中的仿真。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)。
+	\item \it{出参}：成功后 \texttt{status} 变为 \texttt{PAUSED}。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195"
+}
+// 出参（data 关键字段）
+{
+    "status": "PAUSED",
+    "runId": "a4a2d328-3289-4c0b-866c-86cba1e75e72"
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{resumeRemoteSimulation}
+\bf{方法描述}：恢复暂停中的仿真。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)。
+	\item \it{出参}：成功后 \texttt{status} 变为 \texttt{RUNNING}。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195"
+}
+// 出参（data 关键字段）
+{
+    "status": "RUNNING",
+    "runId": "a4a2d328-3289-4c0b-866c-86cba1e75e72"
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{resetRemoteSimulation}
+\bf{方法描述}：将模型重置回加载状态（\texttt{LOADED}），重置后 \texttt{runId} 清空、\texttt{simTime} 归零。\bf{注意}：模型处于 \texttt{RUNNING} 或 \texttt{PAUSED} 时不可调用，需先 \texttt{stopRemoteSimulation}。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)。
+	\item \it{出参}：成功后 \texttt{status} 回到 \texttt{LOADED}，\texttt{runId=null}、\texttt{simTime=0}。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195"
+}
+// 出参（data 关键字段）
+{
+    "status": "LOADED",
+    "runId": null,
+    "simTime": 0,
+    "message": "Simulation reset."
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{stopRemoteSimulation}
+\bf{方法描述}：停止运行中或暂停中的仿真。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)。
+	\item \it{出参}：成功后 \texttt{status} 变为 \texttt{STOPPED}；停止后仍可读取结果快照、重置或再次启动。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195"
+}
+// 出参（data 关键字段）
+{
+    "status": "STOPPED",
+    "runId": "a4a2d328-3289-4c0b-866c-86cba1e75e72"
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsection{状态查询}
+\subsubsection{getRemoteSimulationStatus}
+\bf{方法描述}：查询模型状态与运行信息，前端通常以 1--2 秒间隔轮询。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)。
+	\item \it{出参}（\texttt{data}）：\texttt{userId}、\texttt{recordId}、\texttt{modelId}、\texttt{status}、\texttt{runId}、\texttt{simTime}、\texttt{message} 等。
+	\item \it{status 取值}：\texttt{LOADED}（已加载）、\texttt{RUNNING}（运行中）、\texttt{PAUSED}（已暂停）、\texttt{FINISHED}（自然结束）、\texttt{STOPPED}（已停止）、\texttt{FAILED}（启动异常）。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195"
+}
+// 出参（data 关键字段，仿真自然结束后的轮询结果）
+{
+    "status": "FINISHED",
+    "runId": "a4a2d328-3289-4c0b-866c-86cba1e75e72",
+    "simTime": 99159500,
+    "message": "Simulation finished."
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsection{结果获取}
+\subsubsection{getRemoteSimulationResultSnapshot}
+\bf{方法描述}：读取第一层\it{有界结果摘要}和可分页数据集目录（不再返回可能无限增长的完整明细），须在仿真结束后（\texttt{resultStatus} 为 \texttt{READY}）读取。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{runId}(String，空串表示当前运行)。
+	\item \it{出参}（\texttt{data}）：\texttt{userId}、\texttt{runId}、\texttt{recordId}、\texttt{modelId}、\texttt{status}、\texttt{simTime}、\texttt{totalOutput}(总产出)、\texttt{throughputPerHour}(每小时产出，\texttt{totalOutput*3600000/simTime})、\texttt{currentWip}(当前在制品)、\texttt{resultStatus}(\texttt{NOT\_READY}/\texttt{BUILDING}/\texttt{READY})。
+	\item \texttt{summaryResults}：\texttt{taktTime}、\texttt{uph}、\texttt{utilRate}、\texttt{leanMetrics}、\texttt{energyAnalysis} 五类有界汇总，均以 \texttt{rowCount}+\texttt{rows} 返回。
+	\item \texttt{datasets}：第二层全量数据的分页数据集目录，如 \texttt{partCycleTime}、\texttt{wip.timeline}、\texttt{lean.lt}、\texttt{energy.powerCurve}。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "runId": "a4a2d328-3289-4c0b-866c-86cba1e75e72"
+}
+// 出参（data 关键字段）
+{
+    "status": "FINISHED",
+    "simTime": 99159500,
+    "totalOutput": 0,
+    "throughputPerHour": 0.0,
+    "currentWip": 772,
+    "resultStatus": "READY",
+    "summaryResults": {
+        "taktTime": {
+            "rowCount": 2,
+            "rows": [
+                {
+                    "objectName": "预加工(设备)",
+                    "objectType": "Device",
+                    "processedCount": 100,
+                    "taktTime": 595800.0,
+                    "uph": 6.04
+                }
+            ]
+        },
+        "uph": {
+            "rowCount": 2,
+            "rows": []
+        },
+        "utilRate": {
+            "rowCount": 2,
+            "rows": []
+        },
+        "leanMetrics": {
+            "rowCount": 0,
+            "rows": []
+        },
+        "energyAnalysis": {
+            "rowCount": 0,
+            "rows": []
+        }
+    },
+    "datasets": [
+        { "name": "partCycleTime", "type": "table" },
+        { "name": "wip.timeline", "type": "timeSeries" },
+        { "name": "lean.lt", "type": "table" },
+        { "name": "energy.powerCurve", "type": "timeSeries" }
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{getRemoteSimulationResultDatasetPage}
+\bf{方法描述}：按数据集名称分页读取第二层全量结果，只能在本轮仿真结束且 \texttt{resultStatus=READY} 后调用。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{runId}(String)；\texttt{dataset}(String，如 \texttt{"partCycleTime"})；\texttt{offset}(int，$\geq$0，默认 0)；\texttt{limit}(int，1--1000，建议 200--500)。
+	\item \it{出参}（\texttt{data}）：\texttt{userId}、\texttt{recordId}、\texttt{modelId}、\texttt{runId}、\texttt{dataset}、\texttt{offset}、\texttt{limit}、\texttt{returned}(本页条数)、\texttt{total}(总条数)、\texttt{hasMore}(Boolean)、\texttt{nextOffset}(下一页偏移，\texttt{hasMore=false} 时结束)、\texttt{rows}。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "runId": "a4a2d328-3289-4c0b-866c-86cba1e75e72",
+    "dataset": "partCycleTime",
+    "offset": 0,
+    "limit": 100
+}
+// 出参（data 关键字段，rows 仅列一条示意）
+{
+    "dataset": "partCycleTime",
+    "offset": 0,
+    "limit": 100,
+    "returned": 100,
+    "total": 972,
+    "hasMore": true,
+    "nextOffset": 100,
+    "rows": [
+        {
+            "muNo": "1000300",
+            "muType": "C1",
+            "createPosition": ".小件仓库",
+            "workingTime": 12248150,
+            "waitingTime": 190850,
+            "transportTime": 80500
+        }
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsection{参数表读写}
+\bf{设计约定}：模型中预制一张 \texttt{mcp}（或 \texttt{MCP}）表，第一列登记要开放给 Web 端读写的参数表名；后端只允许读写 \texttt{mcp} 表中列出的参数表。参数表数据统一为 \texttt{\{tableId, tableName, wholeNo, remark, columnCount, rowCount, columns[], rows[][]\}} 结构，\texttt{rows} 是二维字符串数组。模型未配置 \texttt{mcp} 表时（如测试模型 \texttt{step-by-step.fs}），\texttt{mcpTableFound=false}、\texttt{parameterTables=[]}。
+
+\subsubsection{listRemoteSimulationParameterTables}
+\bf{方法描述}：读取 \texttt{mcp} 表清单，告诉前端模型中有哪些参数表可读写。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)。
+	\item \it{出参}（\texttt{data}）：\texttt{recordId}、\texttt{modelId}、\texttt{modelFileName}、\texttt{status}、\texttt{mcpTableName}("mcp")、\texttt{mcpTableFound}(Boolean)、\texttt{parameterTables}（\texttt{\{rowIndex, tableName, remark, exists, tableId, wholeNo, rowCount, columnCount\}} 数组）。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195"
+}
+// 出参（data；未配置 mcp 表的模型返回空清单）
+{
+    "mcpTableName": "mcp",
+    "mcpTableFound": false,
+    "parameterTables": []
+}
+// 出参（data；已配置 mcp 表的模型，取自参数管理页面实际运行）
+{
+    "mcpTableName": "MCP",
+    "mcpTableFound": true,
+    "parameterTables": [
+        {
+            "rowIndex": 0,
+            "tableName": ".订单表",
+            "rowCount": 30,
+            "columnCount": 7
+        },
+        {
+            "rowIndex": 1,
+            "tableName": ".ProcessTable",
+            "rowCount": 30,
+            "columnCount": 31
+        }
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{getRemoteSimulationParameterSnapshot}
+\bf{方法描述}：读取 \texttt{mcp} 清单中所有参数表的当前内容。\texttt{runId} 传空串读取当前模型本体参数表；传具体值读取该次运行启动时自动保存的参数快照（\texttt{startRemoteSimulation} 启动前会自动保存一次参数快照并绑定 \texttt{runId}）。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{runId}(String，空串=当前模型本体)。
+	\item \it{出参}（\texttt{data}）：\texttt{runId}、\texttt{recordId}、\texttt{modelId}、\texttt{modelFileName}、\texttt{status}、\texttt{snapshotAt}、\texttt{mcpTableName}、\texttt{mcpTableFound}、\texttt{mcpRows}（清单）、\texttt{tables}（\texttt{\{tableName, columns[], rows[][]\}} 数组，供前端展示/编辑）、\texttt{missingTables}（缺失表名列表）。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "runId": ""
+}
+// 出参（data 关键字段）
+{
+    "runId": null,
+    "snapshotAt": 1786434117899,
+    "mcpTableName": "mcp",
+    "mcpTableFound": false,
+    "mcpRows": [],
+    "tables": [],
+    "missingTables": []
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{updateRemoteSimulationParameterTable}
+\bf{方法描述}：整表覆盖写回某个参数表。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{tableName}(String，须在 \texttt{mcp} 表第一列中)；\texttt{rowsJson}(String，二维数组或对象数组序列化字符串)。
+	\item \it{出参}：写入后该表的最新快照。
+	\item \bf{限制}：模型处于 \texttt{RUNNING/PAUSED} 时禁止写入（返回 \texttt{INVALID\_STATE}）；行单元格数必须等于表的列数。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments，rowsJson 为字符串）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "tableName": "ProcessParams",
+    "rowsJson": "[["S1","10","20"],["S2","15","30"]]"
+}
+// rowsJson 也支持对象数组
+// "rowsJson": "[{"Station":"S1","ProcessTime":"10","Capacity":"20"}]"
+// 出参：该表最新快照（tableId/tableName/columns/rows）
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{updateRemoteSimulationParameterCells}
+\bf{方法描述}：按单元格补丁写回参数表，适合前端只改少量格子的场景。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{tableName}(String)；\texttt{patchesJson}(String，单元格补丁数组序列化字符串)。
+	\item \it{出参}：写入后该表的最新快照；写入规则同整表覆盖接口。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments，patchesJson 为字符串；按列序号）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "tableName": "ProcessParams",
+    "patchesJson": "[{"row":0,"column":1,"value":"12"}]"
+}
+// 按列名
+// "patchesJson": "[{"row":0,"columnName":"ProcessTime","value":"12"}]"
+// 出参：该表最新快照
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{batchUpdateRemoteSimulationParameterTable}
+\bf{方法描述}：一次原子回写多张参数表，并可选择是否把修改保存到服务器上的 \texttt{.fs} 模型文件。\texttt{tablesJson} 推荐直接使用参数快照返回的 \texttt{data.tables}（也可传完整快照对象，接口只读取其中的 \texttt{tables} 字段）。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{tablesJson}(String，快照 \texttt{data.tables} 数组 JSON)；\texttt{bSaveModel}(Boolean，\texttt{true} 时全部表写入成功后保存 \texttt{.fs} 文件，\texttt{false} 只更新内存模型)。
+	\item \it{出参}（\texttt{data}）：\texttt{recordId}、\texttt{modelId}、\texttt{updatedTableCount}、\texttt{updatedRowCount}、\texttt{tableNames}、\texttt{bSaveModel}、\texttt{modelSaved}(Boolean)、\texttt{modelFilePath}、\texttt{snapshot}。
+	\item \bf{规则}：所有目标表必须在 \texttt{mcp} 表中登记；同一 \texttt{tableName} 不能重复；先校验全部表合法才写入；任意表写入或模型保存失败时回滚内存表；模型 \texttt{RUNNING/PAUSED} 时禁止写入；成功后向 \texttt{factory/sim/\{username\}/\{modelId\}/status} 发布 \texttt{parameterTablesBatchUpdated} 事件。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments，tablesJson 为快照 data.tables 数组的字符串）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "tablesJson": "[{"tableName":"ProcessParameters","columns":[{"index":0,"name":"Process"},{"index":1,"name":"ProcessTime"}],"rows":[["OP10","12"]]}]",
+    "bSaveModel": false
+}
+// 出参（data 关键字段）
+{
+    "updatedTableCount": 2,
+    "updatedRowCount": 3,
+    "tableNames": [
+        "ProcessParameters",
+        "BufferParameters"
+    ],
+    "bSaveModel": false,
+    "modelSaved": false,
+    "modelFilePath": null
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsection{动画与画面}
+\subsubsection{listRemoteSimulationAnimationLayers}
+\bf{方法描述}：返回根模型（固定 \texttt{layerId="root"}）和全部嵌套子模型的动画层级，供前端生成模型树/面包屑；每层含 JPEG 帧 topic 与对象帧 topic。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)。
+	\item \it{出参}（\texttt{data}）：\texttt{activeLayerId}、\texttt{frameRate}、\texttt{frameTopic}、\texttt{frameMetaTopic}、\texttt{layers}（每层含 \texttt{layerId}、\texttt{parentLayerId}、\texttt{name}、\texttt{displayName}、\texttt{simpleNo}、\texttt{objectName}、\texttt{wholeNo}、\texttt{depth}、\texttt{breadcrumb}、\texttt{width}、\texttt{height}、\texttt{frameTopic}、\texttt{objectFrameTopic}）。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195"
+}
+// 出参（data 关键字段）
+{
+    "activeLayerId": "root",
+    "frameRate": 5,
+    "maxFrameRate": 10,
+    "layers": [
+        {
+            "layerId": "root",
+            "name": "step-by-step.fs",
+            "displayName": "step-by-step.fs",
+            "depth": 0,
+            "width": 913,
+            "height": 585,
+            "frameTopic": "factory/sim/demo-1786434116021/a2c00999f195/animation/root/frame"
+        }
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{selectRemoteSimulationAnimationLayer}
+\bf{方法描述}：选择服务端当前 JPEG/结构化对象帧推送的模型层并设置帧率；切换层无需在 FS 桌面 UI 中打开子模型。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{layerId}(String，如 \texttt{"root"} 或子层对象 ID)；\texttt{frameRate}(int，1--10，0 表示默认 5 FPS)。
+	\item \it{出参}：切换成功后会立即异步生成一帧；运行期间按指定帧率继续推送。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "layerId": "root",
+    "frameRate": 5
+}
+// 出参（data 关键字段）
+{
+    "activeLayerId": "root",
+    "frameRate": 5,
+    "animationStreaming": true
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{setRemoteSimulationAnimationEnabled}
+\bf{方法描述}：独立开启/关闭当前模型的引擎动画、MQTT JPEG 推帧和结构化对象帧，可在仿真运行过程中调用。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{enabled}(Boolean，\texttt{false} 立即停止周期截图推送并关闭引擎组件动画计算)。
+	\item \it{出参}：成功后发布 \texttt{simulationAnimationChanged} 到 \texttt{status} topic 并更新 \texttt{animation/state} topic。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "enabled": true
+}
+// 出参（data 关键字段）
+{
+    "animationEnabled": true,
+    "animationStreaming": true
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{setRemoteSimulationAccelerateFactor}
+\bf{方法描述}：调整当前模型的仿真加速因子，可在仿真运行过程中调用；属于当前内存模型实例，不自动保存到 \texttt{.fs} 文件。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{accelerateFactor}(int，1--1000，桌面默认 50)。
+	\item \it{出参}：成功后发布 \texttt{simulationAccelerateFactorChanged} 到 \texttt{status} topic。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "accelerateFactor": 100
+}
+// 出参（data 关键字段）
+{
+    "accelerateFactor": 100,
+    "minAccelerateFactor": 1,
+    "maxAccelerateFactor": 1000
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{getSvgPicture}
+\bf{方法描述}：在调用时刻将指定模型层的当前状态绘制为 SVG 并直接返回（\texttt{data.svg} 为原始 XML 文本，非 Base64），不切换活动层、不启动推流、不发布 MQTT 消息。画面最大 1280$\times$720，浏览器可按矢量缩放。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{layerId}(String，默认 \texttt{"root"} 或空串表示主模型)。
+	\item \it{出参}（\texttt{data}）：\texttt{userId}、\texttt{recordId}、\texttt{modelId}、\texttt{runId}、\texttt{layerId}、\texttt{layerName}、\texttt{simTime}、\texttt{capturedAt}、\texttt{width}、\texttt{height}、\texttt{contentType}、\texttt{byteLength}、\texttt{svg}（\texttt{contentType} 为 \texttt{"image/svg+xml"}）。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "layerId": "root"
+}
+// 出参（data 关键字段）
+{
+    "layerId": "root",
+    "layerName": "step-by-step.fs",
+    "simTime": 99159500,
+    "width": 1280,
+    "height": 720,
+    "contentType": "image/svg+xml;charset=UTF-8",
+    "svg": "<svg ...>...</svg>"
+}
+\end{lstlisting}\vspace{-30pt}
+\bf{错误}：指定层不存在返回 \texttt{ANIMATION\_LAYER\_NOT\_FOUND}，绘制失败返回 \texttt{SVG\_CAPTURE\_FAILED}。
+
+\subsection{对象位置快照与时间轴事件}
+\subsubsection{getRemoteSimulationObjectPositionSnapshot}
+\bf{方法描述}：按仿真时间点查询对象位置快照，用于时间轴回放与数字孪生还原。\texttt{simTime} 传 \texttt{-1} 表示查询当前时刻并立即捕获一帧；传具体值查询该时刻或之前最近的保留关键帧（\texttt{exact} 表示是否精确命中）。内存最多保留 1000 个关键帧 / 100000 条快照对象记录。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{runId}(String，空串=当前运行)；\texttt{layerId}(String，\texttt{"root"} 返回所有层级的动态对象)；\texttt{simTime}(long，仿真毫秒，\texttt{-1} 表示当前时刻)。
+	\item \it{出参}（\texttt{data}）：\texttt{userId}、\texttt{recordId}、\texttt{modelId}、\texttt{runId}、\texttt{layerId}、\texttt{requestedSimTime}、\texttt{snapshotSimTime}、\texttt{exact}(Boolean)、\texttt{sequence}、\texttt{capturedAt}、\texttt{objectCount}、\texttt{totalSnapshotObjectCount}、\texttt{snapshotsAvailable}、\texttt{historyTruncated}(Boolean)。
+	\item \texttt{data} 还含 \texttt{earliestAvailableSimTime}、\texttt{latestAvailableSimTime}（关键帧时间范围）；\texttt{objects} 每项含 \texttt{objectId}、\texttt{objectType}、\texttt{layerId}、\texttt{containerObjectId}、\texttt{containerObjectType}、\texttt{muId}、\texttt{positionReference}("CONTAINER\_RELATIVE")、\texttt{position}、\texttt{quantity}、\texttt{processingTime}、\texttt{remainingProcessingTime}。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "runId": "",
+    "layerId": "root",
+    "simTime": 3600000
+}
+// 出参（data 关键字段）
+{
+    "requestedSimTime": 3600000,
+    "snapshotSimTime": 3599500,
+    "exact": false,
+    "objectCount": 2,
+    "snapshotsAvailable": 18,
+    "objects": [
+        {
+            "objectId": "AGV01",
+            "objectType": "AGV",
+            "layerId": "root",
+            "containerObjectId": "AGVPath01",
+            "positionReference": "CONTAINER_RELATIVE",
+            "position": 125.5,
+            "quantity": 1
+        }
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{getRemoteSimulationEvents}
+\bf{方法描述}：按仿真时间窗口分页查询仿真事件（对象进入/离开工站等），可在运行中或运行结束后查询；不发布 MQTT 消息（实时推送走 MQTT 链路）。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{runId}(String，空串=当前运行)；\texttt{startSimTime}(long，窗口起点，仿真毫秒，$\geq$0)；\texttt{duration}(long，窗口长度，默认 10000)；\texttt{offset}(int，$\geq$0，默认 0)；\texttt{limit}(int，1--1000，默认 500)。
+	\item \it{出参}（\texttt{data}）：\texttt{userId}、\texttt{recordId}、\texttt{modelId}、\texttt{runId}、\texttt{startSimTime}、\texttt{endSimTime}(=\texttt{startSimTime+duration})、\texttt{duration}、\texttt{offset}、\texttt{limit}、\texttt{returned}、\texttt{total}、\texttt{hasMore}、\texttt{nextOffset}、\texttt{recordedThroughSimTime}、\texttt{dataRecordMode}（为 0 时事件列表可能为空）。
+	\item \texttt{events} 每项含 \texttt{eventId}、\texttt{sequence}、\texttt{simTime}、\texttt{eventType}("Enter"/"Leave" 等)、\texttt{eventTypeLabel}("进入"等)、\texttt{objectId}、\texttt{objectType}、\texttt{layerId}、\texttt{workUnit}、\texttt{muId}、\texttt{muName}、\texttt{muType}、\texttt{currentMuCount}、\texttt{muPriority}、\texttt{orderOrBatch}、\texttt{quantity}。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "runId": "",
+    "startSimTime": 3600000,
+    "duration": 60000,
+    "offset": 0,
+    "limit": 500
+}
+// 出参（data 关键字段，查询区间为 [3600000, 3660000)）
+{
+    "startSimTime": 3600000,
+    "endSimTime": 3660000,
+    "returned": 1,
+    "total": 1,
+    "hasMore": false,
+    "nextOffset": null,
+    "dataRecordMode": 0,
+    "events": [
+        {
+            "eventType": "Enter",
+            "eventTypeLabel": "进入",
+            "objectId": "Station01",
+            "objectType": "WorkStation",
+            "simTime": 3612000,
+            "muId": "Part001",
+            "muName": "零件001",
+            "muType": "Part",
+            "quantity": 1
+        }
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsection{MCP 工具的调用顺序推荐}
+以一次完整的"加载 $\rightarrow$ 运行 $\rightarrow$ 取结果 $\rightarrow$ 卸载"流程为例，推荐调用顺序如下（与 \texttt{McpClientTest} 的实测顺序一致）：
+\begin{lstlisting}
+initialize                       // 1. MCP 会话初始化
+notifications/initialized        // 2. 通知初始化完成
+tools/list                       // 3. 查询工具清单（确认工具可用）
+loadRemoteSimulationModel        // 4. 加载模型，拿到 modelId
+listRemoteSimulationModels       // 5.（可选）恢复内存模型列表
+listRemoteSimulationAnimationLayers        // 6.（需要动画时）获取动画层级
+selectRemoteSimulationAnimationLayer       // 7.（需要动画时）切换层/帧率
+listRemoteSimulationParameterTables        // 8.（需要参数时）获取可读写参数表清单
+getRemoteSimulationParameterSnapshot       // 9.（需要参数时）读取参数快照
+startRemoteSimulation            // 10. 启动仿真（showAnimation 按需）
+getRemoteSimulationStatus        // 11. 轮询状态（1-2 秒间隔）
+getRemoteSimulationObjectPositionSnapshot  // 12.（时间轴分析）查对象位置快照
+getRemoteSimulationEvents        // 13.（时间轴分析）按时间窗查仿真事件
+pauseRemoteSimulation            // 14.（可选）暂停
+resumeRemoteSimulation           // 15.（可选）恢复
+stopRemoteSimulation             // 16. 手动停止；或等待状态变为 FINISHED
+getRemoteSimulationResultSnapshot          // 17. 仿真结束后取第一层结果摘要
+getRemoteSimulationResultDatasetPage       // 18. 按 datasets 目录分页取第二层明细
+resetRemoteSimulation            // 19.（可选）重置，可再次 start 新一轮
+unloadRemoteSimulationModel      // 20. 卸载模型
+\end{lstlisting}\vspace{-30pt}
+说明：
+\begin{itemize}
+	\item 步骤 5--9、12--15、19 按业务需要选用；其余为完整生命周期必经步骤。
+	\item 需要浏览器动画时，\texttt{startRemoteSimulation} 传 \texttt{showAnimation=true}（或启动后用 \texttt{setRemoteSimulationAnimationEnabled} 开启），并在启动前完成步骤 6--7。
+	\item 修改参数后，须先 \texttt{resetRemoteSimulation} 再 \texttt{startRemoteSimulation}，新一轮仿真才会使用最新参数。
+\end{itemize}
+
+\subsection{注意事项}
+\begin{enumerate}[label=\arabic*)]
+	\item \bf{会话初始化}：所有调用前必须先 \texttt{initialize}，成功后发送 \texttt{notifications/initialized}，再调用 \texttt{tools/list} 与 \texttt{tools/call}。
+	\item \bf{两层解析}：\texttt{tools/call} 响应的业务 JSON 在 \texttt{result.content[0].text} 中，需先解析 MCP JSON-RPC 响应，再解析该字符串；后端将 \texttt{success}、\texttt{code}、\texttt{message}、\texttt{data} 原样返回给前端。
+	\item \bf{资源配额}：单用户最多加载 1 个模型，全局最多加载 10 个模型，全局最多 5 个模型同时运行；超限返回 \texttt{*\_LIMIT\_EXCEEDED} 类错误码（如 \texttt{USER\_MODEL\_LIMIT\_EXCEEDED}）。
+	\item \bf{状态约束}：\texttt{resetRemoteSimulation} 禁止在 \texttt{RUNNING/PAUSED} 时调用。
+	\item \bf{写参数约束}：参数表写入类工具（\texttt{updateRemoteSimulationParameterTable} 等）禁止在 \texttt{RUNNING/PAUSED} 时调用。
+	\item \bf{结果读取时机}：\texttt{getRemoteSimulationResultSnapshot} 的 \texttt{resultStatus} 为 \texttt{NOT\_READY}/\texttt{BUILDING} 时不能读取摘要与分页数据，需等待 \texttt{READY}（仿真线程结束并生成最终快照后发布 \texttt{resultReady} 事件）。
+	\item \bf{时间单位}：\texttt{simTime}、\texttt{startSimTime}、\texttt{duration} 等为仿真毫秒；\texttt{throughputPerHour = totalOutput * 3600000.0 / simTime}。
+	\item \bf{模型文件路径}：\texttt{modelFileName} 建议由后端上传/存储模块生成（绝对路径），前端不要拼接本机路径；相对路径只按 MCP Server 当前工作目录解析。
+	\item \bf{MQTT 分工}：\texttt{status/progress/console} 消息由后端（Paho）订阅，动画帧（JPEG/结构化对象帧）由前端（mqtt.js WebSocket）订阅；动画帧是 Qos 0、非 Retain 的二进制/JSON 消息，不能按 UTF-8 解析 JPEG。
+	\item \bf{时间轴事件}：\texttt{getRemoteSimulationEvents} 在 \texttt{dataRecordMode=0}（未开启过程数据记录）时事件列表可能为空；时间轴关键帧内存上限 1000 帧 / 100000 条对象记录，超出后淘汰最早关键帧并置 \texttt{historyTruncated=true}。
+	\item \bf{卸载行为}：\texttt{unloadRemoteSimulationModel} 对运行/暂停中的模型会先 \texttt{stop} 再卸载；前端交互上建议先点停止再点卸载。
+	\item \bf{安全}：MCP API Key 属于敏感信息，不应下发给前端；生产环境建议由后端配置管理并限制监听地址与端口暴露。
+	\item \bf{参数名依赖}：MCP Server 通过反射参数名生成工具 \texttt{inputSchema}，部署包需以 \texttt{-parameters} 编译参数构建，否则工具参数名可能变成 \texttt{arg0/arg1}，影响联调。
+\end{enumerate}
