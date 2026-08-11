@@ -60,6 +60,59 @@ public class FsSimParamSnapshotServiceImpl
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long savePairedSnapshot(String modelFileId, String runId, String parameterTables,
+                                   String mcpRows, String tables, String missingTables) {
+        FsSimParamSnapshot entity = getByRunId(modelFileId, runId);
+        Date now = new Date();
+        if (entity == null) {
+            entity = new FsSimParamSnapshot();
+            entity.setModelFileId(modelFileId);
+            entity.setRunId(runId);
+            entity.setCreateTime(now);
+        }
+        entity.setSnapshotAt(System.currentTimeMillis());
+        entity.setParameterTables(parameterTables);
+        entity.setMcpRows(mcpRows);
+        entity.setTables(tables);
+        entity.setMissingTables(missingTables);
+        entity.setUpdateTime(now);
+        if (entity.getId() == null) {
+            this.save(entity);
+        } else {
+            this.updateById(entity);
+        }
+        log.info("Paired param snapshot upserted: id={}, modelFileId={}, runId={}",
+                entity.getId(), modelFileId, runId);
+        return entity.getId();
+    }
+
+    @Override
+    public FsSimParamSnapshot getByRunId(String modelFileId, String runId) {
+        if (StrUtil.isBlank(runId)) {
+            return null;
+        }
+        LambdaQueryWrapper<FsSimParamSnapshot> qw = new LambdaQueryWrapper<>();
+        qw.eq(FsSimParamSnapshot::getModelFileId, modelFileId);
+        qw.eq(FsSimParamSnapshot::getRunId, runId);
+        qw.last("LIMIT 1");
+        return this.getOne(qw);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteByModelAndRunId(String modelFileId, String runId) {
+        if (StrUtil.isBlank(runId)) {
+            return;
+        }
+        LambdaQueryWrapper<FsSimParamSnapshot> qw = new LambdaQueryWrapper<>();
+        qw.eq(FsSimParamSnapshot::getModelFileId, modelFileId);
+        qw.eq(FsSimParamSnapshot::getRunId, runId);
+        this.remove(qw);
+        log.info("Paired param snapshot deleted: modelFileId={}, runId={}", modelFileId, runId);
+    }
+
+    @Override
     public List<SnapshotDto> listByModelFileId(String modelFileId) {
         LambdaQueryWrapper<FsSimParamSnapshot> qw = new LambdaQueryWrapper<>();
         qw.eq(FsSimParamSnapshot::getModelFileId, modelFileId);
@@ -82,6 +135,7 @@ public class FsSimParamSnapshotServiceImpl
         SnapshotDto dto = new SnapshotDto();
         dto.setId(entity.getId());
         dto.setModelFileId(entity.getModelFileId());
+        dto.setRunId(entity.getRunId());
         dto.setSnapshotAt(entity.getSnapshotAt());
         dto.setParameterTables(entity.getParameterTables());
         dto.setMcpRows(entity.getMcpRows());

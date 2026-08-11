@@ -16,6 +16,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
+
 import java.util.Date;
 
 /**
@@ -33,6 +34,9 @@ public class FsSimParamSnapshot {
 
     /** 模型库记录 ID（对应 MCP recordId） */
     private String modelFileId;
+
+    /** 仿真运行 ID（成对落库标识，NULL=单独落库，非NULL=与结果快照成对落库） */
+    private String runId;
 
     /** 快照时间（毫秒时间戳） */
     private Long snapshotAt;

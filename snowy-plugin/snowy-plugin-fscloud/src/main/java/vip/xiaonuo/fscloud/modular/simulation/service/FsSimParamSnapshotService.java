@@ -13,7 +13,9 @@
 package vip.xiaonuo.fscloud.modular.simulation.service;
 
 import vip.xiaonuo.fscloud.modular.simulation.dto.SnapshotDto;
+import vip.xiaonuo.fscloud.modular.simulation.entity.FsSimParamSnapshot;
 import vip.xiaonuo.fscloud.modular.simulation.param.SaveSnapshotParam;
+
 import java.util.List;
 
 /**
@@ -27,6 +29,13 @@ public interface FsSimParamSnapshotService {
     /** 保存快照 */
     Long saveSnapshot(SaveSnapshotParam param);
 
+    /** 成对落库（与结果快照成对）：按 (modelFileId, runId) upsert，返回快照 ID */
+    Long savePairedSnapshot(String modelFileId, String runId, String parameterTables,
+                            String mcpRows, String tables, String missingTables);
+
+    /** 按 runId 查询成对参数快照（无则返回 null） */
+    FsSimParamSnapshot getByRunId(String modelFileId, String runId);
+
     /** 查询某模型的所有快照列表（不含 tables 内容） */
     List<SnapshotDto> listByModelFileId(String modelFileId);
 
@@ -35,4 +44,7 @@ public interface FsSimParamSnapshotService {
 
     /** 删除快照 */
     void deleteById(Long id);
+
+    /** 按模型+运行删除成对参数快照（删除结果快照时连带） */
+    void deleteByModelAndRunId(String modelFileId, String runId);
 }

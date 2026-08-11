@@ -77,6 +77,14 @@ export default {
 	fsSimGetSvgPicture(data) {
 		return request('getSvgPicture', data, 'post')
 	},
+	// 查询时间轴对象位置快照
+	fsSimGetObjectPositionSnapshot(data) {
+		return request('getObjectPositionSnapshot', data, 'post')
+	},
+	// 查询时间窗口内的仿真事件
+	fsSimGetSimulationEvents(data) {
+		return request('getSimulationEvents', data, 'post')
+	},
 	// 获取仿真模型的参数表列表
 	fsSimListParameterTables(data) {
 		return request('listParameterTables', data, 'post')
@@ -100,5 +108,25 @@ export default {
 	// 获取结果数据集分页
 	fsSimGetResultDatasetPage(data) {
 		return request('getResultDatasetPage', data, 'post')
+	},
+	// 保存结果快照（成对落库：参数+结果）
+	fsSimSaveResultSnapshot(data) {
+		return request('saveResultSnapshot', data, 'post')
+	},
+	// 查询某模型的所有结果快照列表
+	fsSimListResultSnapshots(data) {
+		return request('listResultSnapshots', data, 'post')
+	},
+	// 查询单个结果快照详情
+	fsSimGetResultSnapshotById(data) {
+		return request('getResultSnapshotById', data, 'post')
+	},
+	// 按页读取结果快照某数据集数据（数据库）
+	fsSimGetResultDatasetPageInDb(data) {
+		return request('getResultDatasetPageInDb', data, 'post')
+	},
+	// 删除结果快照（连带成对参数快照与 partCycleTime 文件）
+	fsSimDeleteResultSnapshot(data) {
+		return request('deleteResultSnapshot', data, 'post')
 	}
 }
