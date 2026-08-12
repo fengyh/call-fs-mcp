@@ -90,7 +90,9 @@ X-API-Key: <MCP_API_KEY>
 - `listRemoteSimulationAnimationLayers`
 - `getSvgPicture`
 - `getRemoteSimulationObjectPositionSnapshot`
+- `getRemoteSimulationObjectPositionSnapshotPage`
 - `getRemoteSimulationEvents`
+- `setRemoteSimulationEventPublishing`
 - `selectRemoteSimulationAnimationLayer`
 - `setRemoteSimulationAnimationEnabled`
 - `setRemoteSimulationAccelerateFactor`
@@ -724,6 +726,7 @@ STOPPED
 factory/sim/{username}/{modelId}/status
 factory/sim/{username}/{modelId}/progress
 factory/sim/{username}/{modelId}/console
+factory/sim/{username}/{modelId}/events
 factory/sim/{username}/{modelId}/animation/layers
 factory/sim/{username}/{modelId}/animation/state
 factory/sim/{username}/{modelId}/animation/frameMeta
@@ -750,6 +753,7 @@ factory/sim/{username}/{modelId}/animation/{layerId}/objects
 - `status` 消息额外包含 `status`、`message`、`simTime`。
 - `progress` 消息额外包含 `status`、`simTime`。
 - `console` 消息额外包含 `level`、`content`、`sequence`。
+- `events` 是可开关的 MU 事件批次，按 200～500ms 的现实时间窗口聚合发布；批次内事件不采样、不丢弃，并按 `sequence` 排序。超过 500 条时通过 `chunkIndex/chunkCount` 拆包。
 - `animation/layers` 是 Retain 的 JSON 层级目录。
 - `animation/state` 是 Retain 的 JSON 推帧状态。
 - `animation/frameMeta` 是 QoS 0 JSON，包含 `layerId`、`sequence`、`simTime`、尺寸、字节数和对应帧 topic。
@@ -761,11 +765,13 @@ factory/sim/{username}/{modelId}/animation/{layerId}/objects
 - 仿真结果可获取时不再发布单独的 `result-ready` topic，而是在 `status` topic 中发布 `event=resultReady`。
 - MQTT 实时消息携带 `recordId` 和 `modelId`；不携带 `modelFileName`、`modelFilePath`、`loopNum`、`simulationStatus`。这些属于引擎内部或排障字段，不建议前端依赖。
 
-### 7.13 查询时间轴对象位置快照
+### 7.13 分页查询完整对象位置快照
 
-工具名：`getRemoteSimulationObjectPositionSnapshot`
+推荐工具名：`getRemoteSimulationObjectPositionSnapshotPage`
 
-请求参数：
+兼容工具 `getRemoteSimulationObjectPositionSnapshot` 仍可用，但会一次返回完整数组，大模型应使用分页工具。
+
+首次请求：
 
 ```json
 {
@@ -773,121 +779,136 @@ factory/sim/{username}/{modelId}/animation/{layerId}/objects
   "modelId": "模型ID",
   "runId": "运行ID",
   "layerId": "root",
-  "simTime": 3600000
-}
-```
-
-- `simTime` 单位为仿真毫秒；传 `-1` 表示查询当前时刻并立即捕获一帧。
-- `layerId=root` 返回所有层级的动态对象；指定其他 `layerId` 时只返回该层对象。
-- 历史查询返回目标时刻或之前最近的保留关键帧；`exact=true` 才表示精确命中。
-- 关键帧在启动、运行进度、暂停、停止和自然结束时采集，运行进度采集的现实时间间隔不小于 1 秒。
-- 内存最多保留 1000 个关键帧和 100000 条快照对象记录；达到上限后淘汰最早关键帧，并返回 `historyTruncated=true`。
-
-成功响应中的 `data`：
-
-```json
-{
-  "userId": "u001",
-  "recordId": "backend-model-record-id",
-  "modelId": "模型ID",
-  "runId": "运行ID",
-  "layerId": "root",
-  "requestedSimTime": 3600000,
-  "snapshotSimTime": 3599500,
-  "exact": false,
-  "sequence": 18,
-  "capturedAt": 1781620000000,
-  "objectCount": 2,
-  "totalSnapshotObjectCount": 2,
-  "snapshotsAvailable": 18,
-  "earliestAvailableSimTime": 0,
-  "latestAvailableSimTime": 3599500,
-  "historyTruncated": false,
-  "objects": [
-    {
-      "objectId": "AGV01",
-      "objectType": "AGV",
-      "layerId": "root",
-      "containerObjectId": "AGVPath01",
-      "containerObjectType": "AGVSegment",
-      "muId": "AGV01",
-      "positionReference": "CONTAINER_RELATIVE",
-      "position": 125.5,
-      "quantity": 1,
-      "processingTime": 0,
-      "remainingProcessingTime": 0
-    }
-  ]
-}
-```
-
-`position` 是对象相对 `containerObjectId` 的动态位置。轨道类通常为距离数值，堆垛机等对象可能是数组或原始位置字符串。数字孪生端需要结合模型层级、SVG或自身场景拓扑转换为最终画布坐标。
-
-### 7.14 查询时间窗口内的仿真事件
-
-工具名：`getRemoteSimulationEvents`
-
-请求参数：
-
-```json
-{
-  "userId": "u001",
-  "modelId": "模型ID",
-  "runId": "运行ID",
-  "startSimTime": 3600000,
-  "duration": 60000,
+  "simTime": -1,
+  "snapshotId": "",
+  "entityKind": "ALL",
   "offset": 0,
   "limit": 500
 }
 ```
 
-- 查询区间为 `[startSimTime, startSimTime + duration)`，单位均为仿真毫秒。
+- `simTime=-1` 立即捕获当前时刻；历史时间返回该时刻或之前最近的保留快照。
+- 首次请求传空 `snapshotId`。响应会返回稳定的 `snapshotId`，后续页面必须原样回传，防止仿真继续运行时分页内容漂移。
+- `entityKind` 支持 `ALL`、`STATIC_OBJECT`、`LAYER`、`MU`、`WAREHOUSE`、`STORAGE_LOCATION`。
+- `layerId=root` 返回所有层；指定子层只返回该层对象。
 - `offset >= 0`，`1 <= limit <= 1000`。
-- 数据来自当前 run 的 `SimulationRecord`，可在运行中或运行结束后查询。
-- 查询不发布 MQTT 消息；实时推送仍由现有 MQTT 链路承担。
-- 如果模型关闭了过程数据记录，事件列表可能为空；响应中的 `dataRecordMode` 用于排查。
+- 快照包含模型静态对象和设备坐标、Buffer/工位等物料流对象的 WIP、MU 所在容器与位置、仓库及货位 MU 清单。
+- 顶层坐标系标记为 `PER_OBJECT_POSITION_REFERENCE`。每条对象通过 `positionReference` 说明是层内坐标、仓库内坐标、沿轨道位置或容器位置；数字孪生端需要依据 `layerId` 和 SVG/自身场景坐标完成变换。
 
-成功响应中的 `data`：
+成功响应：
+
+```json
+{
+  "success": true,
+  "data": {
+    "recordId": "backend-model-record-id",
+    "modelId": "模型ID",
+    "runId": "运行ID",
+    "snapshotId": "运行ID:18",
+    "snapshotSimTime": 3600000,
+    "layerId": "root",
+    "entityKind": "ALL",
+    "coordinateSystem": "PER_OBJECT_POSITION_REFERENCE",
+    "offset": 0,
+    "limit": 500,
+    "returned": 500,
+    "total": 2306,
+    "hasMore": true,
+    "nextOffset": 500,
+    "objects": [
+      {
+        "entityKind": "STATIC_OBJECT",
+        "objectId": "Buffer01",
+        "objectType": "Buffer",
+        "position": {"x": 120.0, "y": 80.0, "z": 0.0},
+        "wip": 12,
+        "capacity": 50,
+        "muIds": ["Part001", "Part002"]
+      },
+      {
+        "entityKind": "MU",
+        "muId": "Part001",
+        "containerObjectId": "Buffer01",
+        "positionReference": "AT_CONTAINER",
+        "position": {"x": 120.0, "y": 80.0, "z": 0.0}
+      }
+    ]
+  }
+}
+```
+
+### 7.14 查询时间窗口内的 MU 事件
+
+工具名：`getRemoteSimulationEvents`
 
 ```json
 {
   "userId": "u001",
-  "recordId": "backend-model-record-id",
   "modelId": "模型ID",
   "runId": "运行ID",
   "startSimTime": 3600000,
-  "endSimTime": 3660000,
-  "duration": 60000,
+  "duration": 10000,
   "offset": 0,
-  "limit": 500,
-  "returned": 1,
-  "total": 1,
-  "hasMore": false,
-  "nextOffset": null,
-  "recordedThroughSimTime": 3700000,
-  "dataRecordMode": 0,
-  "events": [
-    {
-      "eventId": "10001",
-      "sequence": 10001,
-      "simTime": 3612000,
-      "eventType": "Enter",
-      "eventTypeLabel": "进入",
-      "objectId": "Station01",
-      "objectType": "WorkStation",
-      "layerId": "root",
-      "workUnit": "1",
-      "muId": "Part001",
-      "muName": "零件001",
-      "muType": "Part",
-      "currentMuCount": 1,
-      "muPriority": 0,
-      "orderOrBatch": "",
-      "quantity": 1
-    }
-  ]
+  "limit": 500
 }
 ```
+
+- 查询区间为 `[startSimTime, startSimTime + duration)`，单位是仿真毫秒；常用窗口为 5000 或 10000。
+- 返回仅与 MU 有关的事件，按 `sequence` 和 `simTime` 有序。
+- 数据来自当前 run 的独立内存事件历史，不依赖模型的 `dataRecordMode`，也不要求开启 MQTT 发布。
+- MCP 查询与 MQTT `/events` 使用完全相同的事件字段。
+- 内存事件历史有上限；发生淘汰时返回 `historyTruncated=true`、`historyDiscardedEventCount` 和 `earliestRetainedSimTime`。
+
+事件示例：
+
+```json
+{
+  "eventId": "运行ID-10001",
+  "sequence": 10001,
+  "simTime": 3612000,
+  "timestamp": 1781620000000,
+  "eventType": "Enter",
+  "eventTypeLabel": "进入",
+  "objectId": "Station01",
+  "objectName": "装配工位",
+  "objectType": "WorkStation",
+  "layerId": "root",
+  "unitNo": 1,
+  "currentWip": 1,
+  "muId": "Part001",
+  "muName": "零件001",
+  "muObjectType": "Part",
+  "muType": "产品A",
+  "locationObjectId": "Station01",
+  "locationObjectType": "WorkStation",
+  "containerObjectId": "",
+  "containerObjectType": "",
+  "predecessorObjectId": "Buffer01",
+  "predecessorObjectType": "Buffer",
+  "positionReference": "AT_CONTAINER",
+  "relativePosition": 0.0,
+  "quantity": 0
+}
+```
+
+### 7.15 开关 MQTT MU 事件发布
+
+工具名：`setRemoteSimulationEventPublishing`
+
+```json
+{
+  "userId": "u001",
+  "modelId": "模型ID",
+  "enabled": true,
+  "publishIntervalMs": 500
+}
+```
+
+- `publishIntervalMs` 允许 200～500；传 0 使用默认 500ms。
+- 这是现实时间的批次刷新间隔，不是仿真时间采样间隔。窗口内发生的 MU 事件全部进入数组，不会只保留最后一条。
+- 关闭后仅停止后续 MQTT 入队和发布；MCP 时间窗事件仍继续记录。
+- Topic：`factory/sim/{username}/{modelId}/events`，QoS 0，非 Retain。
+- Payload 公共字段包含 `recordId`、`modelId`、`runId`、`msgType=events`，并包含 `batchSequence`、`chunkIndex`、`chunkCount`、`firstSequence`、`lastSequence`、`startSimTime`、`endSimTime`、`eventCount`、`totalEventCount`、`events`。
 
 ## 8. 推荐调用顺序
 
@@ -898,10 +919,11 @@ tools/list
 loadRemoteSimulationModel
 listRemoteSimulationAnimationLayers
 selectRemoteSimulationAnimationLayer（需要时切换层或帧率）
+setRemoteSimulationEventPublishing（需要实时 MU 事件时开启，建议 500ms）
 startRemoteSimulation
 getRemoteSimulationStatus
-getRemoteSimulationObjectPositionSnapshot  (实时或按时间轴补关键帧)
-getRemoteSimulationEvents  (按仿真时间窗口分页查询事件)
+getRemoteSimulationObjectPositionSnapshotPage  (完整对象清单，固定 snapshotId 后分页)
+getRemoteSimulationEvents  (按仿真时间窗口分页查询同构 MU 事件)
 pauseRemoteSimulation
 resumeRemoteSimulation
 getRemoteSimulationStatus

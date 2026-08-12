@@ -12,10 +12,10 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
 /**
- * MCP JSON-RPC 2.0 ¿Í»§¶Ë
+ * MCP JSON-RPC 2.0 å®¢æˆ·ç«¯
  * <p>
- * ÓÃÓÚÍ¨¹ı HTTP µ÷ÓÃ FactorySimulation µÄ MCP Ô¶³Ì·ÂÕæ¿ØÖÆ·şÎñ¡£
- * Ğ­ÒéÏêÇé²Î¿¼: codex_doc_output/remote_simulation_mcp_docs/
+ * ç”¨äºé€šè¿‡ HTTP è°ƒç”¨ FactorySimulation çš„ MCP è¿œç¨‹ä»¿çœŸæ§åˆ¶æœåŠ¡ã€‚
+ * åè®®è¯¦æƒ…å‚è€ƒ: codex_doc_output/remote_simulation_mcp_docs/
  */
 public class McpClientTest {
 
@@ -24,8 +24,8 @@ public class McpClientTest {
     private int requestId = 0;
 
     /**
-     * @param endpointUrl MCP ·şÎñµØÖ·, ÀıÈç "http://127.0.0.1:8081/mcp"
-     * @param apiKey      X-API-Key Öµ
+     * @param endpointUrl MCP æœåŠ¡åœ°å€, ä¾‹å¦‚ "http://127.0.0.1:8081/mcp"
+     * @param apiKey      X-API-Key å€¼
      */
     public McpClientTest(String endpointUrl, String apiKey) {
         this.endpointUrl = endpointUrl;
@@ -36,7 +36,7 @@ public class McpClientTest {
         this("http://127.0.0.1:8081/mcp", "7sK9p2G@2026");
     }
 
-    // ==================== ¸ß²ã API ====================
+    // ==================== é«˜å±‚ API ====================
 
     /** Initialize MCP session. */
     public JSONObject initialize() {
@@ -71,7 +71,7 @@ public class McpClientTest {
         return callTool("listRemoteSimulationModels", new JSONObject());
     }
 
-    /** ²éÑ¯·ÂÕæ×´Ì¬ */
+    /** æŸ¥è¯¢ä»¿çœŸçŠ¶æ€ */
     public JSONObject getStatus(String userId, String modelId) {
         JSONObject args = new JSONObject();
         args.put("userId", userId);
@@ -105,6 +105,21 @@ public class McpClientTest {
         return callTool("getRemoteSimulationObjectPositionSnapshot", args);
     }
 
+    public JSONObject getObjectPositionSnapshotPage(String userId, String modelId, String runId, String layerId,
+            long simTime, String snapshotId, String entityKind, int offset, int limit) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("runId", runId != null ? runId : "");
+        args.put("layerId", layerId != null ? layerId : "root");
+        args.put("simTime", simTime);
+        args.put("snapshotId", snapshotId != null ? snapshotId : "");
+        args.put("entityKind", entityKind != null ? entityKind : "ALL");
+        args.put("offset", offset);
+        args.put("limit", limit);
+        return callTool("getRemoteSimulationObjectPositionSnapshotPage", args);
+    }
+
     public JSONObject getSimulationEvents(String userId, String modelId, String runId, long startSimTime,
             long duration, int offset, int limit) {
         JSONObject args = new JSONObject();
@@ -116,6 +131,15 @@ public class McpClientTest {
         args.put("offset", offset);
         args.put("limit", limit);
         return callTool("getRemoteSimulationEvents", args);
+    }
+
+    public JSONObject setEventPublishing(String userId, String modelId, boolean enabled, int publishIntervalMs) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("enabled", enabled);
+        args.put("publishIntervalMs", publishIntervalMs);
+        return callTool("setRemoteSimulationEventPublishing", args);
     }
 
     public JSONObject selectAnimationLayer(String userId, String modelId, String layerId, int frameRate) {
@@ -143,7 +167,7 @@ public class McpClientTest {
         return callTool("setRemoteSimulationAccelerateFactor", args);
     }
 
-    /** Æô¶¯·ÂÕæ */
+    /** å¯åŠ¨ä»¿çœŸ */
     public JSONObject startSimulation(String userId, String modelId, boolean showAnimation) {
         JSONObject args = new JSONObject();
         args.put("userId", userId);
@@ -152,7 +176,7 @@ public class McpClientTest {
         return callTool("startRemoteSimulation", args);
     }
 
-    /** ÔİÍ£·ÂÕæ */
+    /** æš‚åœä»¿çœŸ */
     public JSONObject pauseSimulation(String userId, String modelId) {
         JSONObject args = new JSONObject();
         args.put("userId", userId);
@@ -160,7 +184,7 @@ public class McpClientTest {
         return callTool("pauseRemoteSimulation", args);
     }
 
-    /** »Ö¸´·ÂÕæ */
+    /** æ¢å¤ä»¿çœŸ */
     public JSONObject resumeSimulation(String userId, String modelId) {
         JSONObject args = new JSONObject();
         args.put("userId", userId);
@@ -168,7 +192,7 @@ public class McpClientTest {
         return callTool("resumeRemoteSimulation", args);
     }
 
-    /** ÖØÖÃ·ÂÕæ */
+    /** é‡ç½®ä»¿çœŸ */
     public JSONObject resetSimulation(String userId, String modelId) {
         JSONObject args = new JSONObject();
         args.put("userId", userId);
@@ -176,7 +200,7 @@ public class McpClientTest {
         return callTool("resetRemoteSimulation", args);
     }
 
-    /** Í£Ö¹·ÂÕæ */
+    /** åœæ­¢ä»¿çœŸ */
     public JSONObject stopSimulation(String userId, String modelId) {
         JSONObject args = new JSONObject();
         args.put("userId", userId);
@@ -184,7 +208,7 @@ public class McpClientTest {
         return callTool("stopRemoteSimulation", args);
     }
 
-    /** »ñÈ¡½á¹û¿ìÕÕ */
+    /** è·å–ç»“æœå¿«ç…§ */
     public JSONObject getResultSnapshot(String userId, String modelId, String runId) {
         JSONObject args = new JSONObject();
         args.put("userId", userId);
@@ -206,7 +230,7 @@ public class McpClientTest {
         return callTool("getRemoteSimulationResultDatasetPage", args);
     }
 
-    /** ÁĞ³ö²ÎÊı±í */
+    /** åˆ—å‡ºå‚æ•°è¡¨ */
     public JSONObject listParameterTables(String userId, String modelId) {
         JSONObject args = new JSONObject();
         args.put("userId", userId);
@@ -214,7 +238,7 @@ public class McpClientTest {
         return callTool("listRemoteSimulationParameterTables", args);
     }
 
-    /** »ñÈ¡²ÎÊı¿ìÕÕ */
+    /** è·å–å‚æ•°å¿«ç…§ */
     public JSONObject getParameterSnapshot(String userId, String modelId, String runId) {
         JSONObject args = new JSONObject();
         args.put("userId", userId);
@@ -223,7 +247,7 @@ public class McpClientTest {
         return callTool("getRemoteSimulationParameterSnapshot", args);
     }
 
-    /** ¸üĞÂ²ÎÊı±í (È«Á¿Ìæ»») */
+    /** æ›´æ–°å‚æ•°è¡¨ (å…¨é‡æ›¿æ¢) */
     public JSONObject updateParameterTable(String userId, String modelId, String tableName, String rowsJson) {
         JSONObject args = new JSONObject();
         args.put("userId", userId);
@@ -244,7 +268,7 @@ public class McpClientTest {
         return callTool("batchUpdateRemoteSimulationParameterTable", args);
     }
 
-    /** ¸üĞÂ²ÎÊı±í (µ¥Ôª¸ñ¼¶) */
+    /** æ›´æ–°å‚æ•°è¡¨ (å•å…ƒæ ¼çº§) */
     public JSONObject updateParameterCells(String userId, String modelId, String tableName, String patchesJson) {
         JSONObject args = new JSONObject();
         args.put("userId", userId);
@@ -254,10 +278,10 @@ public class McpClientTest {
         return callTool("updateRemoteSimulationParameterCells", args);
     }
 
-    // ==================== µ×²ã JSON-RPC ====================
+    // ==================== åº•å±‚ JSON-RPC ====================
 
     /**
-     * µ÷ÓÃ·Ç tool Àà·½·¨ (initialize, tools/list µÈ)
+     * è°ƒç”¨é tool ç±»æ–¹æ³• (initialize, tools/list ç­‰)
      */
     public JSONObject call(String method, JSONObject params) {
         JSONObject request = buildRequest(method, params);
@@ -266,7 +290,7 @@ public class McpClientTest {
     }
 
     /**
-     * µ÷ÓÃ tools/call °ü×°µÄ¹¤¾ß
+     * è°ƒç”¨ tools/call åŒ…è£…çš„å·¥å…·
      */
     public JSONObject callTool(String toolName, JSONObject arguments) {
         JSONObject params = new JSONObject();
@@ -276,11 +300,11 @@ public class McpClientTest {
         JSONObject request = buildRequest("tools/call", params);
         JSONObject rawResponse = post(request);
 
-        // ½â°ü MCP content[0].text ¡ú ÒµÎñ JSON
+        // è§£åŒ… MCP content[0].text â†’ ä¸šåŠ¡ JSON
         return unwrapResult(rawResponse);
     }
 
-    // ==================== ÄÚ²¿ÊµÏÖ ====================
+    // ==================== å†…éƒ¨å®ç° ====================
 
     private JSONObject buildRequest(String method, JSONObject params) {
         JSONObject request = new JSONObject();
@@ -294,7 +318,7 @@ public class McpClientTest {
     }
 
     /**
-     * ·¢ËÍ HTTP POST ÇëÇó£¬·µ»Ø½âÎöºóµÄ JSON
+     * å‘é€ HTTP POST è¯·æ±‚ï¼Œè¿”å›è§£æåçš„ JSON
      */
     private JSONObject post(JSONObject requestBody) {
         try {
@@ -307,7 +331,7 @@ public class McpClientTest {
             conn.setConnectTimeout(10000);
             conn.setReadTimeout(60000);
 
-            // ·¢ËÍÇëÇóÌå
+            // å‘é€è¯·æ±‚ä½“
             String jsonStr = requestBody.toJSONString();
             try (OutputStream os = conn.getOutputStream()) {
                 os.write(jsonStr.getBytes(StandardCharsets.UTF_8));
@@ -324,7 +348,7 @@ public class McpClientTest {
 
             JSONObject result = JSON.parseObject(responseBody);
 
-            // Èç¹ûÓĞ MCP error ×Ö¶Î, Å×³öÒì³£
+            // å¦‚æœæœ‰ MCP error å­—æ®µ, æŠ›å‡ºå¼‚å¸¸
             if (result.containsKey("error")) {
                 JSONObject error = result.getJSONObject("error");
                 throw new McpException(
@@ -333,7 +357,7 @@ public class McpClientTest {
                         requestBody
                 );
             }
-            // HTTP ²ã´íÎó
+            // HTTP å±‚é”™è¯¯
             if (result.containsKey("error") && result.getString("error") != null) {
                 throw new McpException(statusCode,
                         "HTTP " + statusCode + ": " + result.getString("error"),
@@ -349,7 +373,7 @@ public class McpClientTest {
     }
 
     /**
-     * ´Ó MCP tools/call ÏìÓ¦ÖĞ½â°ü: content[0].text ¡ú JSONObject
+     * ä» MCP tools/call å“åº”ä¸­è§£åŒ…: content[0].text â†’ JSONObject
      */
     private JSONObject unwrapResult(JSONObject rawResponse) {
         JSONObject result = rawResponse.getJSONObject("result");
@@ -488,6 +512,11 @@ public class McpClientTest {
                 requireOk(animationLayerResp, "selectRemoteSimulationAnimationLayer");
             }
 
+            printStep("4.3. enable ordered MU event publishing at 500ms");
+            JSONObject eventPublishingResp = client.setEventPublishing(userId, modelId, true, 500);
+            printJson(eventPublishingResp);
+            requireOk(eventPublishingResp, "setRemoteSimulationEventPublishing");
+
             printStep("5. parameter table catalog and snapshot");
             JSONObject parameterTablesResp = client.listParameterTables(userId, modelId);
             printJson(parameterTablesResp);
@@ -536,19 +565,32 @@ public class McpClientTest {
             JSONObject finalStatusResp = client.getStatus(userId, modelId);
             printStep("8. final status");
             printJson(finalStatusResp);
-            requireOk(finalStatusResp, "getRemoteSimulationStatus");
+            JSONObject finalStatusData = requireOk(finalStatusResp, "getRemoteSimulationStatus");
             latestStatus = responseStatus(finalStatusResp);
 
             if ("RUNNING".equals(latestStatus) || "PAUSED".equals(latestStatus)) {
                 printStep("9. stopRemoteSimulation because test window ended");
                 JSONObject stopResp = client.stopSimulation(userId, modelId);
                 printJson(stopResp);
-                requireOk(stopResp, "stopRemoteSimulation");
+                finalStatusData = requireOk(stopResp, "stopRemoteSimulation");
                 latestStatus = responseStatus(stopResp);
             } else {
                 printStep("9. stop skipped");
                 System.out.println("Current status is " + latestStatus + ", no stop needed.");
             }
+
+            printStep("9.1. get complete object snapshot page");
+            JSONObject objectPageResp = client.getObjectPositionSnapshotPage(
+                    userId, modelId, runId, "root", -1, "", "ALL", 0, 100);
+            printJson(objectPageResp);
+            requireOk(objectPageResp, "getRemoteSimulationObjectPositionSnapshotPage");
+
+            printStep("9.2. get MU events from the simulation-time window");
+            long finalSimTime = Math.max(0L, finalStatusData.getLongValue("simTime"));
+            JSONObject eventsResp = client.getSimulationEvents(
+                    userId, modelId, runId, 0, Math.max(1L, finalSimTime + 1L), 0, 100);
+            printJson(eventsResp);
+            requireOk(eventsResp, "getRemoteSimulationEvents");
 
             printStep("10. getRemoteSimulationResultSnapshot");
             JSONObject resultResp = client.getResultSnapshot(userId, modelId, runId);

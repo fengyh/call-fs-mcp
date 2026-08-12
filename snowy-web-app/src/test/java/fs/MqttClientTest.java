@@ -13,29 +13,29 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * MQTT ¿Í»§¶Ë²âÊÔ¹¤¾ß
+ * MQTT å®¢æˆ·ç«¯æµ‹è¯•å·¥å…·
  * <p>
- * Ä£Äâ Publisher£¨user001 / model01£©¶¨Ê±·¢²¼ÈıÀà·ÂÕæÏûÏ¢£¬
- * Í¬Ê±×÷Îª Subscriber ¶©ÔÄµ±Ç°ÓÃ»§ËùÓĞ·ÂÕæÏûÏ¢²¢´òÓ¡µ½¿ØÖÆÌ¨¡£
+ * æ¨¡æ‹Ÿ Publisherï¼ˆuser001 / model01ï¼‰å®šæ—¶å‘å¸ƒä¸‰ç±»ä»¿çœŸæ¶ˆæ¯ï¼Œ
+ * åŒæ—¶ä½œä¸º Subscriber è®¢é˜…å½“å‰ç”¨æˆ·æ‰€æœ‰ä»¿çœŸæ¶ˆæ¯å¹¶æ‰“å°åˆ°æ§åˆ¶å°ã€‚
  * <p>
- * ÓÃ·¨:
+ * ç”¨æ³•:
  * <pre>
  *   java fs.test.mqttclient.MqttClientTest [brokerUrl]
- *   Ä¬ÈÏ brokerUrl = tcp://localhost:1883
+ *   é»˜è®¤ brokerUrl = tcp://localhost:1883
  * </pre>
- * °´ Ctrl+C ÓÅÑÅÍË³ö¡£
+ * æŒ‰ Ctrl+C ä¼˜é›…é€€å‡ºã€‚
  */
 public class MqttClientTest {
 
-    // ==================== ²âÊÔ³£Á¿ ====================
+    // ==================== æµ‹è¯•å¸¸é‡ ====================
     private static final String USERNAME   = "user001";
     private static final String MODEL_ID   = "model01";
     private static final String TOPIC_BASE = "factory/sim/" + USERNAME + "/" + MODEL_ID;
 
-    // ¶©ÔÄ topic: Æ¥Åäµ±Ç°ÓÃ»§ÏÂËùÓĞÄ£ĞÍ¡¢ËùÓĞÏûÏ¢ÀàĞÍ
+    // è®¢é˜… topic: åŒ¹é…å½“å‰ç”¨æˆ·ä¸‹æ‰€æœ‰æ¨¡å‹ã€æ‰€æœ‰æ¶ˆæ¯ç±»å‹
     private static final String SUB_TOPIC = "factory/sim/" + USERNAME + "/+/+";
 
-    // ==================== ÏûÏ¢ÀàĞÍÃ¶¾Ù ====================
+    // ==================== æ¶ˆæ¯ç±»å‹æšä¸¾ ====================
     enum MsgType {
         STATUS("status"),
         PROGRESS("progress"),
@@ -45,7 +45,7 @@ public class MqttClientTest {
         MsgType(String value) { this.value = value; }
     }
 
-    // ==================== ×´Ì¬Ä£Äâ ====================
+    // ==================== çŠ¶æ€æ¨¡æ‹Ÿ ====================
     private static final AtomicInteger stepCounter = new AtomicInteger(0);
     private static final String[] STATES = {"running", "running", "running", "running", "paused",
                                             "running", "running", "finished"};
@@ -66,21 +66,21 @@ public class MqttClientTest {
         String brokerUrl = (args.length > 0) ? args[0] : "tcp://localhost:1883";
         String clientId = "mqttClient_" + USERNAME + "_" + System.currentTimeMillis();
 
-        System.out.println("¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T");
-        System.out.println("  MQTT ·ÂÕæ²âÊÔ¿Í»§¶Ë");
+        System.out.println("â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•");
+        System.out.println("  MQTT ä»¿çœŸæµ‹è¯•å®¢æˆ·ç«¯");
         System.out.println("  Broker : " + brokerUrl);
-        System.out.println("  ÓÃ»§   : " + USERNAME);
-        System.out.println("  Ä£ĞÍ   : " + MODEL_ID);
-        System.out.println("  ¶©ÔÄ   : " + SUB_TOPIC);
+        System.out.println("  ç”¨æˆ·   : " + USERNAME);
+        System.out.println("  æ¨¡å‹   : " + MODEL_ID);
+        System.out.println("  è®¢é˜…   : " + SUB_TOPIC);
         System.out.println("  ClientId: " + clientId);
-        System.out.println("¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T¨T");
-        System.out.println("  ½áÊøµ÷ÊÔ£¬´¦ÀíÍË³öĞÅºÅ");
+        System.out.println("â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•");
+        System.out.println("  ç»“æŸè°ƒè¯•ï¼Œå¤„ç†é€€å‡ºä¿¡å·");
         System.out.println();
 
-        // ÓÃ CountDownLatch ×èÈûÖ÷Ïß³Ì£¬Ìæ´ú while(true) ÂÖÑ¯
+        // ç”¨ CountDownLatch é˜»å¡ä¸»çº¿ç¨‹ï¼Œæ›¿ä»£ while(true) è½®è¯¢
         CountDownLatch shutdownLatch = new CountDownLatch(1);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            System.out.println("\n[STOP] ÊÕµ½ÍË³öĞÅºÅ£¬ÕıÔÚÍ£Ö¹...");
+            System.out.println("\n[STOP] æ”¶åˆ°é€€å‡ºä¿¡å·ï¼Œæ­£åœ¨åœæ­¢...");
             shutdownLatch.countDown();
         }));
 
@@ -88,28 +88,28 @@ public class MqttClientTest {
         ScheduledExecutorService scheduler = null;
 
         try {
-            // ´´½¨ MQTT ¿Í»§¶Ë£¨·Ç³Ö¾Ã»¯£©
+            // åˆ›å»º MQTT å®¢æˆ·ç«¯ï¼ˆéæŒä¹…åŒ–ï¼‰
             mqttClient = new MqttClient(brokerUrl, clientId, new MemoryPersistence());
 
-            // Á¬½ÓÑ¡Ïî
+            // è¿æ¥é€‰é¡¹
             MqttConnectOptions connOpts = new MqttConnectOptions();
             connOpts.setCleanSession(true);
             connOpts.setConnectionTimeout(10);
             connOpts.setKeepAliveInterval(30);
             connOpts.setAutomaticReconnect(true);
 
-            // ÉèÖÃ¶©ÔÄ»Øµ÷£º´òÓ¡ÊÕµ½µÄÏûÏ¢
+            // è®¾ç½®è®¢é˜…å›è°ƒï¼šæ‰“å°æ”¶åˆ°çš„æ¶ˆæ¯
             mqttClient.setCallback(new MqttCallback() {
                 @Override
                 public void connectionLost(Throwable cause) {
-                    System.err.println("  [!] Á¬½Ó¶Ï¿ª: " + cause.getMessage());
+                    System.err.println("  [!] è¿æ¥æ–­å¼€: " + cause.getMessage());
                 }
 
                 @Override
                 public void messageArrived(String topic, MqttMessage message) {
                     String payload = new String(message.getPayload());
-                    System.out.println("  [¡û ½ÓÊÕ] " + topic);
-                    // ¸ñÊ½»¯´òÓ¡ JSON
+                    System.out.println("  [â† æ¥æ”¶] " + topic);
+                    // æ ¼å¼åŒ–æ‰“å° JSON
                     try {
                         Object obj = JSON.parse(payload);
                         String pretty = JSON.toJSONString(obj);
@@ -124,21 +124,21 @@ public class MqttClientTest {
 
                 @Override
                 public void deliveryComplete(IMqttDeliveryToken token) {
-                    // ·¢²¼Íê³É»Øµ÷£¨²»ĞèÒª´¦Àí£©
+                    // å‘å¸ƒå®Œæˆå›è°ƒï¼ˆä¸éœ€è¦å¤„ç†ï¼‰
                 }
             });
 
-            // Á¬½Ó
-            System.out.print("  [*] ÕıÔÚÁ¬½Ó... ");
+            // è¿æ¥
+            System.out.print("  [*] æ­£åœ¨è¿æ¥... ");
             mqttClient.connect(connOpts);
-            System.out.println("ÒÑÁ¬½Ó");
+            System.out.println("å·²è¿æ¥");
 
-            // ¶©ÔÄ
+            // è®¢é˜…
             mqttClient.subscribe(SUB_TOPIC, 0);
-            System.out.println("  [*] ÒÑ¶©ÔÄ: " + SUB_TOPIC);
+            System.out.println("  [*] å·²è®¢é˜…: " + SUB_TOPIC);
             System.out.println();
 
-            // ¶¨Ê±·¢²¼ÈıÀàÏûÏ¢£¨Ã¿ 2 ÃëÒ»ÂÖ£©£¬Ê¹ÓÃ daemon Ïß³Ì·ÀÖ¹×èÖ¹ JVM ÍË³ö
+            // å®šæ—¶å‘å¸ƒä¸‰ç±»æ¶ˆæ¯ï¼ˆæ¯ 2 ç§’ä¸€è½®ï¼‰ï¼Œä½¿ç”¨ daemon çº¿ç¨‹é˜²æ­¢é˜»æ­¢ JVM é€€å‡º
             MqttClient finalClient = mqttClient;
             scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
                 Thread t = new Thread(r, "mqtt-publisher");
@@ -156,24 +156,24 @@ public class MqttClientTest {
                     publishConsole(finalClient, cycle);
 
                 } catch (Exception e) {
-                    System.err.println("  [!] ·¢²¼Ê§°Ü: " + e.getMessage());
+                    System.err.println("  [!] å‘å¸ƒå¤±è´¥: " + e.getMessage());
                 }
             }, 1, 2, TimeUnit.SECONDS);
 
-            // ×èÈûµÈ´ıÍË³öĞÅºÅ
+            // é˜»å¡ç­‰å¾…é€€å‡ºä¿¡å·
             shutdownLatch.await();
 
         } catch (MqttException e) {
-            System.err.println("  [!] MQTT Òì³£: " + e.getMessage());
+            System.err.println("  [!] MQTT å¼‚å¸¸: " + e.getMessage());
             e.printStackTrace();
             System.exit(1);
         } catch (Exception e) {
-            System.err.println("  [!] Òì³£: " + e.getMessage());
+            System.err.println("  [!] å¼‚å¸¸: " + e.getMessage());
             e.printStackTrace();
             System.exit(1);
         } finally {
-            // ÓÅÑÅ¹Ø±Õ£¨²»×èÈûÍË³ö£©
-            System.out.println("  [*] ÕıÔÚ¶Ï¿ªÁ¬½Ó...");
+            // ä¼˜é›…å…³é—­ï¼ˆä¸é˜»å¡é€€å‡ºï¼‰
+            System.out.println("  [*] æ­£åœ¨æ–­å¼€è¿æ¥...");
             if (scheduler != null) {
                 scheduler.shutdownNow();
             }
@@ -189,13 +189,13 @@ public class MqttClientTest {
                     // ignore close error
                 }
             }
-            System.out.println("  [OK] ÒÑ¶Ï¿ª£¬³ÌĞòÍË³ö");
+            System.out.println("  [OK] å·²æ–­å¼€ï¼Œç¨‹åºé€€å‡º");
         }
     }
 
-    // ==================== ·¢²¼·½·¨ ====================
+    // ==================== å‘å¸ƒæ–¹æ³• ====================
 
-    /** ·¢²¼·ÂÕæ×´Ì¬ÏûÏ¢ */
+    /** å‘å¸ƒä»¿çœŸçŠ¶æ€æ¶ˆæ¯ */
     private static void publishStatus(MqttClient client, int cycle) throws MqttException {
         String topic = TOPIC_BASE + "/" + MsgType.STATUS.value;
         String state = STATES[(cycle - 1) % STATES.length];
@@ -209,7 +209,7 @@ public class MqttClientTest {
         publish(client, topic, payload);
     }
 
-    /** ·¢²¼·ÂÕæ½ø¶ÈÏûÏ¢ */
+    /** å‘å¸ƒä»¿çœŸè¿›åº¦æ¶ˆæ¯ */
     private static void publishProgress(MqttClient client, int cycle) throws MqttException {
         String topic = TOPIC_BASE + "/" + MsgType.PROGRESS.value;
         int totalStep = 2000;
@@ -227,7 +227,7 @@ public class MqttClientTest {
         publish(client, topic, payload);
     }
 
-    /** ·¢²¼¿ØÖÆÌ¨ÈÕÖ¾ÏûÏ¢ */
+    /** å‘å¸ƒæ§åˆ¶å°æ—¥å¿—æ¶ˆæ¯ */
     private static void publishConsole(MqttClient client, int cycle) throws MqttException {
         String topic = TOPIC_BASE + "/" + MsgType.CONSOLE.value;
         int idx = (cycle - 1) % LOG_CONTENTS.length;
@@ -242,7 +242,7 @@ public class MqttClientTest {
         publish(client, topic, payload);
     }
 
-    /** Í¨ÓÃ·¢²¼·½·¨ */
+    /** é€šç”¨å‘å¸ƒæ–¹æ³• */
     private static void publish(MqttClient client, String topic, JSONObject payload) throws MqttException {
         String jsonStr = JSON.toJSONString(payload);
         MqttMessage message = new MqttMessage(jsonStr.getBytes());
@@ -250,7 +250,7 @@ public class MqttClientTest {
         message.setRetained(false);
         client.publish(topic, message);
 
-        System.out.println("  [¡ú ·¢ËÍ] " + topic);
+        System.out.println("  [â†’ å‘é€] " + topic);
         System.out.println("    " + jsonStr);
     }
 }
