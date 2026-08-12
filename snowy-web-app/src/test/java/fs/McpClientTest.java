@@ -105,6 +105,21 @@ public class McpClientTest {
         return callTool("getRemoteSimulationObjectPositionSnapshot", args);
     }
 
+    public JSONObject getObjectPositionSnapshotPage(String userId, String modelId, String runId, String layerId,
+            long simTime, String snapshotId, String entityKind, int offset, int limit) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("runId", runId != null ? runId : "");
+        args.put("layerId", layerId != null ? layerId : "root");
+        args.put("simTime", simTime);
+        args.put("snapshotId", snapshotId != null ? snapshotId : "");
+        args.put("entityKind", entityKind != null ? entityKind : "ALL");
+        args.put("offset", offset);
+        args.put("limit", limit);
+        return callTool("getRemoteSimulationObjectPositionSnapshotPage", args);
+    }
+
     public JSONObject getSimulationEvents(String userId, String modelId, String runId, long startSimTime,
             long duration, int offset, int limit) {
         JSONObject args = new JSONObject();
@@ -116,6 +131,15 @@ public class McpClientTest {
         args.put("offset", offset);
         args.put("limit", limit);
         return callTool("getRemoteSimulationEvents", args);
+    }
+
+    public JSONObject setEventPublishing(String userId, String modelId, boolean enabled, int publishIntervalMs) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("enabled", enabled);
+        args.put("publishIntervalMs", publishIntervalMs);
+        return callTool("setRemoteSimulationEventPublishing", args);
     }
 
     public JSONObject selectAnimationLayer(String userId, String modelId, String layerId, int frameRate) {
@@ -503,6 +527,11 @@ public class McpClientTest {
                 requireOk(animationLayerResp, "selectRemoteSimulationAnimationLayer");
             }
 
+            printStep("4.3. enable ordered MU event publishing at 500ms");
+            JSONObject eventPublishingResp = client.setEventPublishing(userId, modelId, true, 500);
+            printJson(eventPublishingResp);
+            requireOk(eventPublishingResp, "setRemoteSimulationEventPublishing");
+
             printStep("5. parameter table catalog and snapshot");
             JSONObject parameterTablesResp = client.listParameterTables(userId, modelId);
             printJson(parameterTablesResp);
@@ -551,19 +580,32 @@ public class McpClientTest {
             JSONObject finalStatusResp = client.getStatus(userId, modelId);
             printStep("8. final status");
             printJson(finalStatusResp);
-            requireOk(finalStatusResp, "getRemoteSimulationStatus");
+            JSONObject finalStatusData = requireOk(finalStatusResp, "getRemoteSimulationStatus");
             latestStatus = responseStatus(finalStatusResp);
 
             if ("RUNNING".equals(latestStatus) || "PAUSED".equals(latestStatus)) {
                 printStep("9. stopRemoteSimulation because test window ended");
                 JSONObject stopResp = client.stopSimulation(userId, modelId);
                 printJson(stopResp);
-                requireOk(stopResp, "stopRemoteSimulation");
+                finalStatusData = requireOk(stopResp, "stopRemoteSimulation");
                 latestStatus = responseStatus(stopResp);
             } else {
                 printStep("9. stop skipped");
                 System.out.println("Current status is " + latestStatus + ", no stop needed.");
             }
+
+            printStep("9.1. get complete object snapshot page");
+            JSONObject objectPageResp = client.getObjectPositionSnapshotPage(
+                    userId, modelId, runId, "root", -1, "", "ALL", 0, 100);
+            printJson(objectPageResp);
+            requireOk(objectPageResp, "getRemoteSimulationObjectPositionSnapshotPage");
+
+            printStep("9.2. get MU events from the simulation-time window");
+            long finalSimTime = Math.max(0L, finalStatusData.getLongValue("simTime"));
+            JSONObject eventsResp = client.getSimulationEvents(
+                    userId, modelId, runId, 0, Math.max(1L, finalSimTime + 1L), 0, 100);
+            printJson(eventsResp);
+            requireOk(eventsResp, "getRemoteSimulationEvents");
 
             printStep("10. getRemoteSimulationResultSnapshot");
             JSONObject resultResp = client.getResultSnapshot(userId, modelId, runId);

@@ -20,6 +20,8 @@
 - 分层获取结果：第一层有界摘要，第二层全量数据分页读取
 - 通过 MQTT 以 5 FPS 默认帧率推送浏览器动画 JPEG 帧
 - 按根模型/子模型层级选择动画画面
+- 分页获取完整对象、设备、MU、仓库和货位位置快照
+- 通过 MCP 时间窗和可开关 MQTT 批次提供同构 MU 事件
 
 暂不包含：
 
@@ -27,7 +29,7 @@
 - LLM 调用
 - 知识库
 - PostgreSQL / TimescaleDB
-- 过程数据采集
+- 通用全量过程数据落库
 - 浏览器原生矢量动画与交互式建模
 - 参数快照完整体系
 - 自动优化 / 自动改参数
@@ -40,6 +42,7 @@
 - `src/main/java/fs/util/ai/mcp/remote/RemoteSimulationStatus.java`
 - `src/main/java/fs/util/ai/mcp/remote/RemoteSimulationSession.java`
 - `src/main/java/fs/util/ai/mcp/remote/RemoteSimulationResponse.java`
+- `src/main/java/fs/util/ai/mcp/remote/RemoteSimulationMuEvent.java`
 - `src/main/java/fs/util/ai/mcp/remote/RemoteSimulationManager.java`
 
 新增 MCP 工具类：

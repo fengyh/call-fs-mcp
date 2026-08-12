@@ -72,6 +72,7 @@ factory/sim/{username}/{modelId}/animation/state
 factory/sim/{username}/{modelId}/animation/frameMeta
 factory/sim/{username}/{modelId}/animation/{layerId}/frame
 factory/sim/{username}/{modelId}/animation/{layerId}/objects
+factory/sim/{username}/{modelId}/events
 ```
 
 ### layers
@@ -274,12 +275,58 @@ client.on('message', (topic, payload) => {
 
 `position` 是相对 `containerObjectId` 的引擎位置。数字孪生端需要建立容器对象与自身道路、轨道、工位或设备坐标的映射。
 
-## 6. 注意事项
+## 6. MU 事件流
+
+数字孪生事件回放使用独立 topic：
+
+```text
+factory/sim/{username}/{modelId}/events
+```
+
+先通过 MCP 开启：
+
+```text
+setRemoteSimulationEventPublishing(userId, modelId, true, 500)
+```
+
+最后一个参数是现实时间批次刷新间隔，允许 200～500ms。它不是抽样周期：批次窗口中发生的所有 MU 事件都会按顺序放入 `events` 数组。
+
+```json
+{
+  "schemaVersion": 1,
+  "username": "u001",
+  "recordId": "record-001",
+  "modelId": "model-001",
+  "runId": "run-001",
+  "event": "muEvents",
+  "msgType": "events",
+  "batchSequence": 8,
+  "chunkIndex": 0,
+  "chunkCount": 1,
+  "firstSequence": 120,
+  "lastSequence": 127,
+  "startSimTime": 3600000,
+  "endSimTime": 3605400,
+  "publishIntervalMs": 500,
+  "eventCount": 8,
+  "totalEventCount": 8,
+  "events": []
+}
+```
+
+一个时间窗最多每包放 500 条事件。`chunkCount>1` 时按 `(runId, batchSequence)` 和 `chunkIndex` 合并；每条事件自身的 `sequence` 仍连续，可用于去重和断线检测。
+
+MCP `getRemoteSimulationEvents` 返回的单条事件结构与 MQTT `events[]` 完全一致。Web 实时播放可消费 MQTT；断线补偿、拖动时间轴和历史回放可按仿真时间调用 MCP 分页补取。
+
+JPEG/`animation/{layerId}/objects` 是当前画面完整帧，`events` 是状态增量，两者可以并存。需要自建数字孪生场景时，推荐先通过 `getRemoteSimulationObjectPositionSnapshotPage` 取得完整基线，再按 `sequence` 应用事件。
+
+## 7. 注意事项
 
 - MQTT Broker 的 WebSocket 默认端口为 8083；TCP 客户端仍使用 1883。
 - 当前 Broker 允许匿名连接，仅适合内网联调。正式环境需要鉴权和 topic ACL。
 - MQTTX 如果使用 Plaintext/JSON 查看二进制帧，会显示乱码，这是正常现象；应主要观察 `frameMeta`，或由 Web 页面显示 JPEG。
 - MQTTX 可以直接订阅 `factory/sim/+/+/animation/+/objects` 检查结构化对象帧。
+- MQTTX 可以订阅 `factory/sim/+/+/events` 检查 MU 事件批次；该 topic 默认关闭，需要先调用事件发布开关工具。
 - 10 FPS 是上限，不保证所有大模型都能达到。调度采用固定延迟，单帧绘制较慢时会自动降低实际帧率，不会无限堆积截图任务。
 - JPEG 路径仍然只提供截图显示；结构化对象帧可以用于对象点击和自定义渲染，但坐标映射、模型贴图和 Three.js/WebGL 场景由数字孪生端负责。
 - 实时对象帧不包含 `attributes`、`childMUs` 等大字段；这些字段通过 MCP 对象位置快照按需读取。
