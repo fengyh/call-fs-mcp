@@ -2,45 +2,13 @@
 \bf{"call-fs-mcp"} 是一个基于 snowy 框架开发的 Demo 工程，用于演示\it{如何通过 MCP 接口将 Web 应用（WEBAPP）与 FS 仿真引擎集成}：前端页面发起仿真控制操作，后端通过 MCP \texttt{tools/call} 调用 FS 仿真引擎能力，仿真运行状态与动画通过 MQTT 实时回传，从而完成"模型加载 $\rightarrow$ 仿真运行 $\rightarrow$ 结果获取 $\rightarrow$ 动画展示"的完整闭环。本章以该 Demo 为例介绍系统逻辑架构、各模块功能与交互关系。
 
 \subsection{系统逻辑架构}
-系统逻辑架构如下图所示（\bf{各层之间通过标准接口解耦}）：
-\begin{verbatim}
-                    用户（浏览器）
-+--------------------------------------------------------------+
-| 前端：snowy-admin-web                                        |
-| Vue3 + TypeScript + Vite + AntDesignVue                      |
-|   模型库页     仿真控制页     参数管理页     事件回放页         |
-+--------+-------------------------------------------+---------+
-         | REST /fscloud/* (axios)                   | MQTT over
-         v                                           | WebSocket
-+--------------------------------+      +---------------------------+
-| 后端：snowy-web-app           |      | MQTT Broker（FS 内置）    |
-| SpringBoot + Java             |      | factory/sim/...           |
-| + snowy-plugin-fscloud 插件    |      +--------+----------+------+
-|   - SimController             |               |          |
-|   - FsModelFileController     |               |          |
-|   - McpClientService          |               |          |
-|   - MqttClientService --------|---------------+          |
-|   - SimulationSyncTask        |                          |
-+--------+----------------------+                          |
-         | MCP tools/call                                  |
-         | HTTP JSON-RPC + X-API-Key                       |
-         v                                                 v
-+--------------------------------------------------------------------------------+
-| FS 云服务 / FS 仿真引擎（fs-mcp 5.x）                                            |
-|   - 内部 MCP Server（http://127.0.0.1:8081/mcp）                                |
-|   - 仿真引擎（SimulationModel / SimulationInstance）                            |
-|   - 内置 MQTT Broker（状态/进度/控制台/动画帧发布）                               |
-+--------------------------------------------------------------------------------+
-         ^
-         | MCP 调用（辅助调试）
-+--------------------------------------------------------------------------------+
-| 辅助工具                                                                        |
-|   - FS 桌面程序：FS 建模器 + FS-Cloud-Plugin（真实应用可选）                    |
-|     （上传 .fs 模型文件，带封面图片、用途和共享设置）                             |
-|   - MQTTX：订阅 factory/sim/# 监听 MQTT 消息，辅助联调                          |
-|   - Reasonix / Cherry Studio：以问答方式调用 MCP 接口，辅助调试                  |
-+--------------------------------------------------------------------------------+
-\end{verbatim}\vspace{-30pt}
+系统逻辑架构如图\ref{fig:mcp-architecture}所示（\bf{各层之间通过标准接口解耦}）：
+\begin{figure}[H]%[htbp!]
+	\centering
+	\includegraphics[width=1.0\textwidth]{pics/mcp/architecture.png}
+	\caption{MCP 仿真工程架构}\label{fig:mcp-architecture}	
+\end{figure}
+
 数据存储：
 \begin{itemize}
 	\item \bf{mysql8}（库名 \texttt{fp\_mysql}）：保存模型库记录（\texttt{fs\_model\_file}）、参数快照（\texttt{fs\_sim\_param\_snapshot}）、结果快照、系统权限数据等。
@@ -81,7 +49,9 @@
 各模块的交互关系可归纳为三条主线：
 \begin{enumerate}[label=\arabic*)]
 	\item \bf{控制流（前端 $\rightarrow$ 后端 $\rightarrow$ FS）}：前端通过 REST 调用后端接口，后端 \texttt{SimController} 经 \texttt{McpClientService} 把请求转成 MCP \texttt{tools/call} 发给 FS MCP Server，FS 执行后在响应中返回结果，后端再回传给前端。\bf{前端不直接调用 MCP}，鉴权、跨域、API Key 等由后端统一处理。
-	\item \bf{实时数据流（FS $\rightarrow$ MQTT $\rightarrow$ 后端/前端）}：仿真运行期间，FS 引擎把 \texttt{status/progress/console} 和 \texttt{animation/*} 消息发布到内置 MQTT Broker；后端 \texttt{MqttClientService}（TCP）订阅并同步状态到数据库，前端（WebSocket + mqtt.js）订阅动画帧与结构化对象帧用于展示。
+	\item \bf{实时数据流（FS $\rightarrow$ MQTT Broker $\rightarrow$ 后端/前端）}：仿真运行期间，FS 引擎把 \texttt{status/progress/console} 和 \texttt{animation/*} 消息发布到内置 MQTT Broker；\it{后端与前端各自独立订阅、二者没有 MQTT 联系}。
+	\item \bf{订阅主题}：后端 \texttt{MqttClientService}（Paho TCP）订阅 \texttt{factory/sim/+/+/+}（\it{所有用户所有模型}）并同步状态到数据库。
+	\item \bf{前端订阅}：前端（WebSocket + mqtt.js）订阅 \texttt{factory/sim/\{userId\}/\{modelId\}/\#}（\it{当前用户当前模型}），接收动画帧与结构化对象帧用于展示。
 	\item \bf{模型数据流（FS-Cloud-Plugin $\rightarrow$ 后端 $\rightarrow$ 数据库）}：FS 建模器通过 FS-Cloud-Plugin 登录后端并上传 \texttt{.fs} 模型文件，后端落盘后写入 \texttt{fs\_model\_file}，形成模型库；仿真控制时后端按记录拼出模型文件绝对路径传给 \texttt{loadRemoteSimulationModel}。
 \end{enumerate}
 
@@ -119,32 +89,28 @@ FS MCP Server
 \end{itemize}
 
 \subsection{前端与后端的交互流程}
-前端与后端通过 \bf{REST（axios）}和 \bf{MQTT over WebSocket} 两条通道交互：
-\begin{verbatim}
-+------------------+                         +------------------+
-|   前端（Vue3）    |                         |   后端（Spring）  |
-+------------------+                         +------------------+
-       | 1) 页面初始化：fsSimGetLoadedModel()      |
-       |---------------------------------------->| 从内存/DB恢复当前模型
-       |<----------------------------------------|
-       | 2) 加载/运行/暂停/停止/重置/卸载          |
-       |---------------------------------------->| SimController -> McpClientService -> MCP
-       |<----------------------------------------| 返回业务 JSON（success/code/message/data）
-       | 3) 参数表/结果快照/时间轴分析等查询       |
-       |---------------------------------------->| 同上（MCP 工具透传）
-       |<----------------------------------------|
-       | 4) MQTT 订阅 factory/sim/{userId}/{modelId}/#
-       |       状态/进度/控制台（JSON）
-       |       动画帧（JPEG 二进制）/对象帧（JSON）
-       |<========================================| 后端 MqttClientService 同时订阅（TCP）
-       |                                        | 同步 fs_model_file.sim_status
-+------------------+                         +------------------+
-\end{verbatim}\vspace{-30pt}
+前端与后端之间通过 \bf{REST（axios）}进行\it{请求-响应}式交互；实时消息由 FS 内嵌 MQTT Broker 广播，\bf{前端与后端各自独立订阅、两者之间没有 MQTT 联系}。
+
+图\ref{fig:flowcharFEnBE}为\it{前端与后端的交互流程}
+
+\begin{figure*}[!h]
+	\centering
+	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/flowcharFEnBE/flowcharFEnBE.latex}}
+	\caption{前端与后端的交互流程}\label{fig:flowcharFEnBE}
+\end{figure*}
+
 说明：
 \begin{itemize}
-	\item \it{请求-响应}类交互（控制、查询）走 REST；\it{实时推送}类交互（状态、进度、日志、动画）走 MQTT。前端状态轮询（如 \texttt{getRemoteSimulationStatus}）建议 1--2 秒间隔，动画帧由 MQTT 按帧率（默认 5 FPS）推送。
+	\item \bf{REST 通道}（前端 $\leftrightarrow$ 后端，请求-响应）：页面初始化恢复当前模型、加载/运行/暂停/停止/重置/卸载、参数表/结果快照/时间轴分析等查询；后端经 \texttt{SimController} $\rightarrow$ \texttt{McpClientService} $\rightarrow$ MCP 处理后将统一业务 JSON 返回前端。
+	\item \bf{MQTT 通道}（FS 广播，前端与后端各自订阅、互不联系）：
+	\begin{itemize}
+		\item 后端 \texttt{MqttClientService}（Paho，TCP）订阅 \texttt{factory/sim/+/+/+}，覆盖\it{所有用户所有模型}，把 \texttt{status/progress/console} 同步到内存记录与数据库（\texttt{fs\_model\_file.sim\_status}）。
+		\item 前端（mqtt.js，WebSocket）订阅 \texttt{factory/sim/\{userId\}/\{modelId\}/\#}，只接收\it{当前用户当前模型}的消息：状态/进度/控制台（JSON）与动画帧（JPEG）/对象帧（JSON）。
+	\end{itemize}
+	\item 前端状态轮询（\texttt{getRemoteSimulationStatus}）建议 1--2 秒间隔；动画帧由 MQTT 按帧率（默认 5 FPS）推送。
 	\item 前端 API 统一封装在 \texttt{src/api/fscloud/fsSimApi.js}（\texttt{/fscloud/sim/*}）与 \texttt{fsModelFileApi.js}（\texttt{/fscloud/modelfile/*}）；实时模型状态保存在 Pinia store（\texttt{myModel.js}）。
 \end{itemize}
+\tips{图\ref{fig:flowcharFEnBE}由 PlantUML 源码 \texttt{uml/mcp/flowcharFEnBE.wsd} 生成（\texttt{out/uml/mcp/flowcharFEnBE/flowcharFEnBE.latex}），修改源码后重新导出即可更新。}
 
 \subsection{FS 仿真引擎与 MCP 接口的交互流程}
 MCP 工具层只是仿真引擎能力的\it{门面}，引擎内部通过 \texttt{RemoteSimulationManager} 管理模型会话与状态：

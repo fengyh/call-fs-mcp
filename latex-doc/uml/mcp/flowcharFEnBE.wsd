@@ -1,0 +1,23 @@
+@startuml
+title 前端与后端的交互流程
+
+participant "前端\n(Vue3 + mqtt.js)" as FE
+participant "后端\n(SpringBoot + Paho)" as BE
+participant "FS 仿真引擎\n(内嵌 MQTT Broker)" as FS
+
+== REST 通道：前端 <-> 后端（请求-响应） ==
+
+FE -> BE : POST /fscloud/sim/runModel\n{ id, modelId, showAnimation }
+BE -> FS : MCP tools/call\nstartRemoteSimulation
+FS --> BE : 返回 { success, data: { runId, status } }
+BE --> FE : 返回统一业务 JSON (success/code/message/data)
+
+note over FE, BE : 前端与后端之间只有 REST 交互，\n两者之间没有 MQTT 联系
+
+== MQTT 通道：FS 广播，前端与后端各自独立订阅 ==
+
+FS ->> FE : factory/sim/{userId}/{modelId}/#\n当前用户当前模型\n(状态 / 进度 / 控制台 / 动画帧 / 对象帧)
+FS ->> BE : factory/sim/+/+/+\n所有用户所有模型\n(status / progress / console)
+
+note over FS, BE : 后端订阅通配符主题（覆盖所有用户所有模型）；\n前端只订阅自己模型的主题，两者互不联系
+@enduml

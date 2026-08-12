@@ -1,0 +1,66 @@
+@startuml
+title 系统逻辑架构（call-fs-mcp Demo）
+
+!define RECTANGLE class
+
+' ===== 用户与前端 =====
+rectangle "用户（浏览器）" as USER
+
+rectangle "前端：snowy-admin-web\nVue3 + TypeScript + Vite + AntDesignVue" as FE {
+  component "模型库页" as P1
+  component "仿真控制页" as P2
+  component "参数管理页" as P3
+  component "事件回放页" as P4
+}
+
+' ===== 后端 =====
+rectangle "后端：snowy-web-app\nSpringBoot + Java\n+ snowy-plugin-fscloud 插件" as BE {
+  component SimController
+  component FsModelFileController
+  component McpClientService
+  component MqttClientService
+  component SimulationSyncTask
+}
+
+' ===== FS 云服务 / 仿真引擎 =====
+rectangle "FS 云服务 / FS 仿真引擎（fs-mcp 5.x）" as FS {
+  component "MCP Server\nhttp://127.0.0.1:8081/mcp" as MCPSERVER
+  component "仿真引擎\nSimulationModel / SimulationInstance" as ENGINE
+  component "MQTT Broker（内置）" as MQTTBROKER
+}
+
+' ===== 数据存储 =====
+rectangle "数据存储" as DB {
+  rectangle "mysql8\n（fp_mysql：fs_model_file、\n参数快照、结果快照）" as MYSQL
+  rectangle "redis\n（会话 / 缓存）" as REDIS
+}
+
+' ===== 辅助工具 =====
+rectangle "辅助工具" as TOOL {
+  rectangle "MQTTX" as MQTTX
+  rectangle "Reasonix / Cherry Studio" as AI
+}
+
+rectangle "FS 桌面程序\nFS 建模器 + FS-Cloud-Plugin" as FSDESK
+
+' ===== 连线 =====
+USER --> FE : 浏览器访问
+
+FE <--> BE : REST /fscloud/*（axios）
+FE <-- MQTTBROKER : MQTT over WebSocket\n（动画帧 / 对象帧）
+
+BE --> MCPSERVER : MCP tools/call\nHTTP JSON-RPC + X-API-Key
+MqttClientService <-- MQTTBROKER : 订阅 factory/sim/+/+/+
+SimulationSyncTask <-- MCPSERVER : listRemoteSimulationModels（每 10s）
+
+MCPSERVER --> ENGINE : 仿真 API（加载 / 运行 / 控制）
+ENGINE --> MQTTBROKER : 发布 status/progress/console\n与 animation/* 消息
+
+BE --> MYSQL : 模型库 / 快照落库
+BE --> REDIS : 会话 / 缓存
+
+FSDESK -right-> BE : 上传 .fs（封面 / 用途 / 共享）
+MQTTX <.- MQTTBROKER : 订阅 factory/sim/#（辅助联调）
+AI -.> MCPSERVER : MCP 调用（辅助调试）
+
+@enduml
