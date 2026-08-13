@@ -1248,3 +1248,23 @@ tips： 可根据 TableTitleKeyMap.js 中的 columns 顺序进行统一处理。
   > - 取消勾选/切换模式时清空两页缓存与结果数据；`compareRowsOf`/`ensureCompareRows` 模式判断改为 `compare`；删除死代码 `loadResultCompare`
   >
   > **验证**：`npm run build` 通过。
+
+## step 22 - MCP接口有新増工具、也有修改
+### MQTT主题增加
+现在的MQTT主题有：
+```text
+factory/sim/{username}/{modelId}/status
+factory/sim/{username}/{modelId}/progress
+factory/sim/{username}/{modelId}/console
+factory/sim/{username}/{modelId}/events
+factory/sim/{username}/{modelId}/animation/layers
+factory/sim/{username}/{modelId}/animation/state
+factory/sim/{username}/{modelId}/animation/frameMeta
+factory/sim/{username}/{modelId}/animation/{layerId}/frame
+factory/sim/{username}/{modelId}/animation/{layerId}/objects
+```
+其中`factory/sim/{username}/{modelId}/events` 是订阅事件的主题，是新增的。
+而`factory/sim/{username}/{modelId}/animation/{layerId}/objects` 是订阅动画对象的主题，对应fs模型较大时，数据量比jpeg图片流还要大，本demo工程不使用它。
+- [x] 在snowy-admin-web/src/views/fscloud/eventplayback/index.vue之前订阅后者（objects），现在需要改成订阅前者（events）。
+- [ ] 在snowy-admin-web/src/views/fscloud/simcontrol/index.vue中开启仿真成功后，需要将snowy-admin-web/src/views/fscloud/eventplayback/index.vue订阅events主题，所需的信息保存在myModel中，所需的信息包括runId。
+

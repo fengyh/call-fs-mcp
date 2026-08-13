@@ -18,8 +18,8 @@
 				<a-descriptions-item label="runId">
 					<a-tag color="purple">{{ myModel.runId || '-' }}</a-tag>
 				</a-descriptions-item>
-				<a-descriptions-item label="实时对象帧">
-					<a-tag color="orange">{{ myModel.animationObjects.length }} / 100</a-tag>
+				<a-descriptions-item label="实时事件帧">
+					<a-tag color="orange">{{ myModel.events.length }} / 100</a-tag>
 				</a-descriptions-item>
 			</a-descriptions>
 		</a-card>
@@ -56,7 +56,7 @@
 					<pre class="result-pre">{{ displayText || '暂无数据，请点击上方按钮获取。' }}</pre>
 				</a-col>
 				<a-col :span="12">
-					<pre class="result-pre">{{ myModel.animationObjects.length > 0 ? JSON.stringify(myModel.animationObjects[0], null, 2) : '暂无实时对象帧数据。' }}</pre>
+					<pre class="result-pre">{{ myModel.events.length > 0 ? JSON.stringify(myModel.events[0], null, 2) : '暂无实时事件数据。' }}</pre>
 				</a-col>
 			</a-row>
 		</a-card>
@@ -70,7 +70,7 @@ todo —— 数据分析:
   再次点，获取下一个10秒的事件；timeWindowCursor += 10000;
 4）一个步进回退按钮，点击后调用MCP接口（时间窗口内的仿真事件 getRemoteSimulationEvents）获取前10秒(时间窗口)内的仿真事件，并在页面上用pre标签显示这次获取的事件。
 再次点，获取下一个10秒的事件；timeWindowCursor -= 10000;
-5) 一个实时事件订阅按钮，点击后，接收MQTT主题“factory/sim/{username}/{modelId}/animation/{layerId}/objects”，并将接收到的消息保存在store(myModel的animationObjects)中，
+5) 一个实时事件订阅按钮，点击后，接收MQTT主题“factory/sim/{username}/{modelId}/events”，并将接收到的消息保存在store(myModel的events)中，
    最多保存100个消息用于分析，之后不再保存。
 		</pre>
 	</div>
@@ -183,12 +183,12 @@ const doStepBack = async () => {
 	}
 }
 
-// 5) 实时事件订阅：MQTT animation/{layerId}/objects -> store.animationObjects（最多 100 条）
+// 5) 实时事件订阅：MQTT events -> store.events（最多 100 条）
 // 注意：本页面自建独立 MQTT 连接（不复用 utils/mqttClient 的模块级单例），
 // 避免与仿真控制页等页面的实时连接互相掐断。
 let mqttClient = null
 
-const subscribeObjects = () => {
+const subscribeEvents = () => {
 	const userId = getUserId()
 	const modelId = myModel.modelId
 	if (!userId || !modelId || typeof window.mqtt === 'undefined') {
@@ -201,21 +201,21 @@ const subscribeObjects = () => {
 	subscribing.value = true   // 订阅中（连接建立前也视为订阅中，防止连点重复创建）
 	client.on('connect', () => {
 		console.log('MQTT----eventplayback connected')
-		client.subscribe(`factory/sim/${userId}/${modelId}/animation/#`, { qos: 0 }, err => {
+		client.subscribe(`factory/sim/${userId}/${modelId}/events`, { qos: 0 }, err => {
 			if (err) console.error('MQTT subscribe error:', err)
 		})
 	})
 	client.on('message', (topic, payload) => {
-		if (!topic.includes('/animation/') || !topic.endsWith('/objects')) return
+		if (!topic.endsWith('/events')) return
 		let data
 		try {
 			data = JSON.parse(payload.toString())
 		} catch (e) {
-			console.warn('MQTT objects parse error:', e)
+			console.warn('MQTT events parse error:', e)
 			return
 		}
-		console.log('MQTT----eventplayback onAnimationObjects', topic)
-		myModel.addAnimationObject(topic, data)
+		console.log('MQTT----eventplayback onEvents', topic)
+		myModel.addEvent(topic, data)
 	})
 	client.on('close', () => {
 		console.log('MQTT----eventplayback closed')
@@ -248,7 +248,8 @@ const toggleSubscribe = () => {
 		stopSubscribe()
 		return
 	}
-	subscribeObjects()
+	myModel.clearEvents()
+	subscribeEvents()
 }
 
 // 页面初始化：恢复当前用户已加载的模型状态

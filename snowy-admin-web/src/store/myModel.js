@@ -39,9 +39,9 @@ export const useMyModelStore = defineStore('myModel', () => {
 	const animationFrameRate = ref(5)
 	const animationFrameSeq = ref(0)
 
-	// 实时动画对象帧（MQTT animation/{layerId}/objects），最多保留 100 条用于分析
-	const MAX_ANIMATION_OBJECTS = 100
-	const animationObjects = ref([])      // 每条: { topic, timestamp, data }
+	// 实时事件帧（MQTT events），最多保留 100 条用于分析
+	const MAX_EVENTS = 100
+	const events = ref([])      // 每条: { topic, timestamp, data }
 
 	// 参数表数据
 	const resultSnapshot = ref(null)       // 仿真结果快照（from getResultSnapshot）
@@ -97,7 +97,7 @@ export const useMyModelStore = defineStore('myModel', () => {
 		feedbackMsg.value = ''
 		mqttConnected.value = false
 		clearSnapshot()
-		clearAnimationObjects()
+		clearEvents()
 	}
 
 	// 清除控制台日志
@@ -154,15 +154,15 @@ export const useMyModelStore = defineStore('myModel', () => {
 		}
 	}
 
-	// 追加实时动画对象帧（最多保留 100 条，之后不再保存）
-	function addAnimationObject(topic, data, timestamp) {
-		if (animationObjects.value.length >= MAX_ANIMATION_OBJECTS) return
-		animationObjects.value.push({ topic: topic || '', timestamp: timestamp || Date.now(), data: data || null })
+	// 追加实时事件帧（最多保留 100 条，之后不再保存）
+	function addEvent(topic, data, timestamp) {
+		if (events.value.length >= MAX_EVENTS) return
+		events.value.push({ topic: topic || '', timestamp: timestamp || Date.now(), data: data || null })
 	}
 
-	// 清空实时动画对象帧
-	function clearAnimationObjects() {
-		animationObjects.value = []
+	// 清空实时事件帧
+	function clearEvents() {
+		events.value = []
 	}
 
 	// 设置操作反馈消息
@@ -232,11 +232,11 @@ export const useMyModelStore = defineStore('myModel', () => {
 		runId, simTime, simProgress, message, mqttConnected, consoleLog, feedbackMsg,
 		isLoaded, record,
 		animationFrameUrl, animationPrevUrl, animationLayers, animationActiveLayer,
-		animationStreaming, animationFrameRate, animationFrameSeq, animationObjects,
+		animationStreaming, animationFrameRate, animationFrameSeq, events,
 		resultSnapshot,
 		parameterTables, snapshotRaw, snapshotData, snapshotBackup, selectedTableName,
 		setModel, clearModel, clearConsoleLog, setMqttConnected, updateStatus, updateProgress, addConsoleLog, setRecord, setFeedbackMsg,
 		clearSnapshot, parseAndSetSnapshot, setSnapshotFromKeyed, setSelectedTableName, updateSnapshotTable,
-		addAnimationObject, clearAnimationObjects
+		addEvent, clearEvents
 	}
 })
