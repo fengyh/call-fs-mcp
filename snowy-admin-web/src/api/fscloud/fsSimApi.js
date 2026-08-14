@@ -69,6 +69,10 @@ export default {
 	fsSimSetAnimationEnabled(data) {
 		return request('setAnimationEnabled', data, 'post')
 	},
+	// 开启/停止事件 MQTT 发布（events 主题）
+	fsSimSetEventPublishing(data) {
+		return request('setEventPublishing', data, 'post')
+	},
 	// 设置仿真加速因子
 	fsSimSetAccelerateFactor(data) {
 		return request('setAccelerateFactor', data, 'post')

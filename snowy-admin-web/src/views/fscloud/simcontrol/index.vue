@@ -448,7 +448,7 @@ const subscribeMqtt = () => {
 			if (mcpStatus) { myModel.updateStatus(mcpStatus) }
 		},
 		onProgress: (data) => {
-			console.log('MQTT----onProgress: ', data)
+			//console.log('MQTT----onProgress: ', data)
 			myModel.updateProgress(data.timestamp, data.simTime)
 		},
 		onConsole: (data) => {
@@ -584,7 +584,7 @@ const formatTime = (ts) => {
 
 // 输入为毫秒（ms），输出 “x天 HH:MM:SS”，不足 1 天不显示天
 const formatDuration = (ms) => {
-	console.log('------------ formatDuration ms: ', ms)
+	//console.log('------------ formatDuration ms: ', ms)
 	if (ms == null) return '00:00:00'
 	ms = Math.floor(ms)
 	let sec = Math.floor(ms / 1000)

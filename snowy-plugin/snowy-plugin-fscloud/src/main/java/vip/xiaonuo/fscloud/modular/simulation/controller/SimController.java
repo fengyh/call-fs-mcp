@@ -733,6 +733,16 @@ public class SimController {
         return CommonResult.data(convertToPlain(mcpResult));
     }
 
+    @Operation(summary = "开启/停止事件 MQTT 发布")
+    @SaCheckPermission("/fscloud/sim/setEventPublishing")
+    @PostMapping("/fscloud/sim/setEventPublishing")
+    public CommonResult<Object> setEventPublishing(@RequestBody @Valid SetEventPublishingParam param) {
+        String userId = StpUtil.getLoginIdAsString();
+        JSONObject mcpResult = mcpClientService.setEventPublishing(
+                userId, param.getModelId(), param.getEnabled(), param.getPublishIntervalMs());
+        return CommonResult.data(convertToPlain(mcpResult));
+    }
+
     @Operation(summary = "设置仿真加速因子")
     @SaCheckPermission("/fscloud/sim/setAccelerateFactor")
     @PostMapping("/fscloud/sim/setAccelerateFactor")

@@ -27,7 +27,7 @@
 		<!-- 1) 时间轴 slider：0 ~ 总仿真时长，timeWindowCursor 保存当前位置对应的时间点 -->
 		<a-card size="small" class="slider-card">
 			<div class="cursor-label">
-				时间轴光标 timeWindowCursor：<b>{{ formatDuration(timeWindowCursor) }}</b>
+				时间轴光标 timeWindowCursor：<b>{{ formatDuration(timeWindowCursor) }}</b> <span class="ml-8">(</span><b class="text-red-600">注意：FS引擎只保留5分钟左右的对象位置快照</b><span>)</span>
 			</div>
 			<a-slider
 				:min="0"
@@ -183,15 +183,31 @@ const doStepBack = async () => {
 	}
 }
 
-// 5) 实时事件订阅：MQTT events -> store.events（最多 100 条）
+// 5) 实时事件订阅：先让 FS 开始发布 events，再订阅 MQTT events -> store.events（最多 100 条）
 // 注意：本页面自建独立 MQTT 连接（不复用 utils/mqttClient 的模块级单例），
 // 避免与仿真控制页等页面的实时连接互相掐断。
 let mqttClient = null
 
-const subscribeEvents = () => {
+const subscribeEvents = async () => {
 	const userId = getUserId()
 	const modelId = myModel.modelId
-	if (!userId || !modelId || typeof window.mqtt === 'undefined') {
+	const runId = myModel.runId
+	if (!userId || !modelId || !runId) {
+		myModel.setFeedbackMsg('请先在仿真控制页启动仿真后再订阅事件')
+		subscribing.value = false
+		return
+	}
+	// 1) 先让 FS 开始发布事件消息（MCP 工具 setRemoteSimulationEventPublishing）
+	try {
+		await fsSimApi.fsSimSetEventPublishing({ modelId, enabled: true, publishIntervalMs: 500 })
+		console.log('setEventPublishing enabled ok')
+	} catch (err) {
+		myModel.setFeedbackMsg('开启事件发布失败：' + (err?.message || err))
+		subscribing.value = false
+		return
+	}
+	// 2) 建立 MQTT 连接订阅 events 主题
+	if (typeof window.mqtt === 'undefined') {
 		subscribing.value = false
 		return
 	}
@@ -200,12 +216,13 @@ const subscribeEvents = () => {
 	mqttClient = client
 	subscribing.value = true   // 订阅中（连接建立前也视为订阅中，防止连点重复创建）
 	client.on('connect', () => {
-		console.log('MQTT----eventplayback connected')
+		console.log('MQTT----eventplayback connected: ', `factory/sim/${userId}/${modelId}/events`)
 		client.subscribe(`factory/sim/${userId}/${modelId}/events`, { qos: 0 }, err => {
 			if (err) console.error('MQTT subscribe error:', err)
 		})
 	})
 	client.on('message', (topic, payload) => {
+		console.log('MQTT----eventplayback onEvents', topic)
 		if (!topic.endsWith('/events')) return
 		let data
 		try {
@@ -214,7 +231,8 @@ const subscribeEvents = () => {
 			console.warn('MQTT events parse error:', e)
 			return
 		}
-		console.log('MQTT----eventplayback onEvents', topic)
+		// 若事件消息携带 runId，则只接收当前运行的事件
+		if (data.runId && runId && data.runId !== runId) return
 		myModel.addEvent(topic, data)
 	})
 	client.on('close', () => {
@@ -230,7 +248,17 @@ const subscribeEvents = () => {
 	})
 }
 
-const stopSubscribe = () => {
+const stopSubscribe = async () => {
+	// 1) 先让 FS 停止发布事件消息（MCP 工具 setRemoteSimulationEventPublishing）
+	if (myModel.isLoaded) {
+		try {
+			await fsSimApi.fsSimSetEventPublishing({ modelId: myModel.modelId, enabled: false })
+			console.log('setEventPublishing disabled ok')
+		} catch (err) {
+			console.warn('关闭事件发布失败：', err?.message || err)
+		}
+	}
+	// 2) 断开 MQTT 连接
 	if (mqttClient) {
 		try {
 			mqttClient.end(true)

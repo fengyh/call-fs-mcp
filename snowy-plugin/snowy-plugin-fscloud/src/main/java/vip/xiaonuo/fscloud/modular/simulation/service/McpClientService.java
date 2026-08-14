@@ -238,6 +238,18 @@ public class McpClientService {
         return callTool("setRemoteSimulationAnimationEnabled", args);
     }
 
+    /** 开启/停止 MU 事件 MQTT 发布（events 主题） */
+    public JSONObject setEventPublishing(String userId, String modelId, boolean enabled, Integer publishIntervalMs) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("enabled", enabled);
+        if (publishIntervalMs != null) {
+            args.put("publishIntervalMs", publishIntervalMs);
+        }
+        return callTool("setRemoteSimulationEventPublishing", args);
+    }
+
     /** 设置仿真加速因子 */
     public JSONObject setAccelerateFactor(String userId, String modelId, int factor) {
         JSONObject args = new JSONObject();
