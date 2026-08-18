@@ -56,7 +56,7 @@ FS 仿真控制 MCP 接口按功能分为以下七类：
     结果获取 & \texttt{getRemoteSimulationResultSnapshot}、\texttt{getRemoteSimulationResultDatasetPage} & 第一层有界结果摘要 + 第二层全量数据分页读取 \\
     参数表读写 & \texttt{listRemoteSimulationParameterTables}、\texttt{getRemoteSimulationParameterSnapshot}、\texttt{updateRemoteSimulationParameterTable}、\texttt{updateRemoteSimulationParameterCells}、\texttt{batchUpdateRemoteSimulationParameterTable} & 读取/修改模型中由 \texttt{mcp} 表开放出来的参数表 \\
 	动画与画面 & \texttt{listRemoteSimulationAnimationLayers}、\texttt{selectRemoteSimulationAnimationLayer}、\texttt{setRemoteSimulationAnimationEnabled}、\texttt{setRemoteSimulationAccelerateFactor}、\texttt{getSvgPicture} & 动画层级、推流开关、加速因子、SVG 画面 \\
-    时间轴 & \texttt{getRemoteSimulationObjectPositionSnapshot}、\texttt{getRemoteSimulationEvents} & 按仿真时间查询对象位置快照与仿真事件 \\
+    时间轴对象/事件 & \texttt{getRemoteSimulationObjectPositionSnapshot}、\texttt{getRemoteSimulationEvents}、\texttt{getRemoteSimulationObjectPositionSnapshotPage}、\texttt{setRemoteSimulationEventPublishing} & 按仿真时间查询对象位置快照与仿真事件 \\
     \Xhline{2\arrayrulewidth}
 \end{tabular}
 \end{table}
@@ -73,7 +73,22 @@ FS 仿真控制 MCP 接口按功能分为以下七类：
   "data": { ... }           // 业务数据
 }
 \end{lstlisting}\vspace{-30pt}
-常见业务错误码有：\texttt{INVALID\_ARGUMENT}（参数非法）、\texttt{MODEL\_FILE\_NOT\_FOUND}（模型文件不存在）、\texttt{USER\_MODEL\_LIMIT\_EXCEEDED}（单用户模型数超限）、\texttt{GLOBAL\_MODEL\_LIMIT\_EXCEEDED}（全局模型数超限）、\texttt{GLOBAL\_RUNNING\_LIMIT\_EXCEEDED}（全局运行数超限）、\texttt{MODEL\_NOT\_FOUND}（模型不存在）、\texttt{INVALID\_STATE}（当前状态不允许该操作）、\texttt{SIMULATION\_START\_FAILED}、\texttt{PARAMETER\_TABLE\_NOT\_FOUND}、\texttt{RESULT\_NOT\_READY}、\texttt{DATASET\_NOT\_FOUND}、\texttt{INTERNAL\_ERROR} 等。WEBAPP 后端解析出该 JSON 后，应将 \texttt{success/code/message/data} 原样（或按公司统一响应格式转换后）返回给前端。
+常见业务错误码有：
+\begin{itemize}
+    \item\texttt{INVALID\_ARGUMENT}（参数非法）
+    \item\texttt{MODEL\_FILE\_NOT\_FOUND}（模型文件不存在）
+    \item\texttt{USER\_MODEL\_LIMIT\_EXCEEDED}（单用户模型数超限）
+    \item\texttt{GLOBAL\_MODEL\_LIMIT\_EXCEEDED}（全局模型数超限）
+    \item\texttt{GLOBAL\_RUNNING\_LIMIT\_EXCEEDED}（全局运行数超限）
+    \item\texttt{MODEL\_NOT\_FOUND}（模型不存在）
+    \item\texttt{INVALID\_STATE}（当前状态不允许该操作）
+    \item\texttt{SIMULATION\_START\_FAILED}
+    \item\texttt{PARAMETER\_TABLE\_NOT\_FOUND}
+    \item\texttt{RESULT\_NOT\_READY}
+    \item\texttt{DATASET\_NOT\_FOUND}
+    \item\texttt{INTERNAL\_ERROR} 等
+\end{itemize}
+    WEBAPP 后端解析出该 JSON 后，应将 \texttt{success/code/message/data} 原样（或按公司统一响应格式转换后）返回给前端。
 
 \subsubsection{模型状态机}
 FS 远程仿真模型的状态取值及常见流转如下：
@@ -96,11 +111,12 @@ RUNNING / PAUSED -> STOPPED -> LOADED (reset 后)
 	\item \texttt{status}：状态事件（如 \texttt{simulationStart}、\texttt{resultReady}），携带状态、仿真时间等；
 	\item \texttt{progress}：运行进度与仿真时间；
 	\item \texttt{console}：控制台日志（级别、内容、序号）；
+	\item \texttt{events}：可开关的 MU 事件批次，按 200～500ms 的现实时间窗口聚合发布；批次内事件不采样、不丢弃，并按 `sequence` 排序。超过 500 条时通过 `chunkIndex/chunkCount` 拆包。
 	\item \texttt{animation/layers}、\texttt{animation/state}、\texttt{animation/frameMeta}：动画层级目录、推流状态、帧元数据；
 	\item \texttt{animation/\{layerId\}/frame}：原始 JPEG 二进制动画帧（默认 5 FPS，最高 10 FPS）；
-	\item \texttt{animation/\{layerId\}/objects}：结构化对象帧（JSON，用于数字孪生渲染）。
+	\item \texttt{animation/\{layerId\}/objects}：结构化对象帧（JSON，用于数字孪生渲染\footnote{\bf{数字孪生渲染}: 此方法是将仿真模型中的对象（包括MU）的位置信息，通过MQTT实时发布，与外部数字孪生系统中的对象通过id或名称映射，进行同步渲染。模型较大时，数据量非常大，不推荐此方法，而应该采用通过`getRemoteSimulationObjectPositionSnapshotPage`取一次对象位置快照，再通过`getRemoteSimulationEvents`批量获取指定时间窗内mu事件（相当于物位信号的数据采集），进行数字孪生的驱动和触发补间动画。 }）。
 \end{itemize}
-其中动画帧是 Qos 0、非 Retain 的二进制消息，不能按 UTF-8/JSON 解析；状态、进度、控制台消息由后端订阅，动画帧由前端通过 WebSocket 桥接订阅。
+其中动画帧是 Qos 0、非 Retain 的二进制消息，不能按 UTF-8/JSON 解析；一般WEB应用开发中，状态通常需要双端(即前端和后端)订阅\footnote{\bf{双端订阅}：前端和后端同时订阅，WEB应用在多租户场景时，会有同时多个模型加载、多个模型在仿真的情况，前端显示模型库时希望看到哪些模型被其它用户加载和仿真。因此后端需要订阅这些状态消息，在内存中进行当前加载模型的状态维护，并落库备查。}，进度、控制台消息由前端订阅，动画帧由前端通过 WebSocket 桥接订阅。
 
 \subsection{在 snowy 框架基础上开发通过 MCP 接口进行 WEBAPP 与 FS 仿真集成的步骤}
 \bf{snowy} 是国内开源的前后端分离快速开发平台，采用 SpringBoot 3 + MyBatis-Plus + Sa-Token + AntDesignVue 3 + Vite 等技术栈，提供代码生成、权限管理（含 Sa-Token 鉴权）、国密加密等开箱即用的能力。FS 集成业务放在独立的业务插件模块 \texttt{snowy-plugin-fscloud} 中实现，WEBAPP 的启动模块 \texttt{snowy-web-app} 只负责启动与数据库/Web 配置。总体开发步骤如下：
@@ -108,16 +124,16 @@ RUNNING / PAUSED -> STOPPED -> LOADED (reset 后)
 \begin{enumerate}[label=\arabic*)]
 	\item \bf{工程搭建与环境准备}\label{sec:brief-step1}
 	\begin{itemize}
-		\item 拉取 snowy 框架代码，创建业务插件模块 \texttt{snowy-plugin-fscloud}，并在 \texttt{snowy-web-app} 中引入该模块依赖。
+		\item 拉取 \href{https://gitee.com/xiaonuobase/snowy}{snowy 框架代码}，创建业务插件模块 \texttt{snowy-plugin-fscloud}，并在 \texttt{snowy-web-app} 中引入该模块依赖\footnote{\bf{创建业务插件模块并在webApp中引入}：创建独立的业务插件模块，便于代码组织和复用。方法见\href{https://xiaonuo.vip/doc?catalogueId=1574674577108783105&menuId=1574678028987420674&lineIndex=1}{框架后端开发的“插件规范”}}。
 		\item 准备 MySQL 8.0 数据库（本项目约定库名 \texttt{fp\_mysql}）与 Redis，导入框架初始化脚本。
-		\item 运行 FS 仿真引擎（\texttt{fs-mcp} 版，可作桌面端也可作服务端），确认 MCP 端点可用；必要时启动 MQTT Broker（FS 内置）。
+		\item 运行 FS 仿真引擎（\texttt{fs-mcp} 版，可作桌面端也可作服务端），确认 MCP 端点可用\footnote{\bf{确认 MCP 端点可用}: 使用Cherry Studio或Reasonix等工具添加MCP(`http://127.0.0.1:8081/mcp`)，看是否可以浏览到CP工具。}、确认 MQTT Broker（FS 内置）正常工作\footnote{\bf{确认MQTT Broker正常工作}: 使用MQTTX辅助工具，看是否可以正常建立连接，具体操作见xx（todo: 附录截图）}。
 	\end{itemize}
 	\item \bf{配置 MCP 连接参数}
 	通过 \texttt{@ConfigurationProperties} 定义 \texttt{McpProperties}，读取配置项 \texttt{fscloud.mcp.endpoint-url}（默认 \texttt{http://127.0.0.1:8081/mcp}）与 \texttt{fscloud.mcp.api-key}，生产环境可在 \texttt{application-prod.properties} 中覆盖。API Key 属于敏感信息，\bf{不应下发给前端}。
 	\item \bf{封装 MCP 客户端服务（McpClientService）}\label{sec:brief-step3}
 	在后端封装一个 \texttt{McpClientService}，集中实现与 MCP Server 的通信，供所有 Controller 复用，避免重复实现 HTTP 通信逻辑。关键实现点：
 	\begin{itemize}
-		\item \texttt{call()}：发送 \texttt{initialize}、\texttt{tools/list} 等非工具类 JSON-RPC 方法；
+		\item \texttt{call()}：发送 \texttt{initialize}、\texttt{tools/list} 等非工具类 JSON-RPC 方法\footnote{\bf{非工具类方法}: initialize - 校验初始化状态, tools/list - 让客户端拿到服务器支持的工具清单和参数 schema。本Demo不是AI Agent类的MCP调用，所以这两个步骤省略了。}；
 		\item \texttt{callTool(toolName, args)}：构造 \texttt{tools/call} 请求，\texttt{params.name} 为工具名，\texttt{params.arguments} 为参数对象；
 		\item HTTP 发送使用 \texttt{HttpURLConnection}，POST + \texttt{Content-Type: application/json} + 请求头 \texttt{X-API-Key}，建议连接超时 10s、读超时 60s；
 		\item \texttt{unwrapResult()}：两层解析——先解析 MCP 响应取 \texttt{result.content[0].text}，再将该字符串解析为业务 JSON；
@@ -128,8 +144,7 @@ RUNNING / PAUSED -> STOPPED -> LOADED (reset 后)
 // 构造 MCP tools/call 请求
 JSONObject args = new JSONObject();
 args.put("userId", userId);
-args.put("modelId", modelId);
-args.put("showAnimation", showAnimation);
+args.put("modelId", modelId);args.put("showAnimation", showAnimation);
 // callTool 内部: {jsonrpc, id, method: "tools/call",
 //                params: {name: "startRemoteSimulation", arguments: args}}
 return callTool("startRemoteSimulation", args);
@@ -137,7 +152,7 @@ return callTool("startRemoteSimulation", args);
 	\item \bf{建立模型库}\label{sec:brief-step4}
 	\begin{itemize}
 		\item 数据库建表 \texttt{fs\_model\_file}，保存模型元数据（名称、引擎版本、文件路径、\texttt{sim\_status}、\texttt{model\_id} 等），对应实体 \texttt{FsModelFile} 与 Service/Impl。
-		\item 后端支持 \texttt{fs-cloud-plugin} 建模器插件的登录，提供模型上传接口 \texttt{POST /fscloud/modelfile/upload}：文件落盘到静态目录，\texttt{.zfs} 压缩包解压，随后把元数据写入 \texttt{fs\_model\_file} 完成“上传、落盘、落库”。
+		\item 后端支持 \texttt{fs-cloud-plugin} 建模器插件\footnote{\bf{建模器插件}: 通过plugin上传模型只是可选的方法之一，它的好处是可以在fs建模器中调试好模型之后直接上传到云平台，并能同时上传模型截图作为封面。云平台也可以采用在浏览器上传.fs模型文件的方法建立模型库的方法。} 的登录，提供模型上传接口 \texttt{POST /fscloud/modelfile/upload}：文件落盘到静态目录，\texttt{.zfs} 压缩包解压，随后把元数据写入 \texttt{fs\_model\_file} 完成“上传、落盘、落库”。
 		\item 开发前端模型库页面，展示模型列表，提供上传、加载、卸载操作。
 	\end{itemize}
 	\item \bf{开发仿真控制后端接口（SimController）}\label{sec:brief-step5}
@@ -161,6 +176,20 @@ return callTool("startRemoteSimulation", args);
 		\item 前端：用 \texttt{mqtt.js} 通过 WebSocket 连接 MQTT Broker（\texttt{ws://127.0.0.1:8083/mqtt}）；
 		\item 订阅 \texttt{factory/sim/\{userId\}/\{modelId\}/+} 与 \texttt{.../animation/\#} 主题：JSON 消息按尾段类型分发，动画帧的二进制 payload 转为 \texttt{Blob('image/jpeg')} 显示在页面上，\texttt{animation/\{layerId\}/objects} 结构化对象帧存入 store 供实时事件分析。
 	\end{itemize}
+    \vspace{10pt} \bf{可订阅的 MQTT 主题如下，可参照 Demo 程序选择需要的，不一定全部订阅：}
+    {\scriptsize
+    \begin{verbatim}
+    factory/sim/{username}/{modelId}/status                         模型状态
+    factory/sim/{username}/{modelId}/progress                       仿真进度
+    factory/sim/{username}/{modelId}/console                        FS控制台信息
+    factory/sim/{username}/{modelId}/events                         MU事件：可用于实时驱动数字孪生，或保存到csv/nosql数据库做分析、回放
+    factory/sim/{username}/{modelId}/animation/layers               层级目录（对象组, root为主模型）
+    factory/sim/{username}/{modelId}/animation/state                推帧状态
+    factory/sim/{username}/{modelId}/animation/frameMeta            帧元数据
+    factory/sim/{username}/{modelId}/animation/{layerId}/frame      JPEG图片（二进制 payload）
+    factory/sim/{username}/{modelId}/animation/{layerId}/objects    结构化对象帧（JSON 格式 payload, 用于位置对齐式的外部数字孪生渲染）
+    \end{verbatim}
+    }
 	\item \bf{参数表读写}\label{sec:brief-step8}
 	\begin{itemize}
 		\item 在 FS 建模器的模型中定义 \texttt{mcp}（或 \texttt{MCP}）表，把要开放给 Web 端读写参数表登记到该表第一列；后端只允许读写 \texttt{mcp} 表中列出的参数表；

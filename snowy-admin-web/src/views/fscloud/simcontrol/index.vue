@@ -322,6 +322,7 @@ const doRun = () => {
 		if (res && res.status && res.status !== 'FAILED') {
 			if (res.status) myModel.updateStatus(res.status)
 			if (res.message) myModel.message = res.message
+			if (res.runId) myModel.runId = res.runId
 			myModel.setFeedbackMsg('仿真启动成功')
 		} else {
 			myModel.setFeedbackMsg('仿真启动失败：' + (res.message || '未知错误'))
