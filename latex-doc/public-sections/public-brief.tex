@@ -213,11 +213,20 @@ return callTool("startRemoteSimulation", args);
     \item \bf{时间轴数据分析（事件回放）}\label{sec:brief-step9}
 	利用\it{对象位置快照}(建议使用\bf{分页版}以便能适配大模型)、\it{仿真事件}两个 MCP 工具和 \texttt{objects} 实时对象订阅、\texttt{events}实时事件订阅，可以按仿真时间轴对仿真过程进行准实时（或回放）动画渲染开发数字孪生应用系统：
 	\begin{itemize}
-		\item 后端在 \texttt{SimController} 增加两个 REST 接口，分别透传 MCP 工具 \texttt{getRemoteSimulationObjectPositionSnapshot}（参数：\texttt{runId}、\texttt{layerId}、\texttt{simTime}）与 \texttt{getRemoteSimulationEvents}（参数：\texttt{runId}、\texttt{startSimTime}、\texttt{duration}、\texttt{offset}、\texttt{limit}）；前端在 \texttt{fsSimApi.js} 中封装对应 API；
-		\item 开发事件回放页（\texttt{eventplayback/index.vue}）：用 \texttt{a-slider} 展示从 0 至总仿真时长的时间轴，用变量 \texttt{timeWindowCursor} 保存当前光标对应的时间点（仿真毫秒）并显示在 slider 上方；
-		\item 取位置快照：按光标位置调用 \texttt{getRemoteSimulationObjectPositionSnapshot}，获取该时刻的对象位置快照（对象 ID、类型、所在层、容器、相对位置等），用于还原仿真画面；
+		\item 后端在 \texttt{SimController} 增加四个 REST 接口，分别透传 MCP 工具：
+		\begin{itemize}
+			\item \texttt{getObjectPositionSnapshot}（整体快照，指定时间）$\rightarrow$ \texttt{getRemoteSimulationObjectPositionSnapshot}（参数：\texttt{runId}、\texttt{layerId}、\texttt{simTime}）；
+			\item \texttt{getObjectPositionSnapshotPage}（分页快照，推荐）$\rightarrow$ \texttt{getRemoteSimulationObjectPositionSnapshotPage}（参数：\texttt{runId}、\texttt{layerId}、\texttt{simTime}（\texttt{-1} 表示当前时刻）、\texttt{snapshotId}（首次传空串，后续原样回传防止分页内容漂移）、\texttt{entityKind}（\texttt{ALL}/\texttt{STATIC\_OBJECT}/\texttt{LAYER}/\texttt{MU}/\texttt{WAREHOUSE}/\texttt{STORAGE\_LOCATION}）、\texttt{offset}、\texttt{limit}（1--1000））；
+			\item \texttt{getSimulationEvents} $\rightarrow$ \texttt{getRemoteSimulationEvents}（参数：\texttt{runId}、\texttt{startSimTime}、\texttt{duration}、\texttt{offset}、\texttt{limit}）；
+			\item \texttt{setEventPublishing} $\rightarrow$ \texttt{setRemoteSimulationEventPublishing}（参数：\texttt{enabled}、\texttt{publishIntervalMs}，控制 FS 是否向 \texttt{events} 主题发布事件消息）。
+		\end{itemize}
+		前端在 \texttt{fsSimApi.js} 中封装对应 API；
+		\item 开发事件回放页（\texttt{eventplayback/index.vue}）：用 \texttt{a-slider} 展示从 0 至总仿真时长的时间轴，用变量 \texttt{timeWindowCursor} 保存当前光标对应的时间点（仿真毫秒）并显示在 slider 上方；\bf{注意}：FS 引擎只保留约 5 分钟的对象位置快照，超出该时间范围的历史快照查询不到；
+		\item 整体取位置快照（指定时间）：按光标位置调用 \texttt{getRemoteSimulationObjectPositionSnapshot}，获取该时刻的对象位置快照（对象 ID、类型、所在层、容器、相对位置等），用于还原仿真画面；
+		\item 分页取位置快照（当前时间）：调用 \texttt{getRemoteSimulationObjectPositionSnapshotPage}，\texttt{simTime=-1} 立即捕获当前时刻，按 \texttt{offset/limit} 分页拉取完整对象快照（含静态对象坐标、Buffer/工位的 WIP、MU 所在容器与位置、仓库及货位 MU 清单等），\texttt{snapshotId} 原样回传防止仿真运行时分页内容漂移；
 		\item 步进播放/回退：调用 \texttt{getRemoteSimulationEvents} 按 10 秒窗口（\texttt{duration=10000}）获取仿真事件（对象进入/离开工站等）；步进播放时光标后移 10 秒（\texttt{timeWindowCursor += 10000}），步进回退时光标前移 10 秒；
-		\item 实时事件订阅：前端自建 MQTT 连接订阅 \texttt{factory/sim/\{username\}/\{modelId\}/animation/\{layerId\}/objects}，将接收到的结构化对象帧保存到 store（\texttt{myModel.animationObjects}），最多保存 100 条用于分析，之后不再保存。
+		\item 实时事件订阅（\texttt{events} 驱动）：前端先调用 \texttt{setEventPublishing}（\texttt{enabled=true, publishIntervalMs=500}）让 FS 开始发布事件，再自建 MQTT 连接订阅 \texttt{factory/sim/\{username\}/\{modelId\}/events}，将接收到的消息保存到 store（\texttt{myModel.events}），最多保存 100 条用于分析，之后不再保存；收到消息时按 \texttt{runId} 过滤，只保留当前运行的事件；"停止实时订阅"时调用 \texttt{setEventPublishing}（\texttt{enabled=false}）让 FS 停止发布，并断开 MQTT 连接；
+		\item \bf{说明}：demo 不使用 \texttt{animation/\{layerId\}/objects} 主题——模型较大时该主题数据量比 JPEG 图片流还大，改为 \texttt{events} 事件驱动订阅，配合对象位置快照查询即可支撑数字孪生渲染。
 	\end{itemize}
 	\item \bf{测试与联调}\label{sec:brief-step10}
 	\begin{itemize}
