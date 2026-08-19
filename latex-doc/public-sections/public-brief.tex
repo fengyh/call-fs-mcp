@@ -82,11 +82,11 @@ FS 仿真控制 MCP 接口按功能分为以下七类：
     \item\texttt{GLOBAL\_RUNNING\_LIMIT\_EXCEEDED}（全局运行数超限）
     \item\texttt{MODEL\_NOT\_FOUND}（模型不存在）
     \item\texttt{INVALID\_STATE}（当前状态不允许该操作）
-    \item\texttt{SIMULATION\_START\_FAILED}
-    \item\texttt{PARAMETER\_TABLE\_NOT\_FOUND}
-    \item\texttt{RESULT\_NOT\_READY}
-    \item\texttt{DATASET\_NOT\_FOUND}
-    \item\texttt{INTERNAL\_ERROR} 等
+    \item\texttt{SIMULATION\_START\_FAILED} (仿真启动失败）
+    \item\texttt{PARAMETER\_TABLE\_NOT\_FOUND} (参数表不存在)
+    \item\texttt{RESULT\_NOT\_READY} (结果未就绪)
+    \item\texttt{DATASET\_NOT\_FOUND} (数据集不存在)
+    \item\texttt{INTERNAL\_ERROR} (内部错误)
 \end{itemize}
     WEBAPP 后端解析出该 JSON 后，应将 \texttt{success/code/message/data} 原样（或按公司统一响应格式转换后）返回给前端。
 
@@ -116,22 +116,23 @@ RUNNING / PAUSED -> STOPPED -> LOADED (reset 后)
 	\item \texttt{animation/\{layerId\}/frame}：原始 JPEG 二进制动画帧（默认 5 FPS，最高 10 FPS）；
 	\item \texttt{animation/\{layerId\}/objects}：结构化对象帧（JSON，用于数字孪生渲染\footnote{\bf{数字孪生渲染}: 此方法是将仿真模型中的对象（包括MU）的位置信息，通过MQTT实时发布，与外部数字孪生系统中的对象通过id或名称映射，进行同步渲染。模型较大时，数据量非常大，不推荐此方法，而应该采用通过`getRemoteSimulationObjectPositionSnapshotPage`取一次对象位置快照，再通过`getRemoteSimulationEvents`批量获取指定时间窗内mu事件（相当于物位信号的数据采集），进行数字孪生的驱动和触发补间动画。 }）。
 \end{itemize}
-其中动画帧是 Qos 0、非 Retain 的二进制消息，不能按 UTF-8/JSON 解析；一般WEB应用开发中，状态通常需要双端(即前端和后端)订阅\footnote{\bf{双端订阅}：前端和后端同时订阅，WEB应用在多租户场景时，会有同时多个模型加载、多个模型在仿真的情况，前端显示模型库时希望看到哪些模型被其它用户加载和仿真。因此后端需要订阅这些状态消息，在内存中进行当前加载模型的状态维护，并落库备查。}，进度、控制台消息由前端订阅，动画帧由前端通过 WebSocket 桥接订阅。
+其中动画帧是 Qos 0\footnote{\bf{Qos 0}: 即最多只发送一次，不保证消息一定会送达, MQTT客户端未订阅就错过了。}、非 Retain 的二进制消息，不能按 UTF-8/JSON 解析；一般WEB应用开发中，状态通常需要双端(即前端和后端)订阅\footnote{\bf{双端订阅}：前端和后端同时订阅，WEB应用在多租户场景时，会有同时多个模型加载、多个模型在仿真的情况，前端显示模型库时希望看到哪些模型被其它用户加载和仿真。因此后端需要订阅这些状态消息，在内存中进行当前加载模型的状态维护，并落库备查。}，进度、控制台消息由前端订阅，动画帧由前端通过 WebSocket 桥接订阅。
 
-\subsection{在 snowy 框架基础上开发通过 MCP 接口进行 WEBAPP 与 FS 仿真集成的步骤}
+\subsection{基于snowy框架开发与FS仿真集成的WEBAP的步骤}
 \bf{snowy} 是国内开源的前后端分离快速开发平台，采用 SpringBoot 3 + MyBatis-Plus + Sa-Token + AntDesignVue 3 + Vite 等技术栈，提供代码生成、权限管理（含 Sa-Token 鉴权）、国密加密等开箱即用的能力。FS 集成业务放在独立的业务插件模块 \texttt{snowy-plugin-fscloud} 中实现，WEBAPP 的启动模块 \texttt{snowy-web-app} 只负责启动与数据库/Web 配置。总体开发步骤如下：
 
 \begin{enumerate}[label=\arabic*)]
 	\item \bf{工程搭建与环境准备}\label{sec:brief-step1}
 	\begin{itemize}
 		\item 拉取 \href{https://gitee.com/xiaonuobase/snowy}{snowy 框架代码}，创建业务插件模块 \texttt{snowy-plugin-fscloud}，并在 \texttt{snowy-web-app} 中引入该模块依赖\footnote{\bf{创建业务插件模块并在webApp中引入}：创建独立的业务插件模块，便于代码组织和复用。方法见\href{https://xiaonuo.vip/doc?catalogueId=1574674577108783105&menuId=1574678028987420674&lineIndex=1}{框架后端开发的“插件规范”}}。
-		\item 准备 MySQL 8.0 数据库（本项目约定库名 \texttt{fp\_mysql}）与 Redis，导入框架初始化脚本。
+		\item 准备 MySQL 8.0 数据库（本项目约定库名 \texttt{fp\_mysql}）与 Redis，导入框架初始化脚本创建数据库表。\\框架初始化脚本位于：\texttt{snowy-web-app/src/main/resources/\_sql/snowy\_mysql.sql}。
+        \item 按xx章节(todo)的所述，创建3个表，用于持久化模型库、仿真参数快照和仿真结果快照。
 		\item 运行 FS 仿真引擎（\texttt{fs-mcp} 版，可作桌面端也可作服务端），确认 MCP 端点可用\footnote{\bf{确认 MCP 端点可用}: 使用Cherry Studio或Reasonix等工具添加MCP(`http://127.0.0.1:8081/mcp`)，看是否可以浏览到CP工具。}、确认 MQTT Broker（FS 内置）正常工作\footnote{\bf{确认MQTT Broker正常工作}: 使用MQTTX辅助工具，看是否可以正常建立连接，具体操作见xx（todo: 附录截图）}。
 	\end{itemize}
 	\item \bf{配置 MCP 连接参数}
-	通过 \texttt{@ConfigurationProperties} 定义 \texttt{McpProperties}，读取配置项 \texttt{fscloud.mcp.endpoint-url}（默认 \texttt{http://127.0.0.1:8081/mcp}）与 \texttt{fscloud.mcp.api-key}，生产环境可在 \texttt{application-prod.properties} 中覆盖。API Key 属于敏感信息，\bf{不应下发给前端}。
+	通过 \texttt{@ConfigurationProperties} 定义 \texttt{McpProperties}\footnote{\bf{McpProperties位于}: snowy-plugin/snowy-plugin-fscloud/src/main/java/vip/xiaonuo/fscloud/config/McpProperties.java}，读取配置项 \texttt{fscloud.mcp.endpoint-url}（默认 \texttt{http://127.0.0.1:8081/mcp}）与 \texttt{fscloud.mcp.api-key}，生产环境可在 \texttt{application-prod.properties\footnote{\bf{生产环境配置文件位于}:snowy-web-app/src/main/resources/application-prod.properties}} 中覆盖。API Key 属于敏感信息，\bf{不应下发给前端}。
 	\item \bf{封装 MCP 客户端服务（McpClientService）}\label{sec:brief-step3}
-	在后端封装一个 \texttt{McpClientService}，集中实现与 MCP Server 的通信，供所有 Controller 复用，避免重复实现 HTTP 通信逻辑。关键实现点：
+	在后端封装一个 \texttt{McpClientService\footnote{\bf{McpClientService位于}: snowy-plugin/snowy-plugin-fscloud/src/main/java/vip/xiaonuo/fscloud/modular/simulation/service/McpClientService.java}}，集中实现与 MCP Server 的通信，供所有 Controller 复用，避免重复实现 HTTP 通信逻辑。关键实现点：
 	\begin{itemize}
 		\item \texttt{call()}：发送 \texttt{initialize}、\texttt{tools/list} 等非工具类 JSON-RPC 方法\footnote{\bf{非工具类方法}: initialize - 校验初始化状态, tools/list - 让客户端拿到服务器支持的工具清单和参数 schema。本Demo不是AI Agent类的MCP调用，所以这两个步骤省略了。}；
 		\item \texttt{callTool(toolName, args)}：构造 \texttt{tools/call} 请求，\texttt{params.name} 为工具名，\texttt{params.arguments} 为参数对象；
@@ -192,15 +193,25 @@ return callTool("startRemoteSimulation", args);
     }
 	\item \bf{参数表读写}\label{sec:brief-step8}
 	\begin{itemize}
-		\item 在 FS 建模器的模型中定义 \texttt{mcp}（或 \texttt{MCP}）表，把要开放给 Web 端读写参数表登记到该表第一列；后端只允许读写 \texttt{mcp} 表中列出的参数表；
+		\item 在 FS 建模器的模型中定义 \texttt{mcp}（或 \texttt{MCP}）表，把要开放给 Web 端读写参数表登记到该表第一列；后端只允许读写 \texttt{mcp} 表中列出的参数表；\\\tips{模型特有的“结果表”也可以放在MCP表的第一列，第二列填上WebApp约定的标识，例如“Out”表示这个表存放的是仿真的结果数据，这样前端就可以区分处理。}
 		\item 参数管理页通过 \texttt{listRemoteSimulationParameterTables} 获取可读写表清单；
 		\item 通过 \texttt{getRemoteSimulationParameterSnapshot} 读取表内容（\texttt{columns + rows}）并展示为表格；
-		\item 修改后通过 \texttt{batchUpdateRemoteSimulationParameterTable}（整批原子写回，可选 \texttt{bSaveModel} 保存到 \texttt{.fs} 文件）或 \texttt{updateRemoteSimulationParameterTable} / \texttt{updateRemoteSimulationParameterCells} 写回模型；
+		\item 修改后通过 \texttt{batchUpdateRemoteSimulationParameterTable}（\it{整批写回模型中的参数，这是全部替换模型中参数表的方法。可选 \texttt{bSaveModel}为true, 回写之后保存到 \texttt{.fs} 磁盘文件}）或 \texttt{updateRemoteSimulationParameterTable} / \texttt{updateRemoteSimulationParameterCells} 写回模型；
 		\item 模型处于 \texttt{RUNNING/PAUSED} 时禁止写参数；新一轮仿真前先 \texttt{reset} 再 \texttt{start}；
-		\item 参数快照可落库保存（表 \texttt{fs\_sim\_param\_snapshot}），供历史回放。
+		\item 参数快照可落库保存（表 \texttt{fs\_sim\_param\_snapshot}），供事后使用（不同版本的参数快照从数据库中读取，再回写到模型），或对比分析（分析不同版本参数对仿真结果的影响）。
 	\end{itemize}
-	\item \bf{时间轴数据分析（事件回放）}\label{sec:brief-step9}
-	利用\it{对象位置快照}、\it{仿真事件}两个 MCP 工具和 \texttt{objects} 实时订阅，可以按仿真时间轴对仿真过程进行回放与数据分析：
+    \item \bf{参数快照与结果快照历史数据处理}\label{sec-history-data}
+    \begin{itemize}
+        \item \it{参数快照}（\texttt{fs\_sim\_param\_snapshot}）：参数快照按用途可分两种：一是只是单纯的参数管理，二是与结果快照成对落库以备将来做横向对比分析之用。两种都保存在同一个表中，前者只需要用modelFileId与模型库的模型关联，不需要runId字段。后者需要用modelFileId和runId表明是哪个模型的哪次仿真所使用的参数快照。参数快照在Demo中演示了行、列的修改，以及数值的修改方法。  
+        \item \it{结果快照}（\texttt{fs\_sim\_result\_snapshot}）：结果快照在仿真停止（自然结束或手动中断停止）后才能通过MCP接口取出，落库是同样需要用modelFileId和runId表明是哪个模型的哪次仿真所使用的结果快照。
+        \begin{itemize}
+            \item 标准结果：仿真平台共性的统计和报告相关的数据，如设备利用率、每小时产量等。这部分的数据可在Demo程序的"仿真服务"-""历史数据""。
+            \item 模型自定义结果: WebApp通常不会针对每个场景（模型）去深度挖掘特定的仿真输出数据，此时，可以由模型设计人员将需要的数据登记到存放结果的Table组件中，并将这些Table组件添加到\it{MCP表}的第一列，第二列填\it{Out}（或其它与WebApp约定的标识）。在WebApp中读取参数时，会将这些结果Table和参数Table一起读出，前端按\it{Out}标识将这些结果数据显示在适当的位置。
+        \end{itemize}
+        \item \it{历史数据处理}
+    \end{itemize}
+    \item \bf{时间轴数据分析（事件回放）}\label{sec:brief-step9}
+	利用\it{对象位置快照}(建议用分页版)、\it{仿真事件}两个 MCP 工具和 \texttt{objects} 实时对象订阅、\texttt{events}实时事件订阅，可以按仿真时间轴对仿真过程进行准实时（或回放）动画渲染开发数字孪生应用系统：
 	\begin{itemize}
 		\item 后端在 \texttt{SimController} 增加两个 REST 接口，分别透传 MCP 工具 \texttt{getRemoteSimulationObjectPositionSnapshot}（参数：\texttt{runId}、\texttt{layerId}、\texttt{simTime}）与 \texttt{getRemoteSimulationEvents}（参数：\texttt{runId}、\texttt{startSimTime}、\texttt{duration}、\texttt{offset}、\texttt{limit}）；前端在 \texttt{fsSimApi.js} 中封装对应 API；
 		\item 开发事件回放页（\texttt{eventplayback/index.vue}）：用 \texttt{a-slider} 展示从 0 至总仿真时长的时间轴，用变量 \texttt{timeWindowCursor} 保存当前光标对应的时间点（仿真毫秒）并显示在 slider 上方；
