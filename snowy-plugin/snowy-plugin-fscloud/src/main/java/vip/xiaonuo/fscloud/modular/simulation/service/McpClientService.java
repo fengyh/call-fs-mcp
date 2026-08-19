@@ -279,6 +279,22 @@ public class McpClientService {
         return callTool("getRemoteSimulationObjectPositionSnapshot", args);
     }
 
+    /** 分页查询完整对象位置快照（全量快照需多次分页拉取，snapshotId 需原样回传防止漂移） */
+    public JSONObject getObjectPositionSnapshotPage(String userId, String modelId, String runId, String layerId,
+            long simTime, String snapshotId, String entityKind, int offset, int limit) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("runId", runId != null ? runId : "");
+        args.put("layerId", layerId != null ? layerId : "root");
+        args.put("simTime", simTime);
+        args.put("snapshotId", snapshotId != null ? snapshotId : "");
+        args.put("entityKind", entityKind != null ? entityKind : "ALL");
+        args.put("offset", offset);
+        args.put("limit", limit);
+        return callTool("getRemoteSimulationObjectPositionSnapshotPage", args);
+    }
+
     /** 查询时间窗口内的仿真事件 */
     public JSONObject getSimulationEvents(String userId, String modelId, String runId,
                                           long startSimTime, long duration, int offset, int limit) {

@@ -85,6 +85,9 @@ export default {
 	fsSimGetObjectPositionSnapshot(data) {
 		return request('getObjectPositionSnapshot', data, 'post')
 	},
+	fsSimGetObjectPositionSnapshotPage(data) {
+		return request('getObjectPositionSnapshotPage', data, 'post')
+	},
 	// 查询时间窗口内的仿真事件
 	fsSimGetSimulationEvents(data) {
 		return request('getSimulationEvents', data, 'post')

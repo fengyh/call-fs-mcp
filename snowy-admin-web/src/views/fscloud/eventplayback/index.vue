@@ -40,11 +40,12 @@
 		<!-- 操作按钮 -->
 		<a-card size="small" class="op-card">
 			<a-space wrap>
-				<a-button type="primary" :disabled="!myModel.isLoaded" @click="doGetSnapshot">取位置快照</a-button>
+				<a-button type="primary" :disabled="!myModel.isLoaded" @click="doGetSnapshot">整体取位置快照(指定时间)</a-button>
+				<a-button type="primary" :disabled="!myModel.isLoaded" @click="doGetSnapshotNow">分页取位置快照(当前时间)</a-button>
 				<a-button type="primary" ghost :disabled="!myModel.isLoaded" @click="doStepForward">步进播放(+10s)</a-button>
 				<a-button :disabled="!myModel.isLoaded" @click="doStepBack">步进回退(-10s)</a-button>
 				<a-button :type="subscribing ? 'danger' : 'default'" :disabled="!myModel.isLoaded" @click="toggleSubscribe">
-					{{ subscribing ? '停止实时订阅' : '实时事件订阅' }}
+					{{ subscribing ? '停止MQTT订阅实时事件' : '启动MQTT订阅实时事件' }}
 				</a-button>
 			</a-space>
 		</a-card>
@@ -134,6 +135,62 @@ const doGetSnapshot = async () => {
 		displayText.value = '取位置快照失败: ' + (err?.message || err)
 	}
 }
+
+// 2.1) 取位置快照(当前时间)：分页拉取完整对象位置快照
+// 说明见 docs/remote_simulation_mcp_docs/01_MCP接口说明与调用示例.md 7.13 节
+const doGetSnapshotNow = async () => {
+	if (!myModel.isLoaded) return
+	lastOp.value = '取位置快照(当前时间)'
+	displayText.value = '请求中...'
+	try {
+		const PAGE_SIZE = 200 // 服务端分页上限 1000
+		const MAX_PAGES = 20 // 防御上限（最多 10000 个对象，防止死循环）
+		let snapshotId = '' // 首次请求传空串，后续必须原样回传，防止仿真继续运行时分页内容漂移
+		let offset = 0
+		let allObjects = []
+		let meta = null // 记录首页返回的 snapshotId / snapshotSimTime
+		let serverTotal = 0
+		for (let page = 0; page < MAX_PAGES; page++) {
+			const res = await fsSimApi.fsSimGetObjectPositionSnapshotPage({
+				modelId: myModel.modelId,
+				runId: myModel.runId || '',
+				layerId: myModel.animationActiveLayer || 'root',
+				simTime: -1, // -1 立即捕获当前时刻
+				snapshotId,
+				entityKind: 'ALL',
+				offset,
+				limit: PAGE_SIZE
+			})
+			const d = res?.data
+			if (!res?.success || !d) {
+				throw new Error('接口返回异常: ' + JSON.stringify(res))
+			}
+			if (!meta) {
+				meta = { snapshotId: d.snapshotId, snapshotSimTime: d.snapshotSimTime }
+			}
+			if (d.total != null) serverTotal = d.total
+			console.log('[doGetSnapshotNow] page:', page, 'd.total:', d.total, 'd.objects.length:', d.objects.length)
+			allObjects.push(...(d.objects || []))
+			if (!d.hasMore || d.nextOffset == null) break
+			snapshotId = d.snapshotId // 原样回传
+			offset = d.nextOffset // 使用服务端返回的 nextOffset，而非 offset+limit
+			if (page === MAX_PAGES - 1) {
+				console.warn('[doGetSnapshotNow] 已达最大页数限制，结果可能不完整')
+			}
+		}
+		displayText.value = JSON.stringify({
+			snapshotId: meta?.snapshotId,
+			snapshotSimTime: meta?.snapshotSimTime,
+			total: serverTotal,
+			returned: allObjects.length,
+			pageSize: PAGE_SIZE,
+			objects: allObjects
+		}, null, 2)
+	} catch (err) {
+		displayText.value = '取位置快照失败: ' + (err?.message || err)
+	}
+}
+
 
 // 3) 步进播放：获取 timeWindowCursor 起后 10 秒窗口内的仿真事件，然后光标后移
 const doStepForward = async () => {

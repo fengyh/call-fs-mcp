@@ -211,7 +211,7 @@ return callTool("startRemoteSimulation", args);
         \item \it{历史数据处理}
     \end{itemize}
     \item \bf{时间轴数据分析（事件回放）}\label{sec:brief-step9}
-	利用\it{对象位置快照}(建议用分页版)、\it{仿真事件}两个 MCP 工具和 \texttt{objects} 实时对象订阅、\texttt{events}实时事件订阅，可以按仿真时间轴对仿真过程进行准实时（或回放）动画渲染开发数字孪生应用系统：
+	利用\it{对象位置快照}(建议使用\bf{分页版}以便能适配大模型)、\it{仿真事件}两个 MCP 工具和 \texttt{objects} 实时对象订阅、\texttt{events}实时事件订阅，可以按仿真时间轴对仿真过程进行准实时（或回放）动画渲染开发数字孪生应用系统：
 	\begin{itemize}
 		\item 后端在 \texttt{SimController} 增加两个 REST 接口，分别透传 MCP 工具 \texttt{getRemoteSimulationObjectPositionSnapshot}（参数：\texttt{runId}、\texttt{layerId}、\texttt{simTime}）与 \texttt{getRemoteSimulationEvents}（参数：\texttt{runId}、\texttt{startSimTime}、\texttt{duration}、\texttt{offset}、\texttt{limit}）；前端在 \texttt{fsSimApi.js} 中封装对应 API；
 		\item 开发事件回放页（\texttt{eventplayback/index.vue}）：用 \texttt{a-slider} 展示从 0 至总仿真时长的时间轴，用变量 \texttt{timeWindowCursor} 保存当前光标对应的时间点（仿真毫秒）并显示在 slider 上方；

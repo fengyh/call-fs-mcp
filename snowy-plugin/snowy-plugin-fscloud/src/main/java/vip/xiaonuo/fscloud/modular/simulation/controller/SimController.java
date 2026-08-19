@@ -775,6 +775,22 @@ public class SimController {
         return CommonResult.data(convertToPlain(mcpResult));
     }
 
+    @Operation(summary = "分页查询完整对象位置快照")
+    @SaCheckPermission("/fscloud/sim/getObjectPositionSnapshot")
+    @PostMapping("/fscloud/sim/getObjectPositionSnapshotPage")
+    public CommonResult<Object> getObjectPositionSnapshotPage(@RequestBody @Valid GetObjectPositionSnapshotPageParam param) {
+        String userId = StpUtil.getLoginIdAsString();
+        JSONObject mcpResult = mcpClientService.getObjectPositionSnapshotPage(
+                userId, param.getModelId(), param.getRunId(), param.getLayerId(),
+                param.getSimTime(), param.getSnapshotId(), param.getEntityKind(),
+                param.getOffset() != null ? param.getOffset() : 0,
+                param.getLimit() != null ? param.getLimit() : 500);
+        log.info("getObjectPositionSnapshotPage: userId={}, modelId={}, simTime={}, snapshotId={}, offset={}, limit={}, \n\tresult={}",
+                userId, param.getModelId(), param.getSimTime(), param.getSnapshotId(),
+                param.getOffset(), param.getLimit(), mcpResult);
+        return CommonResult.data(convertToPlain(mcpResult));
+    }
+
     @Operation(summary = "查询时间窗口内的仿真事件")
     @SaCheckPermission("/fscloud/sim/getSimulationEvents")
     @PostMapping("/fscloud/sim/getSimulationEvents")
