@@ -78,17 +78,6 @@
 \renewcommand{\baselinestretch}{1}  %% 貌似段间距
 \renewcommand{\arraystretch}{1.5}
 
-\usepackage[hidelinks]{hyperref}  %% 可点击的目录支持  & hyperref如果不是最后一个package，footnote的链接讲不可点击
-\hypersetup{
-    colorlinks=true,
-    linkcolor=teal, %black/blue/brown/cyan/darkgray/gray/green/lime/magenta/olive/orange/pink/purple/red/teal/violet/white/yellow	
-    filecolor=magenta,      
-    urlcolor=blue, %magenta,
-    bookmarksopen=true,       % 默认打开书签
-    bookmarksopenlevel=2,       % 默认打开书签2级
-    bookmarksnumbered=true,   % 书签带章节号
-}
-
 % begin------------ 自定义命令
 \newcommand{\secref}[1]{\underline{\textbf{\textcolor{purple}{{\small \ \ref{#1}\ }}}}}   % #1就是 'sec:production-line'这类的label
 \newcommand{\termref}[1]{\textcolor{purple}{\scriptsize \ [\underline{\textbf{{\ \ref{#1}\ }}}]}}   % #1就是 'sec:production-line'这类的label
@@ -344,6 +333,19 @@
 \makeatletter
 \def\verbatim@processline{\the\verbatim@line\par}
 \makeatother
+
+%% hyperref 最后加载：确保书签（PDF outline）与链接正常挂钩
+%% （若在 titlesec 等重定义 \section 的包之前加载，书签可能不生成）
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,            % 彩色链接（colorlinks=true 时无边框，无需 hidelinks）
+    linkcolor=teal,             % 内部链接颜色
+    filecolor=magenta,          % 文件链接颜色
+    urlcolor=blue,              % URL 颜色
+    bookmarksopen=true,         % 默认打开书签
+    bookmarksopenlevel=2,       % 默认打开书签2级
+    bookmarksnumbered=true,     % 书签带章节号
+}
 
 \begin{document}
 

@@ -23,9 +23,28 @@
 	\item Controller 向前端返回 \texttt{LoadModelDto}（\texttt{modelId}、\texttt{recordId}、\texttt{status}、\texttt{message} 等）；
 	\item WEBUI 修改模型库对应模型的状态，并跳转到仿真控制页，展示已加载模型信息（模型状态卡片），用户可在次启动仿真。
 \end{enumerate}
+\newpage
 \subsection{启动仿真}
 \begin{figure*}[!h]
 	\centering
 	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/runModel/runModel.latex}}
-	\caption{加载模型用例时序图}\label{fig:loadModel}
+	\caption{启动仿真用例时序图}\label{fig:runModel}
 \end{figure*}
+\bf{触发条件}：用户在仿真控制页（\texttt{simcontrol/index.vue}）点击按钮 1（\texttt{btn1Click}，其显示名称 \texttt{btn1Text} 为"启动"；状态为运行中/暂停时显示"暂停"/"继续"，此时不会触发本用例）。时序图中各序号消息说明如下：
+\begin{enumerate}[label=\arabic*)]
+	\item 用户点击"启动"按钮（\texttt{btn1Click}），因当前状态为已加载（\texttt{SIM\_STATUS\_WAITING}），进入 \texttt{doRun()}；
+	\item WEBUI 调用 JsApi 中的 \texttt{fsSimRunModel(\{id, modelId, showAnimation\})}（\texttt{showAnimation} 来自"开动画"复选框）；
+	\item JsApi（\texttt{fsSimApi.js}）向后端发送 \texttt{POST /fscloud/sim/runModel}（axios，带登录态）；
+	\item Controller（\texttt{SimController.runModel}）通过 Service 调用 \texttt{mcpClientService.startSimulation}（参数：\texttt{userId}、\texttt{modelId}、\texttt{showAnimation}）；
+	\item Service 向 FS 发送 MCP \texttt{tools/call}（工具 \texttt{startRemoteSimulation}，HTTP JSON-RPC + \texttt{X-API-Key}）；
+	\item FS 引擎启动仿真线程，返回 \texttt{runId}（本次运行 ID）、\texttt{status="RUNNING"} 等；
+	\item Service 将 MCP 业务 JSON（\texttt{success/code/message/data}）返回给 Controller；
+	\item Controller 更新内存态 \texttt{SimulationModelTrackingMap}，并通过 Service 回写数据库（\texttt{sim\_status}、\texttt{sim\_times} 等，\texttt{fs\_model\_file} 表）；
+	\item Controller 向前端返回 \texttt{RunModelDto}（\texttt{runId}、\texttt{status}、\texttt{message} 等）；
+	\item JsApi 中的 \texttt{store}（\texttt{myModel}）保存本次 \texttt{runId}（\texttt{myModel.runId}），供事件回放等后续功能使用；
+	\item JsApi 中的 \texttt{mqttClient} 通过 WebSocket 订阅 \texttt{factory/sim/\{userId\}/\{modelId\}/\#}（状态/进度/控制台/动画）；
+	\item FS 经内置 MQTT Broker 发布 \texttt{status/progress/console} 消息（前端 \texttt{mqttClient} 与后端 \texttt{MqttClientService} 各自独立订阅）；
+	\item \texttt{store} 根据收到的 \texttt{status/progress/console} 更新 \texttt{simStatus}、\texttt{simTime}、\texttt{consoleLog} 等；
+	\item WEBUI 状态卡片显示"运行中"（\texttt{SIM\_STATUS\_GOING}），\texttt{btn1Text} 变为"暂停"；
+	\item 用户看到仿真已启动，可继续执行暂停/停止/重置等操作。
+\end{enumerate}
