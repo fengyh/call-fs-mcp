@@ -49,6 +49,66 @@
 	\item 用户看到仿真已启动，可继续执行暂停/停止/重置等操作。
 \end{enumerate}
 \newpage
+\subsection{动画显示和高清静态图显示与取消}
+\begin{figure*}[!h]
+	\centering
+	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/animationDisplay/animationDisplay.latex}}
+	\caption{动画显示和高清静态图显示与取消用例时序图}\label{fig:animationDisplay}
+\end{figure*}
+\bf{触发条件}：本用例由\it{上游用例"启动仿真"}触发——启动仿真并开启动画（\texttt{showAnimation=true}）后，FS 开始推送动画帧；页面上的"开动画"复选框控制动画开关、"显示高清静态图"复选框控制 SVG 高清图显示/取消。时序图中各序号消息说明如下：
+\begin{enumerate}[label=\arabic*)]
+	\item 上游用例"启动仿真"完成后（\texttt{showAnimation=true}），FS 开始产生动画数据（虚线表示由上游用例触发）；
+	\item FS 经内置 MQTT Broker 向前端 \texttt{mqttClient} 推送动画帧（JPEG 二进制）与 \texttt{frameMeta}；
+	\item JsApi 中的 \texttt{mqttClient} 将 JPEG 帧转为 \texttt{Blob URL}；
+	\item WEBUI 显示动画帧（\texttt{myModel.animationFrameUrl}）；
+	\item 用户勾选/取消"开动画"复选框（\texttt{showAnimationEnabled}）；
+	\item WEBUI 调用 \texttt{fsSimSetAnimationEnabled(\{modelId, enabled\})}；
+	\item JsApi 向后端发送 \texttt{POST /fscloud/sim/setAnimationEnabled}；
+	\item Controller 通过 Service 调用 \texttt{mcpClientService.setAnimationEnabled}；
+	\item Service 向 FS 发送 MCP \texttt{tools/call}（工具 \texttt{setRemoteSimulationAnimationEnabled}）；
+	\item FS 返回动画开关状态（\texttt{event=simulationAnimationChanged}）；
+	\item Service 将业务 JSON 返回给 Controller，前端据此后继续/停止接收动画帧；
+	\item 用户勾选/取消"显示高清静态图"复选框（\texttt{showHdImage}）；
+	\item WEBUI 调用 \texttt{fsSimGetSvgPicture(\{modelId, layerId\})}；
+	\item JsApi 向后端发送 \texttt{POST /fscloud/sim/getSvgPicture}；
+	\item Controller 通过 Service 调用 \texttt{mcpClientService.getSvgPicture}；
+	\item Service 向 FS 发送 MCP \texttt{tools/call}（工具 \texttt{getSvgPicture}）；
+	\item FS 返回当前层 SVG 数据（\texttt{data.svg}，原始 XML）；
+	\item Service 将业务 JSON 返回给 Controller；
+	\item WEBUI 将 SVG 转 \texttt{data:image/svg+xml} 显示；取消勾选时清除并恢复 JPEG 动画帧。
+\end{enumerate}
+
+\newpage
+\subsection{切换图层}
+\begin{figure*}[!h]
+	\centering
+	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/switchLayer/switchLayer.latex}}
+	\caption{切换图层用例时序图}\label{fig:switchLayer}
+\end{figure*}
+\bf{触发条件}：模型含多个动画层时，仿真控制页提供图层列表，用户选择目标层（\texttt{switchAnimLayer}）即触发本用例。\par 时序图中各序号消息说明如下：
+\begin{enumerate}[label=\arabic*)]
+	\item 用户打开图层列表；
+	\item WEBUI 调用 \texttt{fsSimListAnimationLayers(\{modelId\})}；
+	\item JsApi 向后端发送 \texttt{POST /fscloud/sim/listAnimationLayers}；
+	\item Controller 通过 Service 调用 \texttt{mcpClientService.listAnimationLayers}；
+	\item Service 向 FS 发送 MCP \texttt{tools/call}（工具 \texttt{listRemoteSimulationAnimationLayers}）；
+	\item FS 返回动画层级（\texttt{layers}：\texttt{layerId}、\texttt{name}、\texttt{frameTopic} 等）；
+	\item Service 将业务 JSON 返回给 Controller；
+	\item JsApi 中的 \texttt{store} 保存层列表（\texttt{myModel.animationLayers}）；
+	\item WEBUI 展示层级列表（模型树/下拉）；
+	\item 用户点击目标层（\texttt{switchAnimLayer(layerId)}）；
+	\item WEBUI 调用 \texttt{fsSimSelectAnimationLayer(\{modelId, layerId, frameRate:5\})}；
+	\item JsApi 向后端发送 \texttt{POST /fscloud/sim/selectAnimationLayer}；
+	\item Controller 通过 Service 调用 \texttt{mcpClientService.selectAnimationLayer}；
+	\item Service 向 FS 发送 MCP \texttt{tools/call}（工具 \texttt{selectRemoteSimulationAnimationLayer}）；
+	\item FS 切换当前活动动画层；
+	\item Service 将业务 JSON 返回给 Controller；
+	\item JsApi 中的 \texttt{store} 更新 \texttt{animationActiveLayer}；
+	\item FS 向 \texttt{mqttClient} 推送新层的动画帧/对象帧（MQTT）；
+	\item WEBUI 显示新层画面；若处于高清模式则重新获取新层的 SVG。
+\end{enumerate}
+
+\newpage
 \subsection{暂停仿真}
 \begin{figure*}[!h]
 	\centering

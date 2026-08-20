@@ -1,0 +1,37 @@
+@startuml
+title 动画显示和高清静态图显示与取消用例时序图
+
+actor "上游用例\n（启动仿真）" as UP
+actor 用户 as USER
+participant "WEBUI\n(Vue3 页面)" as WEBUI
+participant "JsApi\n(fsSimApi.js /\nstore / mqttClient)" as JSApi
+participant "Controller\n(SimController)" as CTRL
+participant "Service\n(McpClientService)" as SVC
+participant "FS\n(MCP Server\n仿真引擎 / MQTT)" as FS
+
+== 动画显示（上游用例触发） ==
+
+UP --> FS : 1. 启动仿真\n（上游用例触发，虚线）
+FS -->> JSApi : 2. MQTT 动画帧\n（JPEG 二进制 / frameMeta）
+JSApi -> JSApi : 3. mqttClient 转\nBlob URL
+JSApi --> WEBUI : 4. 显示动画帧
+USER -> WEBUI : 5. 勾选/取消\n"开动画"
+WEBUI -> JSApi : 6. fsSimSetAnimationEnabled\n（{modelId, enabled}）
+JSApi -> CTRL : 7. POST\nsetAnimationEnabled
+CTRL -> SVC : 8. mcpClientService\n.setAnimationEnabled(...)
+SVC -> FS : 9. MCP tools/call\nsetRemoteSimulationAnimationEnabled
+FS --> SVC : 10. 动画开关状态
+SVC --> CTRL : 11. 业务 JSON
+
+== 高清静态图显示与取消 ==
+
+USER -> WEBUI : 12. 勾选/取消\n"显示高清静态图"
+WEBUI -> JSApi : 13. fsSimGetSvgPicture\n（{modelId, layerId}）
+JSApi -> CTRL : 14. POST\ngetSvgPicture
+CTRL -> SVC : 15. mcpClientService\n.getSvgPicture(...)
+SVC -> FS : 16. MCP tools/call\ngetSvgPicture
+FS --> SVC : 17. svg 数据
+SVC --> CTRL : 18. 业务 JSON
+JSApi --> WEBUI : 19. svg 转 data URL 显示\n（取消则清除、恢复 JPEG 帧）
+
+@enduml

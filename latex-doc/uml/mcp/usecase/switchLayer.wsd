@@ -1,0 +1,36 @@
+@startuml
+title 切换图层用例时序图
+
+actor 用户 as USER
+participant "WEBUI\n(Vue3 页面)" as WEBUI
+participant "JsApi\n(fsSimApi.js /\nstore / mqttClient)" as JSApi
+participant "Controller\n(SimController)" as CTRL
+participant "Service\n(McpClientService)" as SVC
+participant "FS\n(MCP Server\n仿真引擎 / MQTT)" as FS
+
+== 获取动画层列表 ==
+
+USER -> WEBUI : 1. 打开图层列表
+WEBUI -> JSApi : 2. fsSimListAnimationLayers\n（{modelId}）
+JSApi -> CTRL : 3. POST\nlistAnimationLayers
+CTRL -> SVC : 4. mcpClientService\n.listAnimationLayers(...)
+SVC -> FS : 5. MCP tools/call\nlistRemoteSimulationAnimationLayers
+FS --> SVC : 6. 返回动画层级\n（layers）
+SVC --> CTRL : 7. 业务 JSON
+JSApi -> JSApi : 8. store 保存\nanimationLayers
+JSApi --> WEBUI : 9. 展示层级列表
+
+== 切换活动层 ==
+
+USER -> WEBUI : 10. 点击目标层\n（switchAnimLayer）
+WEBUI -> JSApi : 11. fsSimSelectAnimationLayer\n（{modelId, layerId, frameRate}）
+JSApi -> CTRL : 12. POST\nselectAnimationLayer
+CTRL -> SVC : 13. mcpClientService\n.selectAnimationLayer(...)
+SVC -> FS : 14. MCP tools/call\nselectRemoteSimulationAnimationLayer
+FS --> SVC : 15. 活动层切换
+SVC --> CTRL : 16. 业务 JSON
+JSApi -> JSApi : 17. store 更新\nanimationActiveLayer
+FS -->> JSApi : 18. 新层动画帧推送\n（MQTT，含对象帧）
+JSApi --> WEBUI : 19. 显示新层画面\n（高清模式下重新取新层 SVG）
+
+@enduml
