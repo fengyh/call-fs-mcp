@@ -1,0 +1,25 @@
+@startuml
+title 暂停仿真用例时序图
+
+actor 用户 as USER
+participant "WEBUI\n(Vue3 页面)" as WEBUI
+participant "JsApi\n(fsSimApi.js /\nstore / mqttClient)" as JSApi
+participant "Controller\n(SimController)" as CTRL
+participant "Service\n(McpClientService)" as SVC
+participant "FS\n(MCP Server\n仿真引擎)" as FS
+participant "DB\n(mysql\nfs_model_file)" as DB
+
+USER -> WEBUI : 1. 点击"暂停"按钮\n（btn1Click -> doPause）
+WEBUI -> JSApi : 2. fsSimPauseModel\n({id, modelId})
+JSApi -> CTRL : 3. POST\n/fscloud/sim/pauseModel
+CTRL -> SVC : 4. mcpClientService\n.pauseSimulation(...)
+SVC -> FS : 5. MCP tools/call\npauseRemoteSimulation
+FS --> SVC : 6. 返回 status=PAUSED
+SVC --> CTRL : 7. 业务 JSON
+CTRL -> DB : 8. 更新 sim_status\n（trackingMap）
+CTRL --> JSApi : 9. RunModelDto\n（status=PAUSED）
+JSApi -> JSApi : 10. store 更新\n仿真状态
+JSApi --> WEBUI : 11. 状态卡片显示\n"已暂停"
+WEBUI --> USER : 12. btn1Text 变为\n"继续"
+
+@enduml

@@ -48,3 +48,47 @@
 	\item WEBUI 状态卡片显示"运行中"（\texttt{SIM\_STATUS\_GOING}），\texttt{btn1Text} 变为"暂停"；
 	\item 用户看到仿真已启动，可继续执行暂停/停止/重置等操作。
 \end{enumerate}
+\newpage
+\subsection{暂停仿真}
+\begin{figure*}[!h]
+	\centering
+	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/pauseModel/pauseModel.latex}}
+	\caption{暂停仿真用例时序图}\label{fig:pauseModel}
+\end{figure*}
+\bf{触发条件}：仿真处于运行中（\texttt{SIM\_STATUS\_GOING}）时，仿真控制页按钮 1 显示"暂停"；用户点击该按钮（\texttt{btn1Click} 进入 \texttt{doPause}）即触发本用例。时序图中各序号消息说明如下：
+\begin{enumerate}[label=\arabic*)]
+	\item 用户点击"暂停"按钮（\texttt{btn1Click}），当前状态为运行中（\texttt{SIM\_STATUS\_GOING}），进入 \texttt{doPause()}；
+	\item WEBUI 调用 JsApi 中的 \texttt{fsSimPauseModel(\{id, modelId\})}；
+	\item JsApi（\texttt{fsSimApi.js}）向后端发送 \texttt{POST /fscloud/sim/pauseModel}（axios，带登录态）；
+	\item Controller（\texttt{SimController.pauseModel}）通过 Service 调用 \texttt{mcpClientService.pauseSimulation(userId, modelId)}；
+	\item Service 向 FS 发送 MCP \texttt{tools/call}（工具 \texttt{pauseRemoteSimulation}，HTTP JSON-RPC + \texttt{X-API-Key}）；
+	\item FS 暂停仿真引擎运行，返回 \texttt{status="PAUSED"} 等；
+	\item Service 将 MCP 业务 JSON（\texttt{success/code/message/data}）返回给 Controller；
+	\item Controller 更新内存态 \texttt{SimulationModelTrackingMap}，并通过 Service 回写数据库（\texttt{sim\_status}，\texttt{fs\_model\_file} 表）；
+	\item Controller 向前端返回 \texttt{RunModelDto}（\texttt{status="PAUSED"}、\texttt{message} 等）；
+	\item \texttt{store}（\texttt{myModel}）更新仿真状态为已暂停（\texttt{SIM\_STATUS\_PAUSED}）；
+	\item WEBUI 状态卡片显示"已暂停"，\texttt{btn1Text} 变为"继续"；
+	\item 用户可点击"继续"恢复仿真，或点击"停止"结束仿真。
+\end{enumerate}
+\newpage
+\subsection{继续仿真}
+\begin{figure*}[!h]
+	\centering
+	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/resumeModel/resumeModel.latex}}
+	\caption{继续仿真用例时序图}\label{fig:resumeModel}
+\end{figure*}
+\bf{触发条件}：仿真处于暂停状态（\texttt{SIM\_STATUS\_PAUSED}）时，仿真控制页按钮 1 显示"继续"；用户点击该按钮（\texttt{btn1Click} 进入 \texttt{doResume}）即触发本用例。时序图中各序号消息说明如下：
+\begin{enumerate}[label=\arabic*)]
+	\item 用户点击"继续"按钮（\texttt{btn1Click}），当前状态为已暂停（\texttt{SIM\_STATUS\_PAUSED}），进入 \texttt{doResume()}；
+	\item WEBUI 调用 JsApi 中的 \texttt{fsSimResumeModel(\{id, modelId\})}；
+	\item JsApi（\texttt{fsSimApi.js}）向后端发送 \texttt{POST /fscloud/sim/resumeModel}（axios，带登录态）；
+	\item Controller（\texttt{SimController.resumeModel}）通过 Service 调用 \texttt{mcpClientService.resumeSimulation(userId, modelId)}；
+	\item Service 向 FS 发送 MCP \texttt{tools/call}（工具 \texttt{resumeRemoteSimulation}，HTTP JSON-RPC + \texttt{X-API-Key}）；
+	\item FS 恢复仿真引擎运行，返回 \texttt{status="RUNNING"} 等；
+	\item Service 将 MCP 业务 JSON（\texttt{success/code/message/data}）返回给 Controller；
+	\item Controller 更新内存态 \texttt{SimulationModelTrackingMap}，并通过 Service 回写数据库（\texttt{sim\_status}，\texttt{fs\_model\_file} 表）；
+	\item Controller 向前端返回 \texttt{RunModelDto}（\texttt{status="RUNNING"}、\texttt{message} 等）；
+	\item \texttt{store}（\texttt{myModel}）更新仿真状态为运行中（\texttt{SIM\_STATUS\_GOING}）；
+	\item WEBUI 状态卡片显示"运行中"，\texttt{btn1Text} 变为"暂停"；
+	\item 用户可再次点击"暂停"，或点击"停止"结束仿真。
+\end{enumerate}
