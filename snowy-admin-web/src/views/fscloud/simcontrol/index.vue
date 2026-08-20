@@ -529,7 +529,6 @@ const initPage = async () => {
 	}
 	subscribeMqtt()
 	loadAnimationLayers()
-	setupAnimationMqtt()
 	// 从 localStorage 恢复本地状态
 	const saved = loadSimState()
 	if (saved) {
@@ -653,12 +652,6 @@ const loadAnimationLayers = async () => {
 }
 
 let frameBlobUrl = null
-
-const setupAnimationMqtt = () => {
-	const userInfo = tool.data.get('USER_INFO') || {}
-	const userId = userInfo.id || 'admin'
-	// 动画帧通过已有的 mqttClient 接收（mqttClient.js 已扩展 topic 和二进制帧）
-}
 </script>
 
 <style scoped>
