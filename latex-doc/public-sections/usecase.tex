@@ -30,7 +30,7 @@
 	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/runModel/runModel.latex}}
 	\caption{启动仿真用例时序图}\label{fig:runModel}
 \end{figure*}
-\bf{触发条件}：用户在仿真控制页（\texttt{simcontrol/index.vue}）点击按钮 1（\texttt{btn1Click}，其显示名称 \texttt{btn1Text} 为"启动"；状态为运行中/暂停时显示"暂停"/"继续"，此时不会触发本用例）。时序图中各序号消息说明如下：
+\bf{触发条件}：用户在仿真控制页（\texttt{simcontrol/index.vue}）点击按钮 1（\texttt{btn1Click}，其显示名称 \texttt{btn1Text} 为"启动"；状态为运行中/暂停时显示"暂停"/"继续"，此时不会触发本用例）。\bf{按钮状态说明}：仿真启动前（已加载 \texttt{SIM\_STATUS\_WAITING} 或已结束 \texttt{FINISHED}）"停止"按钮 \texttt{btn2} 为\it{禁用}、"重置"按钮 \texttt{btn3} 为\it{可用}；仿真运行中（\texttt{GOING}）或暂停（\texttt{PAUSED}）时"停止"为\it{可用}、"重置"为\it{禁用}。时序图中各序号消息说明如下：
 \begin{enumerate}[label=\arabic*)]
 	\item 用户点击"启动"按钮（\texttt{btn1Click}），因当前状态为已加载（\texttt{SIM\_STATUS\_WAITING}），进入 \texttt{doRun()}；
 	\item WEBUI 调用 JsApi 中的 \texttt{fsSimRunModel(\{id, modelId, showAnimation\})}（\texttt{showAnimation} 来自"开动画"复选框）；
@@ -91,4 +91,48 @@
 	\item \texttt{store}（\texttt{myModel}）更新仿真状态为运行中（\texttt{SIM\_STATUS\_GOING}）；
 	\item WEBUI 状态卡片显示"运行中"，\texttt{btn1Text} 变为"暂停"；
 	\item 用户可再次点击"暂停"，或点击"停止"结束仿真。
+\end{enumerate}
+\newpage
+\subsection{停止仿真}
+\begin{figure*}[!h]
+	\centering
+	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/stopModel/stopModel.latex}}
+	\caption{停止仿真用例时序图}\label{fig:stopModel}
+\end{figure*}
+\bf{触发条件}：仿真处于运行中（\texttt{SIM\_STATUS\_GOING}）或暂停（\texttt{SIM\_STATUS\_PAUSED}）时，"停止"按钮 \texttt{btn2} 为\it{可用}；用户点击该按钮（\texttt{btn2Click} 进入 \texttt{doStop}）即触发本用例（启动前/结束后停止按钮为禁用，不触发）。时序图中各序号消息说明如下：
+\begin{enumerate}[label=\arabic*)]
+	\item 用户点击"停止"按钮（\texttt{btn2Click}），当前状态为运行中或暂停，进入 \texttt{doStop()}；
+	\item WEBUI 调用 JsApi 中的 \texttt{fsSimStopModel(\{id, modelId\})}；
+	\item JsApi（\texttt{fsSimApi.js}）向后端发送 \texttt{POST /fscloud/sim/stopModel}（axios，带登录态）；
+	\item Controller（\texttt{SimController.stopModel}）通过 Service 调用 \texttt{mcpClientService.stopSimulation(userId, modelId)}；
+	\item Service 向 FS 发送 MCP \texttt{tools/call}（工具 \texttt{stopRemoteSimulation}，HTTP JSON-RPC + \texttt{X-API-Key}）；
+	\item FS 停止仿真引擎运行，返回 \texttt{status="STOPPED"} 等；
+	\item Service 将 MCP 业务 JSON（\texttt{success/code/message/data}）返回给 Controller；
+	\item Controller 更新内存态 \texttt{SimulationModelTrackingMap}，并通过 Service 回写数据库（\texttt{sim\_status}，\texttt{fs\_model\_file} 表）；
+	\item Controller 向前端返回 \texttt{RunModelDto}（\texttt{status="STOPPED"}、\texttt{message} 等）；
+	\item \texttt{store}（\texttt{myModel}）更新仿真状态为已停止（\texttt{SIM\_STATUS\_FINISHED}）；
+	\item WEBUI 状态卡片显示"已停止"，\texttt{btn1Text} 变为"启动"、"重置"按钮 \texttt{btn3} 恢复可用；
+	\item 用户可点击"重置"重新加载，或点击"启动"再次运行。
+\end{enumerate}
+\newpage
+\subsection{重置仿真}
+\begin{figure*}[!h]
+	\centering
+	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/resetModel/resetModel.latex}}
+	\caption{重置仿真用例时序图}\label{fig:resetModel}
+\end{figure*}
+\bf{触发条件}：仿真处于已加载（\texttt{SIM\_STATUS\_WAITING}）或已结束（\texttt{SIM\_STATUS\_FINISHED}）时，"重置"按钮 \texttt{btn3} 为\it{可用}；用户点击该按钮（\texttt{btn3Click} 进入 \texttt{doReset}）即触发本用例（运行中/暂停时重置按钮为禁用，不触发）。时序图中各序号消息说明如下：
+\begin{enumerate}[label=\arabic*)]
+	\item 用户点击"重置"按钮（\texttt{btn3Click}），当前状态为已加载或已结束，进入 \texttt{doReset()}；
+	\item WEBUI 调用 JsApi 中的 \texttt{fsSimResetModel(\{id, modelId\})}；
+	\item JsApi（\texttt{fsSimApi.js}）向后端发送 \texttt{POST /fscloud/sim/resetModel}（axios，带登录态）；
+	\item Controller（\texttt{SimController.resetModel}）通过 Service 调用 \texttt{mcpClientService.resetSimulation(userId, modelId)}；
+	\item Service 向 FS 发送 MCP \texttt{tools/call}（工具 \texttt{resetRemoteSimulation}，HTTP JSON-RPC + \texttt{X-API-Key}）；
+	\item FS 重置仿真模型至加载状态，返回 \texttt{status="LOADED"}、\texttt{runId} 清空等；
+	\item Service 将 MCP 业务 JSON（\texttt{success/code/message/data}）返回给 Controller；
+	\item Controller 更新内存态 \texttt{SimulationModelTrackingMap}，并通过 Service 回写数据库（\texttt{sim\_status}，\texttt{fs\_model\_file} 表）；
+	\item Controller 向前端返回 \texttt{RunModelDto}（\texttt{status="LOADED"}、\texttt{message} 等）；
+	\item \texttt{store}（\texttt{myModel}）更新仿真状态为已加载（\texttt{SIM\_STATUS\_WAITING}）并清空 \texttt{runId}；
+	\item WEBUI 状态卡片显示"已加载"，\texttt{btn1Text} 为"启动"；
+	\item 用户可点击"启动"开始新一轮仿真。
 \end{enumerate}
