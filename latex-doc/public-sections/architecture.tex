@@ -3,6 +3,12 @@
 
 \subsection{系统逻辑架构}
 系统逻辑架构如图\ref{fig:mcp-architecture}所示（\bf{各层之间通过标准接口解耦}）：
+% \begin{figure*}[!h]
+% 	\centering
+% 	\resizebox{0.7\linewidth}{!}{\input{out/uml/mcp/architecture/architecture.latex}}
+% 	\caption{系统逻辑架构图}\label{fig:architecture}
+% \end{figure*}
+
 \begin{figure}[H]%[htbp!]
 	\centering
 	\includegraphics[width=1.0\textwidth]{pics/mcp/architecture.png}
@@ -80,7 +86,8 @@ FS MCP Server
    |  更新 SimulationModelTrackingMap + 写回 fs_model_file.sim_status
    v
 前端（响应体展示状态卡片，MQTT 持续推送进度/日志）
-\end{verbatim}\vspace{-30pt}
+\end{verbatim}
+\vspace{-30pt}
 要点：
 \begin{itemize}
 	\item MCP 响应是\it{两层结构}：先解析 JSON-RPC 响应取 \texttt{result.content[0].text}，再解析该字符串得到统一业务 JSON（\texttt{success}、\texttt{code}、\texttt{message}、\texttt{data}）。
@@ -110,47 +117,4 @@ FS MCP Server
 	\item 前端状态轮询（\texttt{getRemoteSimulationStatus}）建议 1--2 秒间隔；动画帧由 MQTT 按帧率（默认 5 FPS）推送。
 	\item 前端 API 统一封装在 \texttt{src/api/fscloud/fsSimApi.js}（\texttt{/fscloud/sim/*}）与 \texttt{fsModelFileApi.js}（\texttt{/fscloud/modelfile/*}）；实时模型状态保存在 Pinia store（\texttt{myModel.js}）。
 \end{itemize}
-\tips{图\ref{fig:flowcharFEnBE}由 PlantUML 源码 \texttt{uml/mcp/flowcharFEnBE.wsd} 生成（\texttt{out/uml/mcp/flowcharFEnBE/flowcharFEnBE.latex}），修改源码后重新导出即可更新。}
 
-\subsection{FS 仿真引擎与 MCP 接口的交互流程}
-MCP 工具层只是仿真引擎能力的\it{门面}，引擎内部通过 \texttt{RemoteSimulationManager} 管理模型会话与状态：
-\begin{verbatim}
-MCP 工具（RemoteSimulationTools）
-   |  tools/call 入参：userId/modelId/runId/...
-   v
-RemoteSimulationManager（远程会话管理）
-   |  sessionByUser / sessionByModel：定位 RemoteSimulationSession
-   |  状态机：NOT_LOADED -> LOADED -> RUNNING -> PAUSED -> FINISHED/STOPPED
-   |  配额：单用户 1 模型 / 全局 10 模型 / 全局 5 运行
-   v
-FS 引擎对象（SimulationModel / SimulationInstance）
-   |  load  : ModelUtil.openModel(...) 加载 .fs
-   |  start : SimulationRunningThread 启动（showAnimation 控制动画）
-   |  pause : instance.pause() / resume : instance.resume()
-   |  stop  : instance.notify() + model.stop()
-   |  reset : instance.reset() + instance.init()
-   v
-引擎事件监听器（SimulationAdapter）
-   |  simulationStart / simulationPause / simulationResume /
-   |  updateTimeDisplay / simulationEnd
-   |  更新会话状态 + 刷新结果快照 + 发布 MQTT 消息
-   v
-MCP 工具响应（统一 JSON：success/code/message/data）
-\end{verbatim}\vspace{-30pt}
-要点：
-\begin{itemize}
-	\item \texttt{modelId} 是引擎加载后的内存实例 ID，\texttt{recordId} 是后端模型库记录 ID（透传不参与定位）。
-	\item 参数表读写作用于模型本体 \texttt{Table}，写回后需 \texttt{reset} 再 \texttt{start} 生效；仿真启动时会自动保存一次参数快照并绑定 \texttt{runId}。
-	\item 时间轴数据（对象位置快照、仿真事件）由引擎在运行期间采集关键帧与事件记录，MCP 工具按 \texttt{simTime}/\texttt{startSimTime} 窗口查询返回。
-\end{itemize}
-
-\tips{架构图与流程图可使用 PlantUML 绘制（如 \texttt{@startuml} 架构图、时序图、泳道图），在 PlantUML 中导出为图片（或 \texttt{plantuml -tsvg}）后，用 \texttt{\textbackslash includegraphics} 替换上文中的文本示意图；Reasonix 不便于自动绘图与导出，可后续手动添加。}
-
-\vspace{1em}
-图\ref{fig:architecture}为\it{系统逻辑架构图}
-
-\begin{figure*}[!h]
-	\centering
-	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/architecture/architecture.latex}}
-	\caption{系统逻辑架构图}\label{fig:architecture}
-\end{figure*}

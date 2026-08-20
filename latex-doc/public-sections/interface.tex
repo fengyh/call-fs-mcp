@@ -638,6 +638,62 @@
 }
 \end{lstlisting}\vspace{-30pt}
 
+\subsubsection{getRemoteSimulationObjectPositionSnapshotPage}
+\bf{方法描述}：分页查询完整对象位置快照，适配大模型/大数据量场景（兼容工具 \texttt{getRemoteSimulationObjectPositionSnapshot} 仍可用，但一次返回完整数组）。\texttt{simTime=-1} 立即捕获当前时刻；首次请求传空 \texttt{snapshotId}，响应返回稳定的 \texttt{snapshotId}，后续页面\bf{必须原样回传}，防止仿真运行时分页内容漂移。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{runId}(String，空串=当前运行)；\texttt{layerId}(String，\texttt{"root"} 返回所有层，指定子层只返回该层)；\texttt{simTime}(long，\texttt{-1}=当前时刻)；\texttt{snapshotId}(String，首次空串，后续原样回传)；\texttt{entityKind}(String，\texttt{ALL}/\texttt{STATIC\_OBJECT}/\texttt{LAYER}/\texttt{MU}/\texttt{WAREHOUSE}/\texttt{STORAGE\_LOCATION})；\texttt{offset}(int，$\geq$0)；\texttt{limit}(int，1--1000)。
+	\item \it{出参}（\texttt{data}）：\texttt{recordId}、\texttt{modelId}、\texttt{runId}、\texttt{snapshotId}、\texttt{snapshotSimTime}、\texttt{layerId}、\texttt{entityKind}、\texttt{offset}、\texttt{limit}、\texttt{returned}、\texttt{total}、\texttt{hasMore}、\texttt{nextOffset}。
+	\item \texttt{coordinateSystem} 为 \texttt{"PER\_OBJECT\_POSITION\_REFERENCE"}（顶层坐标系）；每条对象经 \texttt{positionReference} 说明是层内坐标、仓库内坐标、沿轨道位置或容器位置。
+	\item \texttt{objects} 每项含 \texttt{entityKind}、\texttt{objectId}、\texttt{objectType}、\texttt{position}、\texttt{wip}、\texttt{capacity}、\texttt{muIds}、\texttt{muId}、\texttt{containerObjectId}、\texttt{positionReference} 等。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments，首次请求 snapshotId 传空串）
+{
+    "userId": "demo-1786605437737",
+    "modelId": "9dc81f329656",
+    "runId": "5cb14b0d-cfd9-45c2-800d-2dc07c336d97",
+    "layerId": "root",
+    "simTime": -1,
+    "snapshotId": "",
+    "entityKind": "ALL",
+    "offset": 0,
+    "limit": 500
+}
+// 出参（data 关键字段；后续页必须回传 snapshotId 并使用 nextOffset）
+{
+    "snapshotId": "运行ID:18",
+    "snapshotSimTime": 3600000,
+    "layerId": "root",
+    "entityKind": "ALL",
+    "coordinateSystem": "PER_OBJECT_POSITION_REFERENCE",
+    "offset": 0,
+    "limit": 500,
+    "returned": 500,
+    "total": 2306,
+    "hasMore": true,
+    "nextOffset": 500,
+    "objects": [
+        {
+            "entityKind": "STATIC_OBJECT",
+            "objectId": "Buffer01",
+            "objectType": "Buffer",
+            "position": { "x": 120.0, "y": 80.0, "z": 0.0 },
+            "wip": 12,
+            "capacity": 50,
+            "muIds": ["Part001", "Part002"]
+        },
+        {
+            "entityKind": "MU",
+            "muId": "Part001",
+            "containerObjectId": "Buffer01",
+            "positionReference": "AT_CONTAINER",
+            "position": { "x": 120.0, "y": 80.0, "z": 0.0 }
+        }
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
 \subsubsection{getRemoteSimulationEvents}
 \bf{方法描述}：按仿真时间窗口分页查询仿真事件（对象进入/离开工站等），可在运行中或运行结束后查询；不发布 MQTT 消息（实时推送走 MQTT 链路）。
 \begin{itemize}
@@ -679,6 +735,38 @@
             "quantity": 1
         }
     ]
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{setRemoteSimulationEventPublishing}
+\bf{方法描述}：开启/停止 FS 向 \texttt{events} 主题（\texttt{factory/sim/\{username\}/\{modelId\}/events}）发布 MU 事件消息。订阅该主题前需先开启发布；停止订阅后应关闭发布，避免无效流量。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{enabled}(Boolean，\texttt{true}=开始发布，\texttt{false}=停止发布)；\texttt{publishIntervalMs}(int，发布间隔毫秒，开启时建议 500)。
+	\item \it{出参}（\texttt{data}）：\texttt{userId}、\texttt{recordId}、\texttt{modelId}、\texttt{status}、\texttt{message}、\texttt{eventPublishingEnabled}(Boolean)、\texttt{eventPublishIntervalMs}(int)、\texttt{eventTopic}(String)、\texttt{eventCount}(int，已发布事件数) 等。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments，开启发布）
+{
+    "userId": "demo-1786605437737",
+    "modelId": "9dc81f329656",
+    "enabled": true,
+    "publishIntervalMs": 500
+}
+// 出参（data 关键字段）
+{
+    "status": "LOADED",
+    "message": "MU event MQTT publishing enabled.",
+    "eventPublishingEnabled": true,
+    "eventPublishIntervalMs": 500,
+    "eventTopic": "factory/sim/demo-1786605437737/9dc81f329656/events",
+    "eventCount": 0
+}
+// 入参（停止发布）
+{
+    "userId": "demo-1786605437737",
+    "modelId": "9dc81f329656",
+    "enabled": false
 }
 \end{lstlisting}\vspace{-30pt}
 
