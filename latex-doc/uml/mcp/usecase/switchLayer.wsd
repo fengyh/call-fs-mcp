@@ -8,29 +8,30 @@ participant "Controller\n(SimController)" as CTRL
 participant "Service\n(McpClientService)" as SVC
 participant "FS\n(MCP Server\n仿真引擎 / MQTT)" as FS
 
-== 获取动画层列表 ==
+== 图层获取（页面初始化 / MQTT 推送，非用户操作） ==
 
-USER -> WEBUI : 1. 打开图层列表
-WEBUI -> JSApi : 2. fsSimListAnimationLayers\n（{modelId}）
-JSApi -> CTRL : 3. POST\nlistAnimationLayers
-CTRL -> SVC : 4. mcpClientService\n.listAnimationLayers(...)
-SVC -> FS : 5. MCP tools/call\nlistRemoteSimulationAnimationLayers
-FS --> SVC : 6. 返回动画层级\n（layers）
-SVC --> CTRL : 7. 业务 JSON
-JSApi -> JSApi : 8. store 保存\nanimationLayers
-JSApi --> WEBUI : 9. 展示层级列表
+WEBUI -> JSApi : 1. 页面初始化\nloadAnimationLayers()
+JSApi -> CTRL : 2. POST\nlistAnimationLayers
+CTRL -> SVC : 3. mcpClientService\n.listAnimationLayers(...)
+SVC -> FS : 4. MCP tools/call\nlistRemoteSimulationAnimationLayers
+FS --> SVC : 5. 返回动画层级\n（layers）
+SVC --> CTRL : 6. 业务 JSON
+JSApi -> JSApi : 7. store 保存\nanimationLayers
+FS -->> JSApi : 8. MQTT animation/layers\n（Retain 推送层目录）
+JSApi -> JSApi : 9. store 更新\nanimationLayers
+JSApi --> WEBUI : 10. 展示层级列表
 
-== 切换活动层 ==
+== 用户选择切换活动层 ==
 
-USER -> WEBUI : 10. 点击目标层\n（switchAnimLayer）
-WEBUI -> JSApi : 11. fsSimSelectAnimationLayer\n（{modelId, layerId, frameRate}）
-JSApi -> CTRL : 12. POST\nselectAnimationLayer
-CTRL -> SVC : 13. mcpClientService\n.selectAnimationLayer(...)
-SVC -> FS : 14. MCP tools/call\nselectRemoteSimulationAnimationLayer
-FS --> SVC : 15. 活动层切换
-SVC --> CTRL : 16. 业务 JSON
-JSApi -> JSApi : 17. store 更新\nanimationActiveLayer
-FS -->> JSApi : 18. 新层动画帧推送\n（MQTT，含对象帧）
-JSApi --> WEBUI : 19. 显示新层画面\n（高清模式下重新取新层 SVG）
+USER -> WEBUI : 11. 点击目标层\n（switchAnimLayer）
+WEBUI -> JSApi : 12. fsSimSelectAnimationLayer\n（{modelId, layerId, frameRate}）
+JSApi -> CTRL : 13. POST\nselectAnimationLayer
+CTRL -> SVC : 14. mcpClientService\n.selectAnimationLayer(...)
+SVC -> FS : 15. MCP tools/call\nselectRemoteSimulationAnimationLayer
+FS --> SVC : 16. 活动层切换
+SVC --> CTRL : 17. 业务 JSON
+JSApi -> JSApi : 18. store 更新\nanimationActiveLayer
+FS -->> JSApi : 19. 新层动画帧推送\n（MQTT，含对象帧）
+JSApi --> WEBUI : 20. 显示新层画面\n（高清模式下重新取新层 SVG）
 
 @enduml

@@ -85,9 +85,9 @@
 	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/switchLayer/switchLayer.latex}}
 	\caption{切换图层用例时序图}\label{fig:switchLayer}
 \end{figure*}
-\bf{触发条件}：模型含多个动画层时，仿真控制页提供图层列表，用户选择目标层（\texttt{switchAnimLayer}）即触发本用例。\par 时序图中各序号消息说明如下：
+\bf{触发条件}：图层列表的\it{获取与显示}由页面初始化（\texttt{initPage} 调用 \texttt{loadAnimationLayers}）和 MQTT \texttt{animation/layers} 主题（Retain）推送完成，\bf{非用户操作触发}；用户选择目标层（\texttt{switchAnimLayer}）才触发切换动作。\par 时序图中各序号消息说明如下：
 \begin{enumerate}[label=\arabic*)]
-	\item 用户打开图层列表；
+	\item 页面初始化时 WEBUI 调用 \texttt{loadAnimationLayers()}（非用户操作）；
 	\item WEBUI 调用 \texttt{fsSimListAnimationLayers(\{modelId\})}；
 	\item JsApi 向后端发送 \texttt{POST /fscloud/sim/listAnimationLayers}；
 	\item Controller 通过 Service 调用 \texttt{mcpClientService.listAnimationLayers}；
@@ -95,6 +95,7 @@
 	\item FS 返回动画层级（\texttt{layers}：\texttt{layerId}、\texttt{name}、\texttt{frameTopic} 等）；
 	\item Service 将业务 JSON 返回给 Controller；
 	\item JsApi 中的 \texttt{store} 保存层列表（\texttt{myModel.animationLayers}）；
+	\item FS 经 MQTT \texttt{animation/layers} 主题（Retain）推送层目录，\texttt{mqttClient} 收到后再次更新 \texttt{store}（非用户操作）；
 	\item WEBUI 展示层级列表（模型树/下拉）；
 	\item 用户点击目标层（\texttt{switchAnimLayer(layerId)}）；
 	\item WEBUI 调用 \texttt{fsSimSelectAnimationLayer(\{modelId, layerId, frameRate:5\})}；
