@@ -197,3 +197,27 @@
 	\item WEBUI 状态卡片显示"已加载"，\texttt{btn1Text} 为"启动"；
 	\item 用户可点击"启动"开始新一轮仿真。
 \end{enumerate}
+\newpage
+\subsection{关闭模型}
+\begin{figure*}[!h]
+	\centering
+	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/closeModel/closeModel.latex}}
+	\caption{关闭模型用例时序图}\label{fig:closeModel}
+\end{figure*}
+\bf{触发条件}：用户在仿真控制页点击"关闭"按钮（\texttt{doClose}）即触发本用例——关闭即卸载当前模型，并清理前端状态、返回模型库页。时序图中各序号消息说明如下：
+\begin{enumerate}[label=\arabic*)]
+	\item 用户点击"关闭"按钮（\texttt{doClose}），页面提示"正在关闭..."；
+	\item WEBUI 调用 JsApi 中的 \texttt{fsSimUnloadModel(\{id, modelId\})}；
+	\item JsApi（\texttt{fsSimApi.js}）向后端发送 \texttt{POST /fscloud/sim/unloadModel}（axios，带登录态）；
+	\item Controller（\texttt{SimController.unloadModel}）通过 Service 调用 \texttt{mcpClientService.unloadModel(userId, modelId)}；
+	\item Service 向 FS 发送 MCP \texttt{tools/call}（工具 \texttt{unloadRemoteSimulationModel}，HTTP JSON-RPC + \texttt{X-API-Key}）；
+	\item FS 卸载模型（若正在运行/暂停会先 \texttt{stop}），从内存移除模型实例；
+	\item FS 返回卸载结果（\texttt{userId}、\texttt{recordId}、\texttt{modelId}、\texttt{uiLoaded} 等）；
+	\item Service 将 MCP 业务 JSON（\texttt{success/code/message/data}）返回给 Controller；
+	\item Controller 更新内存态 \texttt{SimulationModelTrackingMap}（移除该模型），并通过 Service 回写数据库（\texttt{sim\_status}，\texttt{fs\_model\_file} 表）；
+	\item Controller 向前端返回卸载结果；
+	\item JsApi 中的 \texttt{mqttClient} 调用 \texttt{disconnectMqtt()} 断开前端 MQTT 连接；
+	\item JsApi 中的 \texttt{store} 调用 \texttt{clearModel()} 清空模型状态（\texttt{modelId}、\texttt{runId}、\texttt{events} 等）；
+	\item WEBUI 跳转回模型库页（\texttt{router.push('/fscloud/modelfile')}）；
+	\item 用户可在模型库页重新选择模型加载。
+\end{enumerate}

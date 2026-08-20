@@ -1,0 +1,26 @@
+@startuml
+title 关闭模型用例时序图
+
+actor 用户 as USER
+participant "WEBUI\n(Vue3 页面)" as WEBUI
+participant "JsApi\n(fsSimApi.js /\nstore / mqttClient)" as JSApi
+participant "Controller\n(SimController)" as CTRL
+participant "Service\n(McpClientService)" as SVC
+participant "FS\n(MCP Server\n仿真引擎 / MQTT)" as FS
+participant "DB\n(mysql\nfs_model_file)" as DB
+
+USER -> WEBUI : 1. 点击"关闭"按钮\n（doClose）
+WEBUI -> JSApi : 2. fsSimUnloadModel\n（{id, modelId}）
+JSApi -> CTRL : 3. POST\n/fscloud/sim/unloadModel
+CTRL -> SVC : 4. mcpClientService\n.unloadModel(...)
+SVC -> FS : 5. MCP tools/call\nunloadRemoteSimulationModel
+FS -> FS : 6. 卸载模型\n（运行中先 stop）
+FS --> SVC : 7. 返回卸载结果
+SVC --> CTRL : 8. 业务 JSON
+CTRL -> DB : 9. 更新 sim_status\n（trackingMap 清理）
+CTRL --> JSApi : 10. RunModelDto\n（卸载结果）
+JSApi -> JSApi : 11. disconnectMqtt()\n断开前端 MQTT
+JSApi -> JSApi : 12. clearModel()\n清空 store
+JSApi --> WEBUI : 13. 跳转模型库页\n（router.push）
+
+@enduml
