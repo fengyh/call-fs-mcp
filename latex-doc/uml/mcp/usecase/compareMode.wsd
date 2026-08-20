@@ -1,0 +1,45 @@
+@startuml
+title 横向对比模式分析结果用例时序图
+
+actor 用户 as USER
+participant "WEBUI\n(Vue3 页面\nsimdata)" as WEBUI
+participant "JsApi\n(fsSimApi.js /\nstore / mqttClient)" as JSApi
+participant "Controller\n(SimController)" as CTRL
+participant "Service\n(FsSimResultSnapshotService)" as SVC
+participant "DB\n(mysql\nfs_sim_result_snapshot /\nfs_sim_param_snapshot)" as DB
+
+USER -> WEBUI : 1. 选择"横向对比模式"\n（radio：compare）
+USER -> WEBUI : 2. 勾选两个快照\n（第1个为主体、第2个为对照）
+WEBUI -> JSApi : 3. loadCompareBoth()
+
+JSApi -> JSApi : 4. 结果侧：主体加载\n（当前→MCP，历史→DB）
+alt 主体=当前
+  JSApi -> CTRL : 5. POST getResultSnapshot
+  CTRL -> SVC : 6. 经 MCP 取结果
+else 主体=历史
+  JSApi -> CTRL : 5. POST getResultSnapshotById
+  CTRL -> SVC : 6. 查数据库快照
+  SVC -> DB : 7. SELECT 结果快照
+  DB --> SVC : 8. 返回
+end
+JSApi -> CTRL : 9. 对照元信息：\ngetResultSnapshotById（refId）
+CTRL -> SVC : 10. 查数据库对照快照
+SVC -> DB : 11. SELECT 对照结果快照
+DB --> SVC : 12. 返回对照元信息
+
+JSApi -> JSApi : 13. 参数侧：Promise.all 并行取\n两快照成对参数表\n（loadParamCompare）
+alt 参数来源=当前
+  JSApi -> CTRL : 14. POST getParameterSnapshot
+else 参数来源=历史
+  JSApi -> CTRL : 14. POST getSnapshot（成对参数快照）
+  CTRL -> SVC : 15. 查数据库参数快照
+  SVC -> DB : 16. SELECT 参数快照
+  DB --> SVC : 17. 返回
+end
+JSApi -> JSApi : 18. 保存对比缓存\n（compareRowsCache /\nparamMainTables / paramRefTables）
+
+JSApi --> WEBUI : 19. 二级 tabs：参数对照 / 结果对照
+JSApi -> JSApi : 20. 结果对照：ensureCompareRows\n分页拉取对照 dataset 全量\n（getResultDatasetPageInDb，limit 1000）
+JSApi --> WEBUI : 21. 按 compareKey 对齐展示\n两快照同字段对比
+
+@enduml

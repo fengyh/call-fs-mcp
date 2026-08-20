@@ -1,0 +1,35 @@
+@startuml
+title 单快照模式查看结果用例时序图
+
+actor 用户 as USER
+participant "WEBUI\n(Vue3 页面\nsimdata)" as WEBUI
+participant "JsApi\n(fsSimApi.js /\nstore / mqttClient)" as JSApi
+participant "Controller\n(SimController)" as CTRL
+participant "Service\n(FsSimResultSnapshotService)" as SVC
+participant "DB\n(mysql\nfs_sim_result_snapshot)" as DB
+
+USER -> WEBUI : 1. 选择"单快照模式"\n（radio：single）
+USER -> WEBUI : 2. 选择查看对象\n（当前结果 / 历史快照）
+
+alt 查看当前结果
+  WEBUI -> JSApi : 3. fsSimGetResultSnapshot\n（{modelId, runId}）
+  JSApi -> CTRL : 4. POST\ngetResultSnapshot
+  CTRL -> SVC : 5. 经 MCP 取结果\n（getRemoteSimulationResultSnapshot）
+  SVC --> CTRL : 6. 业务 JSON
+  CTRL --> JSApi : 7. 返回结果快照
+else 查看历史快照
+  WEBUI -> JSApi : 3. fsSimGetResultSnapshotById\n（{id}）
+  JSApi -> CTRL : 4. POST\ngetResultSnapshotById
+  CTRL -> SVC : 5. 查数据库快照
+  SVC -> DB : 6. SELECT\nfs_sim_result_snapshot
+  DB --> SVC : 7. 返回快照
+  SVC --> CTRL : 8. 快照数据
+  CTRL --> JSApi : 9. 返回快照
+end
+
+JSApi -> JSApi : 10. store 保存 resultSnapshot\n（runId 同步）
+JSApi --> WEBUI : 11. 结果 a-tabs 展示\n（总览/基础/精益/能耗）
+JSApi -> JSApi : 12. 按 dataset 分页拉取明细\n（loadDataset）
+JSApi --> WEBUI : 13. 表格展示明细\n（按 TableTitleKeyMap 控制显示）
+
+@enduml

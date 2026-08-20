@@ -292,3 +292,90 @@
 	\item WEBUI 提示"写入成功 N 张表 M 行"；
 	\item JsApi 调用 \texttt{loadSnapshot()} 从模型重新读取最新参数。
 \end{enumerate}
+\newpage
+\subsection{获取仿真结果}
+\begin{figure*}[!h]
+	\centering
+	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/fetchResult/fetchResult.latex}}
+	\caption{获取仿真结果用例时序图}\label{fig:fetchResult}
+\end{figure*}
+\bf{触发条件}：用户在仿真数据页（\texttt{simdata/index.vue}）点击"获取结果"（\texttt{fetchResult}）即触发本用例——通过 MCP 工具 \texttt{getRemoteSimulationResultSnapshot} 获取第一层结果摘要，再按需分页获取各 dataset 明细。\bf{说明}：WebApp 开发中，FS 提供的标准仿真结果若有不需要展示的项，可在 \texttt{simdata/TableTitleKeyMap.js} 中将对应 dataset 的 \texttt{show} 设为 \texttt{false} 即可不显示。时序图中各序号消息说明如下：
+\begin{enumerate}[label=\arabic*)]
+	\item 用户点击"获取结果"按钮（\texttt{fetchResult}）；
+	\item WEBUI 调用 \texttt{fsSimGetResultSnapshot(\{modelId, runId\})}；
+	\item JsApi 向后端发送 \texttt{POST /fscloud/sim/getResultSnapshot}；
+	\item Controller 通过 Service 调用 \texttt{mcpClientService.getResultSnapshot}；
+	\item Service 向 FS 发送 MCP \texttt{tools/call}（工具 \texttt{getRemoteSimulationResultSnapshot}）；
+	\item FS 返回第一层结果摘要（\texttt{summaryResults}：节拍/UPH/利用率/精益/能耗 + \texttt{datasets} 目录）；
+	\item Service 将业务 JSON 返回给 Controller；
+	\item JsApi 中的 \texttt{store} 保存 \texttt{resultSnapshot} 并同步 \texttt{runId}；
+	\item WEBUI 展示结果总览（总产出、UPH、当前 WIP 等）；
+	\item 用户点击某 dataset（如节拍/利用率/精益/能耗）；
+	\item WEBUI 调用 \texttt{fsSimGetResultDatasetPage(\{modelId, runId, dataset, offset, limit\})}；
+	\item JsApi 向后端发送 \texttt{POST /fscloud/sim/getResultDatasetPage}；
+	\item Controller 通过 Service 调用 \texttt{mcpClientService.getResultDatasetPage}；
+	\item Service 向 FS 发送 MCP \texttt{tools/call}（工具 \texttt{getRemoteSimulationResultDatasetPage}）；
+	\item FS 返回该 dataset 的分页明细（\texttt{rows}、\texttt{total}、\texttt{hasMore}）；
+	\item Service 将业务 JSON 返回给 Controller；
+	\item WEBUI 以表格展示明细（按 \texttt{hasMore} 翻页）。
+\end{enumerate}
+\newpage
+\subsection{保存快照结果}
+\begin{figure*}[!h]
+	\centering
+	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/saveResultSnapshot/saveResultSnapshot.latex}}
+	\caption{保存快照结果用例时序图}\label{fig:saveResultSnapshot}
+\end{figure*}
+\bf{触发条件}：用户在仿真数据页点击"保存结果快照"（\texttt{saveResultSnapshot}）即触发本用例——把当前仿真的结果（连同参数快照\it{成对}）落库，便于后续单快照/横向对比分析。前置条件：模型已加载、存在 \texttt{runId} 且 \texttt{resultStatus=READY}（\texttt{canSaveResult}）。时序图中各序号消息说明如下：
+\begin{enumerate}[label=\arabic*)]
+	\item 用户点击"保存结果快照"按钮（\texttt{saveResultSnapshot}）；
+	\item WEBUI 校验可保存（\texttt{canSaveResult}：已加载、有 \texttt{runId}、\texttt{resultStatus=READY}）；
+	\item WEBUI 调用 \texttt{fsSimSaveResultSnapshot(\{modelId, runId\})}；
+	\item JsApi 向后端发送 \texttt{POST /fscloud/sim/saveResultSnapshot}；
+	\item Controller 通过 Service（\texttt{FsSimResultSnapshotService}）保存结果快照（参数+结果成对落库）；
+	\item Service 向数据库\it{成对}写入 \texttt{fs\_sim\_param\_snapshot} 与 \texttt{fs\_sim\_result\_snapshot}；
+	\item 数据库返回写入成功；
+	\item Service 返回保存结果（快照 \texttt{id}）给 Controller；
+	\item Controller 向前端返回保存结果；
+	\item JsApi 调用 \texttt{loadHistoryList()} 刷新历史快照列表；
+	\item WEBUI 提示"结果快照保存成功（参数+结果成对落库）"。
+\end{enumerate}
+\newpage
+\subsection{单快照模式查看结果}
+\begin{figure*}[!h]
+	\centering
+	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/singleModeView/singleModeView.latex}}
+	\caption{单快照模式查看结果用例时序图}\label{fig:singleModeView}
+\end{figure*}
+\bf{触发条件}：用户在仿真数据页选择"单快照模式"（\texttt{radio: single}）并选择查看对象（当前仿真结果或某条历史快照）即触发本用例。时序图中各序号消息说明如下：
+\begin{enumerate}[label=\arabic*)]
+	\item 用户选择"单快照模式"（\texttt{mode='single'}）；
+	\item 用户选择查看对象：\it{当前结果}或\it{历史快照}；
+	\item（当前结果）WEBUI 调用 \texttt{fsSimGetResultSnapshot(\{modelId, runId\})}，经后端 MCP 获取结果摘要；
+	\item（历史快照）WEBUI 调用 \texttt{fsSimGetResultSnapshotById(\{id\})}，后端查数据库 \texttt{fs\_sim\_result\_snapshot} 返回快照；
+	\item JsApi 中的 \texttt{store} 保存 \texttt{resultSnapshot} 并同步 \texttt{runId}；
+	\item WEBUI 以结果 a-tabs 展示（总览/基础/精益/能耗分组，dataset 按 \texttt{TableTitleKeyMap} 配置显示）；
+	\item JsApi 按当前 dataset 分页拉取明细（\texttt{loadDataset}，DB 快照走 \texttt{getResultDatasetPageInDb}）；
+	\item WEBUI 表格展示明细；不需要的项可在 \texttt{TableTitleKeyMap.js} 中设 \texttt{show:false} 隐藏。
+\end{enumerate}
+\newpage
+\subsection{横向对比模式分析结果}
+\begin{figure*}[!h]
+	\centering
+	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/compareMode/compareMode.latex}}
+	\caption{横向对比模式分析结果用例时序图}\label{fig:compareMode}
+\end{figure*}
+\bf{触发条件}：用户在仿真数据页选择"横向对比模式"（\texttt{radio: compare}）并勾选\it{两个快照}（第 1 个为主体、第 2 个为对照）后自动触发对比分析。\bf{说明}：\it{参数快照与结果快照是成对出现的}——保存结果快照时两者成对落库，对比分析时按快照成对取出参数与结果。前端处理是本用例重点：\texttt{loadCompareBoth} 一次构建参数对照与结果对照两页，切换二级页仅显示切换、零请求；对照数据缓存于 \texttt{compareRowsCache}。时序图中各序号消息说明如下：
+\begin{enumerate}[label=\arabic*)]
+	\item 用户选择"横向对比模式"（\texttt{mode='compare'}）；
+	\item 用户勾选两个快照（第 1 个为主体、第 2 个为对照），勾满后调用 \texttt{loadCompareBoth()}；
+	\item \texttt{loadCompareBoth} 先加载结果侧：主体快照数据（当前 $\rightarrow$ MCP 获取；历史 $\rightarrow$ 数据库 \texttt{getResultSnapshotById}）；
+	\item 结果侧再取对照快照的元信息（\texttt{compareRefMeta}，经 \texttt{getResultSnapshotById}）；
+	\item \it{参数侧}：\texttt{loadParamCompare} 用 \texttt{Promise.all} \it{并行}取两个快照的\it{成对参数表}（主体 \texttt{paramMainTables}、对照 \texttt{paramRefTables}）；
+	\item 参数表来源：当前快照 $\rightarrow$ MCP \texttt{getRemoteSimulationParameterSnapshot}；历史快照 $\rightarrow$ 数据库成对参数快照（\texttt{getSnapshot}）；
+	\item 前端保存两页数据：结果侧 \texttt{compareRowsCache}、参数侧 \texttt{paramMainTables}/\texttt{paramRefTables}；
+	\item WEBUI 展示二级 tabs：\it{参数对照}（默认）/\it{结果对照}，切换仅显示切换、数据不重新请求；
+	\item 结果对照页按 dataset 展示主体数据，对照数据由 \texttt{ensureCompareRows} 懒加载：分页调用 \texttt{getResultDatasetPageInDb}（\texttt{limit=1000}，上限 500 页防失控）拉取对照快照该 dataset 全量并缓存；
+	\item 表格按 \texttt{compareKey}（如 \texttt{objectName}）对齐，并排展示两快照的同字段数值，便于横向分析；
+	\item \bf{注意}：\texttt{compareKey} 为空串的 dataset 不做横向对比，对比模式下只显示主体快照；当前仿真行可作主体（第 1 个），但不能作对照（第 2 个）。
+\end{enumerate}

@@ -1,0 +1,29 @@
+@startuml
+title 获取仿真结果用例时序图
+
+actor 用户 as USER
+participant "WEBUI\n(Vue3 页面\nsimdata)" as WEBUI
+participant "JsApi\n(fsSimApi.js /\nstore / mqttClient)" as JSApi
+participant "Controller\n(SimController)" as CTRL
+participant "Service\n(McpClientService)" as SVC
+participant "FS\n(MCP Server\n仿真引擎)" as FS
+
+USER -> WEBUI : 1. 点击"获取结果"\n（fetchResult）
+WEBUI -> JSApi : 2. fsSimGetResultSnapshot\n（{modelId, runId}）
+JSApi -> CTRL : 3. POST\ngetResultSnapshot
+CTRL -> SVC : 4. mcpClientService\n.getResultSnapshot(...)
+SVC -> FS : 5. MCP tools/call\ngetRemoteSimulationResultSnapshot
+FS --> SVC : 6. 返回结果快照\n（summaryResults + datasets）
+SVC --> CTRL : 7. 业务 JSON
+JSApi -> JSApi : 8. store 保存\nresultSnapshot、runId
+JSApi --> WEBUI : 9. 展示结果总览\n（总产出/UPH/WIP 等）
+USER -> WEBUI : 10. 点击某 dataset\n（如节拍/利用率）
+WEBUI -> JSApi : 11. fsSimGetResultDatasetPage\n（{modelId, runId,\ndataset, offset, limit}）
+JSApi -> CTRL : 12. POST\ngetResultDatasetPage
+CTRL -> SVC : 13. mcpClientService\n.getResultDatasetPage(...)
+SVC -> FS : 14. MCP tools/call\ngetRemoteSimulationResultDatasetPage
+FS --> SVC : 15. 返回分页明细 rows
+SVC --> CTRL : 16. 业务 JSON
+JSApi --> WEBUI : 17. 表格展示明细\n（按 hasMore 翻页）
+
+@enduml
