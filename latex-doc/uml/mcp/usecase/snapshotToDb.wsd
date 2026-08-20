@@ -1,0 +1,23 @@
+@startuml
+title 快照写库用例时序图
+
+actor 用户 as USER
+participant "WEBUI\n(Vue3 页面\nsimparam)" as WEBUI
+participant "JsApi\n(fsSimApi.js /\nstore / mqttClient)" as JSApi
+participant "Controller\n(SimController)" as CTRL
+participant "Service\n(FsSimParamSnapshotService)" as SVC
+participant "DB\n(mysql\nfs_sim_param_snapshot)" as DB
+
+USER -> WEBUI : 1. 点击"快照写库"\n（saveSnapshotToDb）
+WEBUI -> JSApi : 2. 组织 payload\n（parameterTables / mcpRows /\ntables / missingTables）
+WEBUI -> JSApi : 3. fsSimSaveSnapshot\n（payload）
+JSApi -> CTRL : 4. POST\n/fscloud/sim/saveSnapshot
+CTRL -> SVC : 5. 保存参数快照
+SVC -> DB : 6. INSERT\nfs_sim_param_snapshot
+DB --> SVC : 7. 写入成功
+SVC --> CTRL : 8. 保存结果（id）
+CTRL --> JSApi : 9. 返回保存结果
+JSApi -> JSApi : 10. loadSnapshotList()\n刷新快照列表
+JSApi --> WEBUI : 11. 提示"快照保存成功"
+
+@enduml

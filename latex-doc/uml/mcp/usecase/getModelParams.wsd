@@ -1,0 +1,29 @@
+@startuml
+title 取模型参数用例时序图
+
+actor 用户 as USER
+participant "WEBUI\n(Vue3 页面\nsimparam)" as WEBUI
+participant "JsApi\n(fsSimApi.js /\nstore / mqttClient)" as JSApi
+participant "Controller\n(SimController)" as CTRL
+participant "Service\n(McpClientService)" as SVC
+participant "FS\n(MCP Server\n仿真引擎)" as FS
+
+USER -> WEBUI : 1. 点击"取模型参数"\n（loadParams）
+WEBUI -> JSApi : 2. fsSimListParameterTables\n（{modelId}）
+JSApi -> CTRL : 3. POST\nlistParameterTables
+CTRL -> SVC : 4. mcpClientService\n.listParameterTables(...)
+SVC -> FS : 5. MCP tools/call\nlistRemoteSimulationParameterTables
+FS --> SVC : 6. 返回参数表清单\n（含 remark）
+SVC --> CTRL : 7. 业务 JSON
+JSApi --> WEBUI : 8. 展示参数表清单\n（pre）
+USER -> WEBUI : 9. 点击"从模型重新\n读取参数"
+WEBUI -> JSApi : 10. fsSimGetParameterSnapshot\n（{modelId}）
+JSApi -> CTRL : 11. POST\ngetParameterSnapshot
+CTRL -> SVC : 12. mcpClientService\n.getParameterSnapshot(...)
+SVC -> FS : 13. MCP tools/call\ngetRemoteSimulationParameterSnapshot
+FS --> SVC : 14. 返回参数快照\n（tables 内容）
+SVC --> CTRL : 15. 业务 JSON
+JSApi -> JSApi : 16. parseAndSetSnapshot\n（store 解析）
+JSApi --> WEBUI : 17. 表格展示/编辑参数
+
+@enduml

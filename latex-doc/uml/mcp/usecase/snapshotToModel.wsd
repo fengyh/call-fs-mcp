@@ -1,0 +1,25 @@
+@startuml
+title 快照写模型用例时序图
+
+actor 用户 as USER
+participant "WEBUI\n(Vue3 页面\nsimparam)" as WEBUI
+participant "JsApi\n(fsSimApi.js /\nstore / mqttClient)" as JSApi
+participant "Controller\n(SimController)" as CTRL
+participant "Service\n(McpClientService)" as SVC
+participant "FS\n(MCP Server\n仿真引擎)" as FS
+
+USER -> WEBUI : 1. 点击"快照写模型"\n（saveSnapshotToModel）
+WEBUI -> JSApi : 2. 确认对话框\n（Modal.confirm）
+WEBUI -> JSApi : 3. 组装 tablesJson\n（snapshotData 转 MCP 格式）
+WEBUI -> JSApi : 4. fsSaveParamSnapshotToModel\n（{modelId, tablesJson,\nbSaveModel:true}）
+JSApi -> CTRL : 5. POST\nsaveParamSnapshotToModel
+CTRL -> SVC : 6. mcpClientService\n.batchUpdateParameterTables(...)
+SVC -> FS : 7. MCP tools/call\nbatchUpdateRemoteSimulationParameterTable
+FS -> FS : 8. 校验并写入模型表\n（可选保存 .fs）
+FS --> SVC : 9. 返回 updatedTableCount\nupdatedRowCount
+SVC --> CTRL : 10. 业务 JSON
+CTRL --> JSApi : 11. 返回写入结果
+JSApi --> WEBUI : 12. 提示"写入成功\nN 张表 M 行"
+JSApi -> JSApi : 13. loadSnapshot()\n刷新最新参数
+
+@enduml

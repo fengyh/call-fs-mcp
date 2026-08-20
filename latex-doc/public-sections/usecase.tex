@@ -221,3 +221,74 @@
 	\item WEBUI 跳转回模型库页（\texttt{router.push('/fscloud/modelfile')}）；
 	\item 用户可在模型库页重新选择模型加载。
 \end{enumerate}
+\newpage
+\subsection{取模型参数}
+\begin{figure*}[!h]
+	\centering
+	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/getModelParams/getModelParams.latex}}
+	\caption{取模型参数用例时序图}\label{fig:getModelParams}
+\end{figure*}
+\bf{触发条件}：用户在参数管理页（\texttt{simparam/index.vue}）点击"取模型参数"或"从模型重新读取参数"按钮即触发本用例。\par \bf{说明}："参数"是一个总体说法，指模型中 \texttt{mcp} 表登记的所有参数表；其中部分表实际存放的是\it{仿真结果}数据，可参照附录（\hyperref[sec:appendix]{附录：参数表数据示例}）中参数表数据的 \texttt{remark} 值判断。\par 时序图中各序号消息说明如下：
+\begin{enumerate}[label=\arabic*)]
+	\item 用户点击"取模型参数"按钮（\texttt{loadParams}）；
+	\item WEBUI 调用 \texttt{fsSimListParameterTables(\{modelId\})}；
+	\item JsApi 向后端发送 \texttt{POST /fscloud/sim/listParameterTables}；
+	\item Controller 通过 Service 调用 \texttt{mcpClientService.listParameterTables}；
+	\item Service 向 FS 发送 MCP \texttt{tools/call}（工具 \texttt{listRemoteSimulationParameterTables}）；
+	\item FS 返回参数表清单（含 \texttt{remark}，可据此判断哪些表存放结果）；
+	\item Service 将业务 JSON 返回给 Controller；
+	\item WEBUI 用 \texttt{pre} 展示参数表清单；
+	\item 用户点击"从模型重新读取参数"（\texttt{loadSnapshotFromMCP} $\rightarrow$ \texttt{loadSnapshot}）；
+	\item WEBUI 调用 \texttt{fsSimGetParameterSnapshot(\{modelId\})}；
+	\item JsApi 向后端发送 \texttt{POST /fscloud/sim/getParameterSnapshot}；
+	\item Controller 通过 Service 调用 \texttt{mcpClientService.getParameterSnapshot}；
+	\item Service 向 FS 发送 MCP \texttt{tools/call}（工具 \texttt{getRemoteSimulationParameterSnapshot}）；
+	\item FS 返回参数快照（\texttt{tables} 含 \texttt{columns + rows}）；
+	\item Service 将业务 JSON 返回给 Controller；
+	\item JsApi 中的 \texttt{store} 调用 \texttt{parseAndSetSnapshot} 解析快照；
+	\item WEBUI 以表格形式展示参数，可编辑单元格、增删行/列。
+\end{enumerate}
+\newpage
+\subsection{快照写库}
+\begin{figure*}[!h]
+	\centering
+	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/snapshotToDb/snapshotToDb.latex}}
+	\caption{快照写库用例时序图}\label{fig:snapshotToDb}
+\end{figure*}
+\bf{触发条件}：用户在参数管理页点击"快照写库"按钮（\texttt{saveSnapshotToDb}）即触发本用例——把当前参数快照（含参数表列表、MCP 清单、各表内容）保存到数据库 \texttt{fs\_sim\_param\_snapshot}，便于版本化管理与回放。时序图中各序号消息说明如下：
+\begin{enumerate}[label=\arabic*)]
+	\item 用户点击"快照写库"按钮（\texttt{saveSnapshotToDb}）；
+	\item WEBUI 组织 \texttt{payload}（\texttt{modelFileId}、\texttt{parameterTables}、\texttt{mcpRows}、\texttt{tables}、\texttt{missingTables}）；
+	\item WEBUI 调用 \texttt{fsSimSaveSnapshot(payload)}；
+	\item JsApi 向后端发送 \texttt{POST /fscloud/sim/saveSnapshot}；
+	\item Controller 通过 Service（\texttt{FsSimParamSnapshotService}）保存参数快照；
+	\item Service 向数据库写入 \texttt{fs\_sim\_param\_snapshot}（\texttt{INSERT}）；
+	\item 数据库返回写入成功；
+	\item Service 返回保存结果（快照 \texttt{id}）给 Controller；
+	\item Controller 向前端返回保存结果；
+	\item JsApi 调用 \texttt{loadSnapshotList()} 刷新快照列表；
+	\item WEBUI 提示"快照保存成功"，快照列表中新增一条记录。
+\end{enumerate}
+\newpage
+\subsection{快照写模型}
+\begin{figure*}[!h]
+	\centering
+	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/snapshotToModel/snapshotToModel.latex}}
+	\caption{快照写模型用例时序图}\label{fig:snapshotToModel}
+\end{figure*}
+\bf{触发条件}：用户在参数管理页点击"快照写模型"按钮（\texttt{saveSnapshotToModel}）即触发本用例——把当前参数快照中可编辑的参数表写回 FS 模型本体（调用 MCP 工具 \texttt{batchUpdateRemoteSimulationParameterTable}，\texttt{bSaveModel=true} 时同时保存 \texttt{.fs} 文件）。时序图中各序号消息说明如下：
+\begin{enumerate}[label=\arabic*)]
+	\item 用户点击"快照写模型"按钮（\texttt{saveSnapshotToModel}）；
+	\item WEBUI 弹出确认对话框（\texttt{Modal.confirm}），用户确认写入；
+	\item WEBUI 组装 \texttt{tablesJson}（把 \texttt{myModel.snapshotData} 转为 \texttt{\{tableName, columns, columnCount, rows\}} 数组）；
+	\item WEBUI 调用 \texttt{fsSaveParamSnapshotToModel(\{modelId, tablesJson, bSaveModel:true\})}；
+	\item JsApi 向后端发送 \texttt{POST /fscloud/sim/saveParamSnapshotToModel}；
+	\item Controller 通过 Service 调用 \texttt{mcpClientService.batchUpdateParameterTables}；
+	\item Service 向 FS 发送 MCP \texttt{tools/call}（工具 \texttt{batchUpdateRemoteSimulationParameterTable}）；
+	\item FS 校验全部目标表后写入模型本体（\texttt{bSaveModel=true} 时保存 \texttt{.fs} 文件）；
+	\item FS 返回 \texttt{updatedTableCount}、\texttt{updatedRowCount} 等；
+	\item Service 将业务 JSON 返回给 Controller；
+	\item Controller 向前端返回写入结果；
+	\item WEBUI 提示"写入成功 N 张表 M 行"；
+	\item JsApi 调用 \texttt{loadSnapshot()} 从模型重新读取最新参数。
+\end{enumerate}
