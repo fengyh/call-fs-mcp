@@ -1,46 +1,28 @@
 @startuml
-title 加载模型用例时序图（loadRemoteSimulationModel）
+title 加载模型用例时序图
 
 actor 用户 as USER
-participant "WEBUI\n（Vue3 页面：模型库页 / 仿真控制页）" as WEBUI
-participant "JsApi\n（fsSimApi.js）" as JSApi
-participant "Controller\n（SimController）" as CTRL
-participant "Service\n（McpClientService / FsModelFileService）" as SVC
-participant "FS\n（MCP Server / 仿真引擎）" as FS
-participant "DB\n（mysql：fs_model_file）" as DB
+participant "WEBUI\n(Vue3 页面)" as WEBUI
+participant "JsApi\n(fsSimApi.js /\nstore)" as JSApi
+participant "Controller\n(SimController)" as CTRL
+participant "Service\n(McpClient /\nFsModelFile)" as SVC
+participant "FS\n(MCP Server\n仿真引擎)" as FS
+participant "DB\n(mysql\nfs_model_file)" as DB
 
-== 前端发起加载 ==
-
-USER -> WEBUI : 点击模型库的“仿真”按钮\n（选择模型库记录 id、loadInUI）
-WEBUI -> JSApi : fsSimLoadModel({ id, loadInUI })
-JSApi -> CTRL : POST /fscloud/sim/loadModel
-
-== 查询模型库记录 ==
-
-CTRL -> SVC : fsModelFileService.getById(fileId)
-SVC -> DB : SELECT * FROM fs_model_file WHERE id = ?
-DB --> SVC : FsModelFile（模型文件相对路径等）
-SVC --> CTRL : 返回模型库记录
-CTRL -> CTRL : 校验记录存在、拼文件绝对路径\n{static-path}/uploaded/{userId}/{model}
-
-== 调用 MCP 加载模型 ==
-
-CTRL -> SVC : mcpClientService.loadModel\n(userId, recordId, modelFileName, loadInUI)
-SVC -> FS : MCP tools/call\nloadRemoteSimulationModel\n（HTTP JSON-RPC + X-API-Key）
-FS -> FS : 引擎加载 .fs 文件\n创建 SimulationModel
-FS --> SVC : { success:true, data:{ modelId, status:"LOADED",\n  modelFileName, modelFilePath, simTime:0, ... } }
-SVC --> CTRL : 返回业务 JSON（success/code/message/data）
-
-== 回写数据库 ==
-
-CTRL -> SVC : fsModelFileService.updateById(record)\n（保存 modelId、sim_status=SIM_STATUS_WAITING）
-SVC -> DB : UPDATE fs_model_file SET model_id=?, sim_status=? ...
-DB --> SVC : 更新成功
-
-== 返回前端 ==
-
-CTRL --> JSApi : LoadModelDto\l modelId、recordId、status、message 等）
-JSApi --> WEBUI : 返回加载结果
-WEBUI --> USER : 展示已加载模型\n（modelId / 状态卡片 / 可启动仿真）
+USER -> WEBUI : 1. 模型库模型列表中\n点击“仿真”命令
+WEBUI -> JSApi : 2. fsSimLoadModel\n({id, loadInUI})
+JSApi -> CTRL : 3. POST\n/fscloud/sim/loadModel
+CTRL -> SVC : 4. getById(fileId)\n查模型库记录
+SVC -> DB : 5. SELECT\nfs_model_file
+DB --> SVC : 6. 返回模型记录
+SVC --> CTRL : 7. 模型记录
+CTRL -> SVC : 8. mcpClientService\n.loadModel(...)
+SVC -> FS : 9. MCP tools/call\nloadRemoteSimulationModel
+FS --> SVC : 10. modelId\nstatus=LOADED
+SVC --> CTRL : 11. 业务 JSON
+CTRL -> SVC : 12. updateById\n回写 modelId
+SVC -> DB : 13. UPDATE\nfs_model_file
+CTRL --> JSApi : 14. LoadModelDto
+JSApi --> WEBUI : 15. 展示已加载模型
 
 @enduml

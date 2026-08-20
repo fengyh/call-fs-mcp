@@ -5,4 +5,27 @@
 	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/loadModel/loadModel.latex}}
 	\caption{加载模型用例时序图}\label{fig:loadModel}
 \end{figure*}
+时序图中各序号消息说明如下：
+\begin{enumerate}[label=\arabic*)]
+	\item 用户在 WEBUI（模型库页）点击"仿真"，传入模型库记录 \texttt{id} 与 \texttt{loadInUI} 是否加载模型到FS的画布\footnote{\bf{loadInUI} 为 \texttt{true} 时，模型将加载到 FS 的画布，false 时不加载。建议只在调试WebAPP期间加载，生产环境不加载减少服务器资源开销。}；
+	\item WEBUI 调用 JsApi 封装的 \texttt{fsSimLoadModel(\{id, loadInUI\})}；
+	\item JsApi 向后端发送 \texttt{POST /fscloud/sim/loadModel}（axios，带登录态）；
+	\item Controller（\texttt{SimController.loadModel}）通过 Service 按 \texttt{fileId} 查询模型库记录（\texttt{fsModelFileService.getById}）；
+	\item Service 查询数据库表 \texttt{fs\_model\_file}；
+	\item 数据库返回模型库记录（含模型文件相对路径、所属 \texttt{userId} 等）；
+	\item Service 将模型记录返回给 Controller，Controller 拼接模型文件绝对路径（\texttt{\{static-path\}} \texttt{uploaded/\{userId\}/\{model\}}）；
+	\item Controller 通过 Service 调用 MCP 客户端 \texttt{mcpClientService.loadModel(userId, recordId, modelFileName, loadInUI)}；
+	\item Service 向 FS 发送 MCP \texttt{tools/call}（工具 \texttt{loadRemoteSimulationModel}，HTTP JSON-RPC + \texttt{X-API-Key}）；
+	\item FS 引擎加载 \texttt{.fs} 文件、创建 \texttt{SimulationModel}，返回 \texttt{modelId}、\texttt{status="LOADED"} 等；
+	\item Service 将 MCP 业务 JSON（\texttt{success/code/message/data}）返回给 Controller；
+	\item Controller 通过 Service 回写数据库（保存 \texttt{modelId}、\texttt{sim\_status=SIM\_STATUS\_WAITING}）；
+	\item Service 更新 \texttt{fs\_model\_file} 表（\texttt{UPDATE}）；
+	\item Controller 向前端返回 \texttt{LoadModelDto}（\texttt{modelId}、\texttt{recordId}、\texttt{status}、\texttt{message} 等）；
+	\item WEBUI 修改模型库对应模型的状态，并跳转到仿真控制页，展示已加载模型信息（模型状态卡片），用户可在次启动仿真。
+\end{enumerate}
 \subsection{启动仿真}
+\begin{figure*}[!h]
+	\centering
+	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/runModel/runModel.latex}}
+	\caption{加载模型用例时序图}\label{fig:loadModel}
+\end{figure*}
