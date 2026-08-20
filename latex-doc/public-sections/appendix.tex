@@ -1,0 +1,454 @@
+\section{附录：参数表数据示例}
+{\scriptsize
+\begin{verbatim}
+{
+  "recordId": "2090346294581600257",
+  "modelId": "3d7a135894fa",
+  "modelFileName": "仿真云平台测试专用-v0.2-0820-1539.fs",
+  "status": "RUNNING",
+  "snapshotAt": 1787212506689,
+  "mcpTableName": "MCP",
+  "mcpTableFound": true,
+  "mcpRows": [
+    {
+      "rowIndex": 0,
+      "tableName": ".订单表",
+      "remark": "",
+      "exists": true,
+      "tableId": "8eca1be7b67e",
+      "wholeNo": ".订单表",
+      "rowCount": 2,
+      "columnCount": 5
+    },
+    {
+      "rowIndex": 1,
+      "tableName": ".工站参数",
+      "remark": "",
+      "exists": true,
+      "tableId": "9138d214d65e",
+      "wholeNo": ".工站参数",
+      "rowCount": 7,
+      "columnCount": 9
+    },
+    {
+      "rowIndex": 2,
+      "tableName": ".不良品记录表",
+      "remark": "Out",
+      "exists": true,
+      "tableId": "8a24b7d28089",
+      "wholeNo": ".不良品记录表",
+      "rowCount": 18,
+      "columnCount": 5
+    }
+  ],
+  "tables": [
+    {
+      "tableId": "8eca1be7b67e",
+      "tableName": "订单表",
+      "wholeNo": ".订单表",
+      "remark": "",
+      "columnCount": 5,
+      "rowCount": 2,
+      "columns": [
+        {
+          "index": 0,
+          "name": "MU类型",
+          "type": "String",
+          "format": "General",
+          "width": 84,
+          "indexColumn": false
+        },
+        {
+          "index": 1,
+          "name": "名称",
+          "type": "String",
+          "format": "General",
+          "width": 153,
+          "indexColumn": false
+        },
+        {
+          "index": 2,
+          "name": "数量",
+          "type": "Int",
+          "format": "General",
+          "width": 120,
+          "indexColumn": false
+        },
+        {
+          "index": 3,
+          "name": "创建时间",
+          "type": "Time",
+          "format": "dd:hh:mm:ss.SSS",
+          "width": 160,
+          "indexColumn": false
+        },
+        {
+          "index": 4,
+          "name": "优先级",
+          "type": "Int",
+          "format": "General",
+          "width": 100,
+          "indexColumn": false
+        }
+      ],
+      "rows": [
+        [
+          "PartA",
+          "汽车门锁总成A",
+          "80",
+          "0",
+          "0"
+        ],
+        [
+          "PartB",
+          "汽车门锁总成B",
+          "20",
+          "0",
+          "0"
+        ]
+      ]
+    },
+    {
+      "tableId": "9138d214d65e",
+      "tableName": "工站参数",
+      "wholeNo": ".工站参数",
+      "remark": "",
+      "columnCount": 9,
+      "rowCount": 7,
+      "columns": [
+        {
+          "index": 0,
+          "name": "工站",
+          "type": "String",
+          "format": "General",
+          "width": 100,
+          "indexColumn": false
+        },
+        {
+          "index": 1,
+          "name": "加工时长",
+          "type": "String",
+          "format": "General",
+          "width": 228,
+          "indexColumn": false
+        },
+        {
+          "index": 2,
+          "name": "加工合格率",
+          "type": "String",
+          "format": "General",
+          "width": 100,
+          "indexColumn": false
+        },
+        {
+          "index": 3,
+          "name": "MTBF",
+          "type": "String",
+          "format": "General",
+          "width": 100,
+          "indexColumn": false
+        },
+        {
+          "index": 4,
+          "name": "MTTR",
+          "type": "String",
+          "format": "General",
+          "width": 100,
+          "indexColumn": false
+        },
+        {
+          "index": 5,
+          "name": "换型",
+          "type": "String",
+          "format": "General",
+          "width": 100,
+          "indexColumn": false
+        },
+        {
+          "index": 6,
+          "name": "返修成功率",
+          "type": "String",
+          "format": "General",
+          "width": 100,
+          "indexColumn": false
+        },
+        {
+          "index": 7,
+          "name": "最多返修次",
+          "type": "String",
+          "format": "General",
+          "width": 100,
+          "indexColumn": false
+        },
+        {
+          "index": 8,
+          "name": "工人",
+          "type": "String",
+          "format": "General",
+          "width": 100,
+          "indexColumn": false
+        }
+      ],
+      "rows": [
+        [
+          ".预装",
+          "Triangular(40,45,50)",
+          "0.99",
+          "不适用",
+          "不适用",
+          "不适用",
+          "不适用",
+          "不适用",
+          "工人1"
+        ],
+        [
+          ".压装",
+          "Triangular(60,65,72)",
+          "不适用",
+          "7200",
+          "600",
+          "300",
+          "不适用",
+          "不适用",
+          "工人2"
+        ],
+        [
+          ".锁付1",
+          "Triangular(32,35,40)",
+          "0.995",
+          "不适用",
+          "不适用",
+          "不适用",
+          "不适用",
+          "不适用",
+          "工人3"
+        ],
+        [
+          ".锁付2",
+          "Triangular(32,35,40)",
+          "0.995",
+          "不适用",
+          "不适用",
+          "不适用",
+          "不适用",
+          "不适用",
+          "工人3"
+        ],
+        [
+          ".电检",
+          "Triangular(65,70,78)",
+          "0.95",
+          "不适用",
+          "不适用",
+          "不适用",
+          "不适用",
+          "不适用",
+          "工人4"
+        ],
+        [
+          ".包装",
+          "Triangular(36,40,45)",
+          "不适用",
+          "不适用",
+          "不适用",
+          "不适用",
+          "不适用",
+          "不适用",
+          "工人4"
+        ],
+        [
+          ".返修工位",
+          "Triangular(100,120,150)",
+          "不适用",
+          "不适用",
+          "不适用",
+          "不适用",
+          "0.90",
+          "1",
+          "工人5"
+        ]
+      ]
+    },
+    {
+      "tableId": "8a24b7d28089",
+      "tableName": "不良品记录表",
+      "wholeNo": ".不良品记录表",
+      "remark": "Out",
+      "columnCount": 5,
+      "rowCount": 18,
+      "columns": [
+        {
+          "index": 0,
+          "name": "MU编号",
+          "type": "String",
+          "format": "General",
+          "width": 75,
+          "indexColumn": false
+        },
+        {
+          "index": 1,
+          "name": "检测时间",
+          "type": "Time",
+          "format": "dd:hh:mm:ss.SSS",
+          "width": 179,
+          "indexColumn": false
+        },
+        {
+          "index": 2,
+          "name": "加工合计率",
+          "type": "double",
+          "format": "General",
+          "width": 75,
+          "indexColumn": false
+        },
+        {
+          "index": 3,
+          "name": "加工质量随机数",
+          "type": "double",
+          "format": "General",
+          "width": 224,
+          "indexColumn": false
+        },
+        {
+          "index": 4,
+          "name": "检验站",
+          "type": "String",
+          "format": "General",
+          "width": 75,
+          "indexColumn": false
+        }
+      ],
+      "rows": [
+        [
+          "1000006",
+          "48:40.493",
+          "0.95",
+          "0.9839332611759481",
+          ".电检"
+        ],
+        [
+          "1000009",
+          "54:10.718",
+          "0.95",
+          "0.9608330859226331",
+          ".电检"
+        ],
+        [
+          "1000018",
+          "1:13:42.089",
+          "0.95",
+          "0.9952906684597524",
+          ".电检"
+        ],
+        [
+          "1000028",
+          "1:32:35.744",
+          "0.95",
+          "0.9585777662984521",
+          ".电检"
+        ],
+        [
+          "1000067",
+          "3:0:56.783",
+          "0.95",
+          "0.966219510771312",
+          ".电检"
+        ],
+        [
+          "1000077",
+          "3:22:25.714",
+          "0.95",
+          "0.9813904424209212",
+          ".电检"
+        ],
+        [
+          "1000077",
+          "3:25:55.053",
+          "0.95",
+          "0.9621168485921084",
+          ".电检"
+        ],
+        [
+          "1000081",
+          "3:35:10.087",
+          "0.95",
+          "0.989885938676186",
+          ".电检"
+        ],
+        [
+          "1000103",
+          "4:51:15.709",
+          "0.95",
+          "0.9905912266541431",
+          ".电检"
+        ],
+        [
+          "1000121",
+          "5:37:23.706",
+          "0.95",
+          "0.9959583392896706",
+          ".电检"
+        ],
+        [
+          "1000126",
+          "5:47:14.148",
+          "0.95",
+          "0.9635888173821661",
+          ".电检"
+        ],
+        [
+          "1000147",
+          "6:30:23.304",
+          "0.95",
+          "0.9601289268256603",
+          ".电检"
+        ],
+        [
+          "1000156",
+          "6:49:38.077",
+          "0.95",
+          "0.9519641474721253",
+          ".电检"
+        ],
+        [
+          "1000159",
+          "6:55:37.851",
+          "0.95",
+          "0.9737964161836378",
+          ".电检"
+        ],
+        [
+          "1000165",
+          "7:8:27.625",
+          "0.95",
+          "0.9917270516743044",
+          ".电检"
+        ],
+        [
+          "1000199",
+          "8:29:47.941",
+          "0.95",
+          "0.9535895423555071",
+          ".电检"
+        ],
+        [
+          "1000202",
+          "8:41:9.328",
+          "0.95",
+          "0.9847126650417776",
+          ".电检"
+        ],
+        [
+          "1000204",
+          "8:46:25.655",
+          "0.95",
+          "0.986009299767029",
+          ".电检"
+        ]
+      ]
+    }
+  ],
+  "missingTables": []
+}    
+\end{verbatim}
+}
