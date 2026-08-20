@@ -1,0 +1,21 @@
+@startuml
+title 分页取位置快照用例时序图（当前时间）
+
+actor 用户 as USER
+participant "WEBUI\n(Vue3 页面\neventplayback)" as WEBUI
+participant "JsApi\n(fsSimApi.js /\nstore / mqttClient)" as JSApi
+participant "Controller\n(SimController)" as CTRL
+participant "Service\n(McpClientService)" as SVC
+participant "FS\n(MCP Server\n仿真引擎)" as FS
+
+USER -> WEBUI : 1. 点击"分页取位置快照\n(当前时间)"\n（doGetSnapshotNow）
+WEBUI -> JSApi : 2. 分页请求第 1 页\nfsSimGetObjectPositionSnapshotPage\n（{simTime:-1, snapshotId:"",\nentityKind:"ALL", offset:0, limit:200}）
+JSApi -> CTRL : 3. POST\ngetObjectPositionSnapshotPage
+CTRL -> SVC : 4. mcpClientService\n.getObjectPositionSnapshotPage(...)
+SVC -> FS : 5. MCP tools/call\ngetRemoteSimulationObjectPositionSnapshotPage
+FS --> SVC : 6. 返回分页快照\n（snapshotId、total、\nhasMore、nextOffset、objects）
+SVC --> CTRL : 7. 业务 JSON
+JSApi -> JSApi : 8. 循环拉取下一页\n（snapshotId 原样回传，\noffset=nextOffset，\n最多 20 页防失控）
+JSApi --> WEBUI : 9. pre 展示汇总\n（snapshotId、snapshotSimTime、\ntotal、returned、objects）
+
+@enduml

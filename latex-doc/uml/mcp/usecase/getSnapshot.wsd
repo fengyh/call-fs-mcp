@@ -1,0 +1,20 @@
+@startuml
+title 整体取位置快照用例时序图（指定时间）
+
+actor 用户 as USER
+participant "WEBUI\n(Vue3 页面\neventplayback)" as WEBUI
+participant "JsApi\n(fsSimApi.js /\nstore / mqttClient)" as JSApi
+participant "Controller\n(SimController)" as CTRL
+participant "Service\n(McpClientService)" as SVC
+participant "FS\n(MCP Server\n仿真引擎)" as FS
+
+USER -> WEBUI : 1. 点击"整体取位置快照\n(指定时间)"\n（doGetSnapshot）
+WEBUI -> JSApi : 2. fsSimGetObjectPositionSnapshot\n（{modelId, runId, layerId,\nsimTime: timeWindowCursor}）
+JSApi -> CTRL : 3. POST\ngetObjectPositionSnapshot
+CTRL -> SVC : 4. mcpClientService\n.getObjectPositionSnapshot(...)
+SVC -> FS : 5. MCP tools/call\ngetRemoteSimulationObjectPositionSnapshot
+FS --> SVC : 6. 返回该时刻对象位置快照\n（objects）
+SVC --> CTRL : 7. 业务 JSON
+JSApi --> WEBUI : 8. pre 展示快照\n（对象 ID/类型/位置等）
+
+@enduml

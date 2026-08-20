@@ -1,4 +1,5 @@
-\section{附录：参数表数据示例}\label{sec:appendix}
+\section{附录：参数表数据示例和Demo截图}\label{sec:appendix}
+\subsection{参数表数据示例}
 {\scriptsize
 \begin{verbatim}
 {
@@ -451,4 +452,147 @@
   "missingTables": []
 }    
 \end{verbatim}
+}\subsection{Demo程序的部分截图}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.9\textwidth]{pics/mcp/screen-model-lib.png}
+	\caption{模型库}\label{fig:screen-model-lib}
+\end{figure}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.9\textwidth]{pics/mcp/screen-param.png}
+	\caption{参数表数据}\label{fig:screen-param}
+\end{figure}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.9\textwidth]{pics/mcp/screen-sim-control.png}
+	\caption{仿真控制}\label{fig:screen-sim-control}
+\end{figure}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.9\textwidth]{pics/mcp/screen-sim-data-single.png}
+	\caption{历史数据单快照查看}\label{fig:screen-sim-data-single}
+\end{figure}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.9\textwidth]{pics/mcp/screen-sim-data-cmp-1.png}
+	\caption{历史数据横向对比-参数}\label{fig:screen-sim-data-cmp-1}
+\end{figure}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.9\textwidth]{pics/mcp/screen-sim-data-cmp-2.png}
+	\caption{历史数据横向对比-仿真结果}\label{fig:screen-sim-data-cmp-2}
+\end{figure}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.9\textwidth]{pics/mcp/screen-event-playback.png}
+	\caption{时间轴对象快照和事件回放}\label{fig:screen-event-playback}
+\end{figure}
+
+\section{附录：数据库相关表DDL}\label{appendix:database-ddl}
+\subsection{模型库}
+{\scriptsize
+\begin{verbatim}
+CREATE TABLE `fs_model_file` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '仿真模型名称',
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT '模型描述',
+  `engine_version` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '引擎版本',
+  `model_usage` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '模型用途',
+  `user_id` bigint DEFAULT NULL COMMENT '创建人ID',
+  `user_name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '创建人名称',
+  `image` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '预览图片路径/文件名',
+  `model` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '模型文件路径/文件名',
+  `model_company` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '模型所属公司',
+  `model_factory` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '所属工厂',
+  `model_warehouse` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '所属仓库',
+  `model_version` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '模型版本',
+  `share_flag` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '0' COMMENT '分享标注（见数据字典）',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '记录更新时间',
+  `sim_status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'SIM_STATUS_NOTYET' COMMENT '仿真状态',
+  `sim_times` int NOT NULL DEFAULT '0' COMMENT '仿真次数',
+  `model_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '模型ID（加载模型后生成）',
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_user_id` (`user_id`) USING BTREE,
+  KEY `idx_name` (`name`) USING BTREE,
+  KEY `idx_model_company` (`model_company`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=2090346294581600258 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='仿真模型文件表';    
+\end{verbatim}
 }
+
+\subsection{参数快照}
+{\scriptsize
+\begin{verbatim}
+CREATE TABLE `fs_sim_param_snapshot` (
+  `ID` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID，自增',
+  `MODEL_FILE_ID` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '模型库记录ID（对应 MCP recordId）',
+  `RUN_ID` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT 'ä»¿çœŸè¿è¡ŒIDï¼ŒNULL=å•ç‹¬è½åº“ï¼ŒéžNULL=ä¸Žç»“æžœå¿«ç…§æˆå¯¹è½åº“',
+  `SNAPSHOT_AT` bigint NOT NULL COMMENT '快照时间（毫秒时间戳）',
+  `PARAMETER_TABLES` json DEFAULT NULL COMMENT '参数表列表',
+  `MCP_ROWS` json DEFAULT NULL COMMENT 'MCP 表中的参数表信息',
+  `TABLES` json DEFAULT NULL COMMENT '各参数表内容（二维数组或对象数组）',
+  `MISSING_TABLES` json DEFAULT NULL COMMENT '缺失的参数表列表',
+  `CREATE_TIME` datetime DEFAULT NULL COMMENT '创建时间',
+  `UPDATE_TIME` datetime DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`ID`) USING BTREE,
+  KEY `IDX_FS_SIM_PARAM_SNAPSHOT_MODEL` (`MODEL_FILE_ID`) USING BTREE,
+  KEY `IDX_FS_SIM_PARAM_SNAPSHOT_AT` (`MODEL_FILE_ID`,`SNAPSHOT_AT`) USING BTREE,
+  KEY `IDX_FS_SIM_PARAM_SNAPSHOT_RUN` (`RUN_ID`)
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC COMMENT='仿真参数快照';    
+\end{verbatim}
+}
+
+\subsection{仿真结果数据快照}
+{\scriptsize
+\begin{verbatim}
+CREATE TABLE `fs_sim_result_snapshot` (
+  `ID` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID，自增',
+  `RUN_ID` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '仿真运行ID（MCP runId），唯一',
+  `MODEL_FILE_ID` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '模型库记录ID（MCP recordId）',
+  `MODEL_FILE_NAME` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '模型文件名',
+  `SIM_TIME` bigint DEFAULT NULL COMMENT '仿真总时长(毫秒)',
+  `STARTED_AT` bigint DEFAULT NULL COMMENT '仿真开始时间戳(毫秒)',
+  `FINISHED_AT` bigint DEFAULT NULL COMMENT '仿真结束时间戳(毫秒)',
+  `RESULT_STATUS` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '结果状态(READY等)',
+  `SNAPSHOT_AT` bigint DEFAULT NULL COMMENT '结果快照时间戳(毫秒)，落库/更新时间',
+  `SUMMARY_RESULTS` json DEFAULT NULL COMMENT '总览结果(taktTime/uph/utilRate/leanMetrics/energyAnalysis)',
+  `DATASETS` json DEFAULT NULL COMMENT '数据集元信息列表(名称/行数，不含数据)',
+  `PART_CYCLE_TIME_FILE` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT 'partCycleTime 数据文件名(大表落文件，相对路径)',
+  `CREATE_TIME` datetime DEFAULT NULL COMMENT '创建时间',
+  `UPDATE_TIME` datetime DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`ID`),
+  UNIQUE KEY `UK_FS_SIM_RESULT_SNAPSHOT_RUN` (`RUN_ID`),
+  KEY `IDX_FS_SIM_RESULT_SNAPSHOT_MODEL` (`MODEL_FILE_ID`,`SNAPSHOT_AT`)
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='仿真结果快照';    
+\end{verbatim}
+}
+
+\section{附录：CherryStudio辅助调试}\label{appendix:cherry-studio}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.9\textwidth]{pics/mcp/cherry-studio-1.png}
+	\caption{CherryStudio配置 FS MCP}\label{fig:cherry-studio-1}
+\end{figure}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.9\textwidth]{pics/mcp/cherry-studio-2.png}
+	\caption{查看MCP工具}\label{fig:cherry-studio-2}
+\end{figure}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.9\textwidth]{pics/mcp/cherry-studio-3.png}
+	\caption{自然语言提问，LLM自动调用MCP工具}\label{fig:cherry-studio-3}
+\end{figure}
+
+\section{附录：MQTTX辅助调试}\label{appendix:mqttx}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.9\textwidth]{pics/mcp/mqttx-1.png}
+	\caption{MQTTX连接配置}\label{fig:mqttx-1}
+\end{figure}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.9\textwidth]{pics/mcp/mqttx-2.png}
+	\caption{MQTTX订阅主题调试}\label{fig:mqttx-2}
+\end{figure}

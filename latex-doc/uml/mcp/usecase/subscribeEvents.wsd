@@ -1,0 +1,23 @@
+@startuml
+title 启动 MQTT 订阅实时事件用例时序图
+
+actor 用户 as USER
+participant "WEBUI\n(Vue3 页面\neventplayback)" as WEBUI
+participant "JsApi\n(fsSimApi.js /\nstore / mqttClient)" as JSApi
+participant "Controller\n(SimController)" as CTRL
+participant "Service\n(McpClientService)" as SVC
+participant "FS\n(MCP Server\n仿真引擎 / MQTT)" as FS
+
+USER -> WEBUI : 1. 点击"启动MQTT\n订阅实时事件"\n（toggleSubscribe）
+WEBUI -> JSApi : 2. 校验 runId 就绪\n（订阅前需已启动仿真）
+WEBUI -> JSApi : 3. fsSimSetEventPublishing\n（{modelId, enabled:true,\npublishIntervalMs:500}）
+JSApi -> CTRL : 4. POST\nsetEventPublishing
+CTRL -> SVC : 5. mcpClientService\n.setEventPublishing(...)
+SVC -> FS : 6. MCP tools/call\nsetRemoteSimulationEventPublishing
+FS --> SVC : 7. FS 开始发布 events\n（返回 eventTopic）
+SVC --> CTRL : 8. 业务 JSON
+JSApi -> JSApi : 9. 自建 MQTT 连接\n订阅 factory/sim/{userId}/\n{modelId}/events
+FS -->> JSApi : 10. MQTT events 消息\n（经内置 Broker）
+JSApi -> JSApi : 11. 按 runId 过滤后\nmyModel.addEvent\n（最多 100 条）
+
+@enduml

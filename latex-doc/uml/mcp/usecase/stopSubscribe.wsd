@@ -1,0 +1,20 @@
+@startuml
+title 停止 MQTT 订阅实时事件用例时序图
+
+actor 用户 as USER
+participant "WEBUI\n(Vue3 页面\neventplayback)" as WEBUI
+participant "JsApi\n(fsSimApi.js /\nstore / mqttClient)" as JSApi
+participant "Controller\n(SimController)" as CTRL
+participant "Service\n(McpClientService)" as SVC
+participant "FS\n(MCP Server\n仿真引擎 / MQTT)" as FS
+
+USER -> WEBUI : 1. 点击"停止MQTT\n订阅实时事件"\n（toggleSubscribe →\nstopSubscribe）
+WEBUI -> JSApi : 2. fsSimSetEventPublishing\n（{modelId, enabled:false}）
+JSApi -> CTRL : 3. POST\nsetEventPublishing
+CTRL -> SVC : 4. mcpClientService\n.setEventPublishing(...)
+SVC -> FS : 5. MCP tools/call\nsetRemoteSimulationEventPublishing
+FS --> SVC : 6. FS 停止发布 events
+SVC --> CTRL : 7. 业务 JSON
+JSApi -> JSApi : 8. 断开 MQTT 连接\n（mqttClient.end）
+
+@enduml

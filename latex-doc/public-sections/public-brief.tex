@@ -126,8 +126,8 @@ RUNNING / PAUSED -> STOPPED -> LOADED (reset 后)
 	\begin{itemize}
 		\item 拉取 \href{https://gitee.com/xiaonuobase/snowy}{snowy 框架代码}，创建业务插件模块 \texttt{snowy-plugin-fscloud}，并在 \texttt{snowy-web-app} 中引入该模块依赖\footnote{\bf{创建业务插件模块并在webApp中引入}：创建独立的业务插件模块，便于代码组织和复用。方法见\href{https://xiaonuo.vip/doc?catalogueId=1574674577108783105&menuId=1574678028987420674&lineIndex=1}{框架后端开发的“插件规范”}}。
 		\item 准备 MySQL 8.0 数据库（本项目约定库名 \texttt{fp\_mysql}）与 Redis，导入框架初始化脚本创建数据库表。\\框架初始化脚本位于：\texttt{snowy-web-app/src/main/resources/\_sql/snowy\_mysql.sql}。
-        \item 按xx章节(todo)的所述，创建3个表，用于持久化模型库、仿真参数快照和仿真结果快照。
-		\item 运行 FS 仿真引擎（\texttt{fs-mcp} 版，可作桌面端也可作服务端），确认 MCP 端点可用\footnote{\bf{确认 MCP 端点可用}: 使用Cherry Studio或Reasonix等工具添加MCP(`http://127.0.0.1:8081/mcp`)，看是否可以浏览到CP工具。}、确认 MQTT Broker（FS 内置）正常工作\footnote{\bf{确认MQTT Broker正常工作}: 使用MQTTX辅助工具，看是否可以正常建立连接，具体操作见xx（todo: 附录截图）}。
+        \item 按\ref{appendix:database-ddl}章节所述DDL，创建3个表，用于持久化模型库、仿真参数快照和仿真结果快照。
+		\item 运行 FS 仿真引擎（\texttt{fs-mcp} 版，可作桌面端也可作服务端），确认 MCP 端点可用\footnote{\bf{确认 MCP 端点可用}: 使用Cherry Studio或Reasonix等工具添加MCP(`http://127.0.0.1:8081/mcp`)，看是否可以浏览到CP工具。具体操作见附录“CherryStudio辅助调试”\ref{appendix:cherry-studio}}、确认 MQTT Broker（FS 内置）正常工作\footnote{\bf{确认MQTT Broker正常工作}: 使用MQTTX辅助工具，看是否可以正常建立连接，具体操作见附录“MQTTX辅助调试”\ref{appendix:mqttx}}。
 	\end{itemize}
 	\item \bf{配置 MCP 连接参数}
 	通过 \texttt{@ConfigurationProperties} 定义 \texttt{McpProperties}\footnote{\bf{McpProperties位于}: snowy-plugin/snowy-plugin-fscloud/src/main/java/vip/xiaonuo/fscloud/config/McpProperties.java}，读取配置项 \texttt{fscloud.mcp.endpoint-url}（默认 \texttt{http://127.0.0.1:8081/mcp}）与 \texttt{fscloud.mcp.api-key}，生产环境可在 \texttt{application-prod.properties\footnote{\bf{生产环境配置文件位于}:snowy-web-app/src/main/resources/application-prod.properties}} 中覆盖。API Key 属于敏感信息，\bf{不应下发给前端}。

@@ -1,0 +1,21 @@
+@startuml
+title 步进播放用例时序图（+10s）
+
+actor 用户 as USER
+participant "WEBUI\n(Vue3 页面\neventplayback)" as WEBUI
+participant "JsApi\n(fsSimApi.js /\nstore / mqttClient)" as JSApi
+participant "Controller\n(SimController)" as CTRL
+participant "Service\n(McpClientService)" as SVC
+participant "FS\n(MCP Server\n仿真引擎)" as FS
+
+USER -> WEBUI : 1. 点击"步进播放(+10s)"\n（doStepForward）
+WEBUI -> JSApi : 2. fsSimGetSimulationEvents\n（{modelId, runId,\nstartSimTime: timeWindowCursor,\nduration: 10000}）
+JSApi -> CTRL : 3. POST\ngetSimulationEvents
+CTRL -> SVC : 4. mcpClientService\n.getSimulationEvents(...)
+SVC -> FS : 5. MCP tools/call\ngetRemoteSimulationEvents
+FS --> SVC : 6. 返回 10 秒窗口内\n仿真事件（events）
+SVC --> CTRL : 7. 业务 JSON
+JSApi --> WEBUI : 8. pre 展示事件
+JSApi -> JSApi : 9. timeWindowCursor\n+= 10000
+
+@enduml
