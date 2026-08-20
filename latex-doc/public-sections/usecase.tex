@@ -347,12 +347,17 @@
 	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/singleModeView/singleModeView.latex}}
 	\caption{单快照模式查看结果用例时序图}\label{fig:singleModeView}
 \end{figure*}
-\bf{触发条件}：用户在仿真数据页选择"单快照模式"（\texttt{radio: single}）并选择查看对象（当前仿真结果或某条历史快照）即触发本用例。时序图中各序号消息说明如下：
+\bf{触发条件}：用户在仿真数据页选择"单快照模式"（\texttt{radio: single}）并选择查看对象（当前仿真结果或某条历史快照）即触发本用例。时序图中各序号消息说明如下（序号 3--9 为\it{查看当前结果}与\it{查看历史快照}两条互斥路径）：
 \begin{enumerate}[label=\arabic*)]
 	\item 用户选择"单快照模式"（\texttt{mode='single'}）；
 	\item 用户选择查看对象：\it{当前结果}或\it{历史快照}；
-	\item（当前结果）WEBUI 调用 \texttt{fsSimGetResultSnapshot(\{modelId, runId\})}，经后端 MCP 获取结果摘要；
-	\item（历史快照）WEBUI 调用 \texttt{fsSimGetResultSnapshotById(\{id\})}，后端查数据库 \texttt{fs\_sim\_result\_snapshot} 返回快照；
+	\item 获取结果数据：\it{当前路径}调 \texttt{fsSimGetResultSnapshot}；\it{历史路径}调 \texttt{fsSimGetResultSnapshotById}。
+	\item 后端接口：\it{当前路径}\texttt{POST /fscloud/sim/getResultSnapshot}；\it{历史路径}\texttt{POST /fscloud/sim/getResultSnapshotById}；
+	\item 数据获取：\it{当前路径}经 MCP \texttt{getRemoteSimulationResultSnapshot} 取结果摘要；\it{历史路径}Service 查数据库快照；
+	\item 返回数据：\it{当前路径}返回业务 JSON；\it{历史路径}\texttt{SELECT fs\_sim\_result\_snapshot} 返回快照；
+	\item 返回结果：\it{当前路径}Controller 返回结果快照；\it{历史路径}Service 返回快照数据；
+	\item（历史路径独有）Controller 返回历史快照给前端；
+	\item（历史路径独有）JsApi 收到历史快照数据；
 	\item JsApi 中的 \texttt{store} 保存 \texttt{resultSnapshot} 并同步 \texttt{runId}；
 	\item WEBUI 以结果 a-tabs 展示（总览/基础/精益/能耗分组，dataset 按 \texttt{TableTitleKeyMap} 配置显示）；
 	\item JsApi 按当前 dataset 分页拉取明细（\texttt{loadDataset}，DB 快照走 \texttt{getResultDatasetPageInDb}）；
@@ -365,17 +370,28 @@
 	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/compareMode/compareMode.latex}}
 	\caption{横向对比模式分析结果用例时序图}\label{fig:compareMode}
 \end{figure*}
-\bf{触发条件}：用户在仿真数据页选择"横向对比模式"（\texttt{radio: compare}）并勾选\it{两个快照}（第 1 个为主体、第 2 个为对照）后自动触发对比分析。\bf{说明}：\it{参数快照与结果快照是成对出现的}——保存结果快照时两者成对落库，对比分析时按快照成对取出参数与结果。前端处理是本用例重点：\texttt{loadCompareBoth} 一次构建参数对照与结果对照两页，切换二级页仅显示切换、零请求；对照数据缓存于 \texttt{compareRowsCache}。时序图中各序号消息说明如下：
+\bf{触发条件}：用户在仿真数据页选择"横向对比模式"（\texttt{radio: compare}）并勾选\it{两个快照}（第 1 个为主体、第 2 个为对照）后自动触发对比分析。\bf{说明}：\it{参数快照与结果快照是成对出现的}——保存结果快照时两者成对落库，对比分析时按快照成对取出参数与结果。前端处理是本用例重点：\texttt{loadCompareBoth} 一次构建参数对照与结果对照两页，切换二级页仅显示切换、零请求；对照数据缓存于 \texttt{compareRowsCache}。时序图中各序号消息说明如下（序号 5--8 为\it{主体=当前}与\it{主体=历史}两条互斥路径，序号 14--17 为\it{参数来源=当前}与\it{参数来源=历史}两条互斥路径）：
 \begin{enumerate}[label=\arabic*)]
 	\item 用户选择"横向对比模式"（\texttt{mode='compare'}）；
 	\item 用户勾选两个快照（第 1 个为主体、第 2 个为对照），勾满后调用 \texttt{loadCompareBoth()}；
 	\item \texttt{loadCompareBoth} 先加载结果侧：主体快照数据（当前 $\rightarrow$ MCP 获取；历史 $\rightarrow$ 数据库 \texttt{getResultSnapshotById}）；
 	\item 结果侧再取对照快照的元信息（\texttt{compareRefMeta}，经 \texttt{getResultSnapshotById}）；
+	\item 主体加载请求：\it{主体=当前}调 \texttt{getResultSnapshot}；\it{主体=历史}调 \texttt{getResultSnapshotById}。
+	\item 主体数据获取：\it{主体=当前}经 MCP \texttt{getRemoteSimulationResultSnapshot} 取结果；\it{主体=历史}Service 查数据库快照；
+	\item（历史路径独有）\texttt{SELECT} 结果快照，返回给 Service；
+	\item（历史路径独有）Service 将结果快照返回给 Controller；
+	\item 结果侧取对照快照元信息（\texttt{getResultSnapshotById(refId)}）；
+	\item 查数据库对照快照（\texttt{getResultSnapshotById} 后端查库）；
+	\item \texttt{SELECT} 对照结果快照；
+	\item 返回对照元信息（\texttt{compareRefMeta}）；
 	\item \it{参数侧}：\texttt{loadParamCompare} 用 \texttt{Promise.all} \it{并行}取两个快照的\it{成对参数表}（主体 \texttt{paramMainTables}、对照 \texttt{paramRefTables}）；
-	\item 参数表来源：当前快照 $\rightarrow$ MCP \texttt{getRemoteSimulationParameterSnapshot}；历史快照 $\rightarrow$ 数据库成对参数快照（\texttt{getSnapshot}）；
+	\item 参数表来源请求：\it{参数=当前}调 \texttt{getParameterSnapshot}；\it{参数=历史}调 \texttt{getSnapshot}（成对参数快照）。
+	\item（历史参数独有）查数据库参数快照（\texttt{getSnapshot} 后端查库）；
+	\item（历史参数独有）\texttt{SELECT} 参数快照；
+	\item（历史参数独有）返回参数快照；
 	\item 前端保存两页数据：结果侧 \texttt{compareRowsCache}、参数侧 \texttt{paramMainTables}/\texttt{paramRefTables}；
 	\item WEBUI 展示二级 tabs：\it{参数对照}（默认）/\it{结果对照}，切换仅显示切换、数据不重新请求；
 	\item 结果对照页按 dataset 展示主体数据，对照数据由 \texttt{ensureCompareRows} 懒加载：分页调用 \texttt{getResultDatasetPageInDb}（\texttt{limit=1000}，上限 500 页防失控）拉取对照快照该 dataset 全量并缓存；
 	\item 表格按 \texttt{compareKey}（如 \texttt{objectName}）对齐，并排展示两快照的同字段数值，便于横向分析；
-	\item \bf{注意}：\texttt{compareKey} 为空串的 dataset 不做横向对比，对比模式下只显示主体快照；当前仿真行可作主体（第 1 个），但不能作对照（第 2 个）。
 \end{enumerate}
+\tips{注意}：\texttt{compareKey} 为空串的 dataset 不做横向对比，对比模式下只显示主体快照；当前仿真行可作主体（第 1 个），但不能作对照（第 2 个）。
