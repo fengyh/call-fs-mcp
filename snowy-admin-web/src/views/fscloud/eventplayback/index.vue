@@ -27,7 +27,7 @@
 		<!-- 1) 时间轴 slider：0 ~ 总仿真时长，timeWindowCursor 保存当前位置对应的时间点 -->
 		<a-card size="small" class="slider-card">
 			<div class="cursor-label">
-				时间轴光标 timeWindowCursor：<b>{{ formatDuration(timeWindowCursor) }}</b> <span class="ml-8">(</span><b class="text-red-600">注意：FS引擎只保留5分钟左右的对象位置快照</b><span>)</span>
+				时间轴光标 timeWindowCursor：<b>{{ formatDuration(timeWindowCursor) }}</b> <span class="ml-8">(</span><b class="text-red-600">注意：FS引擎只保留当前时间之前一定时间的对象位置快照</b><span>)</span>
 			</div>
 			<a-slider
 				:min="0"

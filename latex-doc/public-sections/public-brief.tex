@@ -156,7 +156,7 @@ return callTool("startRemoteSimulation", args);
 	\begin{itemize}
 		\item 数据库建表 \texttt{fs\_model\_file}，保存模型元数据（名称、引擎版本、文件路径、\texttt{sim\_status}、\texttt{model\_id} 等），对应实体 \texttt{FsModelFile} 与 Service/Impl。
 		\item 后端支持 \texttt{fs-cloud-plugin} 建模器插件\footnote{\bf{建模器插件}: 通过plugin\secref{appendix:plugin}上传模型只是可选的方法之一，它的好处是可以在fs建模器中调试好模型之后直接上传到云平台，并能同时上传模型截图作为封面。云平台也可以采用在浏览器上传.fs模型文件的方法建立模型库的方法。} 的登录，提供模型上传接口 \texttt{POST /fscloud/modelfile/upload}：文件落盘到静态目录，\texttt{.zfs} 压缩包解压，随后把元数据写入 \texttt{fs\_model\_file} 完成“上传、落盘、落库”。
-		\item 开发前端模型库页面，展示模型列表，提供上传、加载、卸载操作。
+		\item 开发前端模型库页面，展示模型列表，提供下载、补充分类、删除、仿真等操作。
 	\end{itemize}
 	\item \bf{开发仿真控制后端接口（SimController）}\label{sec:brief-step5}
 	开发 \texttt{SimController}，对外暴露 \texttt{/fscloud/sim/*} 形式的 REST 接口（如 \texttt{loadModel}、\texttt{runModel}、\texttt{pauseModel}、\texttt{resumeModel}、\texttt{stopModel}、\texttt{resetModel}、\texttt{unloadModel}、\texttt{getLoadedModel}、\texttt{getResultSnapshot}、\texttt{getResultDatasetPage}、\texttt{getObjectPositionSnapshot}（对象位置快照）、\texttt{getSimulationEvents}（时间窗仿真事件）、参数表与动画相关接口），每个接口：
@@ -210,7 +210,7 @@ return callTool("startRemoteSimulation", args);
             \item 标准结果：仿真平台共性的统计和报告相关的数据，如设备利用率、每小时产量等。这部分的数据可在Demo程序的"仿真服务"-""历史数据""。
             \item 模型自定义结果: WebApp通常不会针对每个场景（模型）去深度挖掘特定的仿真输出数据，此时，可以由模型设计人员将需要的数据登记到存放结果的Table组件中，并将这些Table组件添加到\it{MCP表}的第一列，第二列填\it{Out}（或其它与WebApp约定的标识）。在WebApp中读取参数时，会将这些结果Table和参数Table一起读出，前端按\it{Out}标识将这些结果数据显示在适当的位置。
         \end{itemize}
-        \item \it{历史数据处理}
+        \item \it{历史数据处理}，包括参数快照、结果快照的读取、对比分析、删除等。通常可使用表格、折线图、直方图等展示方法进行查看和对比分析。本文重点是接口的使用，Demo中只演示了用表格对参数快照-结果快照的查看和横向对比，可参照这两个用例时序图：\it{单快照模式查看结果}\secref{sec:singleSnapshotView}、\it{横向对比模式分析结果}\secref{sec:resultAnalysis}。
     \end{itemize}
     \item \bf{时间轴数据分析（事件回放）}\label{sec:brief-step9}
 	利用\it{对象位置快照}(建议使用\bf{分页版}以便能适配大模型)、\it{仿真事件}两个 MCP 工具和 \texttt{objects} 实时对象订阅、\texttt{events}实时事件订阅，可以按仿真时间轴对仿真过程进行准实时（或回放）动画渲染开发数字孪生应用系统：
@@ -222,6 +222,7 @@ return callTool("startRemoteSimulation", args);
 			\item \texttt{getSimulationEvents} $\rightarrow$ \texttt{getRemoteSimulationEvents}（参数：\texttt{runId}、\texttt{startSimTime}、\texttt{duration}、\texttt{offset}、\texttt{limit}）；
 			\item \texttt{setEventPublishing} $\rightarrow$ \texttt{setRemoteSimulationEventPublishing}（参数：\texttt{enabled}、\texttt{publishIntervalMs}，控制 FS 是否向 \texttt{events} 主题发布事件消息）。
 		\end{itemize}
+        \tips{两个位置快照工具的选择}：FS通常提供了两个工具用于取仿真中某个时刻的对象位置快照, WebApp应用中，只需实现一个就可以。getObjectPositionSnapshotPage使用稍复杂，但适合应模型较大、MU比较多的场景，推荐使用。本Demo中，两种方法都写了示例，可参考：\it{整体取位置快照（指定时间）}\secref{sec:getSnapshot}、\it{分页取位置快照（当前时间）}\secref{sec:getSnapshotPage}, 两种方法的simTime参数都可以使用当前时间（-1）或指定时间(一个毫秒时间)。\par
 		前端在 \texttt{fsSimApi.js} 中封装对应 API；
 		\item 开发事件回放页（\texttt{eventplayback/index.vue}）：用 \texttt{a-slider} 展示从 0 至总仿真时长的时间轴，用变量 \texttt{timeWindowCursor} 保存当前光标对应的时间点（仿真毫秒）并显示在 slider 上方；\bf{注意}：FS 引擎只保留约 5 分钟的对象位置快照，超出该时间范围的历史快照查询不到；
 		\item 整体取位置快照（指定时间）：按光标位置调用 \texttt{getRemoteSimulationObjectPositionSnapshot}，获取该时刻的对象位置快照（对象 ID、类型、所在层、容器、相对位置等），用于还原仿真画面；

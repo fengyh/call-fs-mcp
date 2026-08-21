@@ -341,7 +341,7 @@
 	\item WEBUI 提示"结果快照保存成功（参数+结果成对落库）"。
 \end{enumerate}
 \newpage
-\subsection{单快照模式查看结果}
+\subsection{单快照模式查看结果}\label{sec:singleSnapshotView}
 \begin{figure*}[!h]
 	\centering
 	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/singleModeView/singleModeView.latex}}
@@ -364,7 +364,7 @@
 	\item WEBUI 表格展示明细；不需要的项可在 \texttt{TableTitleKeyMap.js} 中设 \texttt{show:false} 隐藏。
 \end{enumerate}
 \newpage
-\subsection{横向对比模式分析结果}
+\subsection{横向对比模式分析结果}\label{sec:resultAnalysis}
 \begin{figure*}[!h]
 	\centering
 	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/compareMode/compareMode.latex}}
@@ -396,7 +396,7 @@
 \end{enumerate}
 \tips{注意}：\texttt{compareKey} 为空串的 dataset 不做横向对比，对比模式下只显示主体快照；当前仿真行可作主体（第 1 个），但不能作对照（第 2 个）。
 \newpage
-\subsection{整体取位置快照（指定时间）}
+\subsection{整体取位置快照（指定时间）}\label{sec:getSnapshot}
 \begin{figure*}[!h]
 	\centering
 	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/getSnapshot/getSnapshot.latex}}
@@ -414,7 +414,7 @@
 	\item WEBUI 用 \texttt{pre} 展示快照（对象 ID、类型、层、容器、相对位置等）。
 \end{enumerate}
 \newpage
-\subsection{分页取位置快照（当前时间）}
+\subsection{分页取位置快照（当前时间）}\label{sec:getSnapshotPage}
 \begin{figure*}[!h]
 	\centering
 	\resizebox{1.0\linewidth}{!}{\input{out/uml/mcp/usecase/getSnapshotPage/getSnapshotPage.latex}}
