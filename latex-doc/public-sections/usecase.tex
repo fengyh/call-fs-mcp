@@ -21,7 +21,7 @@
 	\item Controller 通过 Service 回写数据库（保存 \texttt{modelId}、\texttt{sim\_status=SIM\_STATUS\_WAITING}）；
 	\item Service 更新 \texttt{fs\_model\_file} 表（\texttt{UPDATE}）；
 	\item Controller 向前端返回 \texttt{LoadModelDto}（\texttt{modelId}、\texttt{recordId}、\texttt{status}、\texttt{message} 等）；
-	\item WEBUI 修改模型库对应模型的状态，并跳转到仿真控制页，展示已加载模型信息（模型状态卡片），用户可在次启动仿真。
+	\item WEBUI 修改模型库对应模型的状态，并跳转到仿真控制页，展示已加载模型信息（模型状态卡片），用户可在此启动仿真。
 \end{enumerate}
 \newpage
 \subsection{启动仿真}

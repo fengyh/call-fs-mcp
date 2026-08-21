@@ -1,5 +1,5 @@
 \section{以 "call-fs-mcp" Demo 为例介绍系统架构}
-\bf{"call-fs-mcp"} 是一个基于 snowy 框架开发的 Demo 工程，用于演示\it{如何通过 MCP 接口将 Web 应用（WEBAPP）与 FS 仿真引擎集成}：前端页面发起仿真控制操作，后端通过 MCP \texttt{tools/call} 调用 FS 仿真引擎能力，仿真运行状态与动画通过 MQTT 实时回传，从而完成"模型加载 $\rightarrow$ 仿真运行 $\rightarrow$ 结果获取 $\rightarrow$ 动画展示"的完整闭环。本章以该 Demo 为例介绍系统逻辑架构、各模块功能与交互关系。
+\bf{"call-fs-mcp"} 是一个基于 snowy 框架开发的 Demo 工程，用于演示\it{如何通过 MCP 接口将 Web 应用（WebApp）与 FS 仿真引擎集成}：前端页面发起仿真控制操作，后端通过 MCP \texttt{tools/call} 调用 FS 仿真引擎能力，仿真运行状态与动画通过 MQTT 实时回传，从而完成"模型加载 $\rightarrow$ 仿真运行 $\rightarrow$ 结果获取 $\rightarrow$ 动画展示"的完整闭环。本章以该 Demo 为例介绍系统逻辑架构、各模块功能与交互关系。
 
 \subsection{系统逻辑架构}
 系统逻辑架构如图\ref{fig:mcp-architecture}所示（\bf{各层之间通过标准接口解耦}）：

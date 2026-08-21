@@ -1,7 +1,7 @@
 \section{简介}
-本文档以 \bf{MCP（Model Context Protocol）}接口的使用为核心，介绍在 \bf{snowy} 快速开发框架的基础上，开发 \bf{Web 应用程序（WEBAPP）}与 \bf{FactorySimulation（FS）}仿真引擎集成的总体方法、开发步骤和重点事项。文档面向的读者是：需要在 snowy 框架上开发 FS 仿真控制功能的云端后端工程师、前端工程师以及测试人员。
+本文档以 \bf{MCP（Model Context Protocol）}接口的使用为核心，介绍在 \bf{snowy} 快速开发框架的基础上，开发 \bf{Web 应用程序（WebApp）}与 \bf{FactorySimulation（FS）}仿真引擎集成的总体方法、开发步骤和重点事项。文档面向的读者是：需要在B/S架构的WebApp上集成 FS 仿真控制功能的后端工程师、前端工程师以及测试人员，以及想要将 FS 作为数据源驱动数字孪生的开发人员。
 
-FS 仿真引擎通过内置的 MCP Server 对外提供模型加载、仿真运行控制、状态与结果查询、参数表读写、动画画面获取等能力。WEBAPP 不需要直接操作仿真引擎的内部 API，只需按照 MCP 协议以 \bf{HTTP JSON-RPC 2.0} 的方式调用 MCP 工具，即可完成一次仿真任务的完整生命周期管理。
+FS 仿真引擎通过内置的 MCP Server 对外提供模型加载、仿真运行控制、状态与结果查询、参数表读写、动画画面获取等能力。WebApp 不需要直接操作仿真引擎的内部 API，只需按照 MCP 协议以 \bf{HTTP JSON-RPC 2.0} 的方式调用 MCP 工具，即可完成一次仿真任务的完整生命周期管理。
 
 本文的总体调用链如下：
 \begin{lstlisting}
@@ -16,7 +16,7 @@ FS 仿真引擎 MCP Server  (默认 http://127.0.0.1:8081/mcp)
    v
 FactorySimulation 仿真模型实例
 \end{lstlisting}\vspace{-30pt}
-\par 仿真引擎运行期间的状态、进度、控制台日志以及浏览器动画帧，通过 \bf{MQTT} 实时消息通道推送给后端和前端，与 MCP 的请求-响应式调用形成互补，共同构成 WEBAPP 与 FS 集成的完整数据通路。
+\par 仿真引擎运行期间的状态、进度、控制台日志以及浏览器动画帧，通过 \bf{MQTT} 实时消息通道推送给后端和前端（pub/sub方式），与 MCP 的请求-响应式调用（request/response）形成互补，共同构成 WebApp 与 FS 集成的完整数据通路。
 
 \subsection{MCP 介绍}
 \bf{MCP（Model Context Protocol，模型上下文协议）}是由 Anthropic 于 2024 年底提出并开源的开放标准协议，用于标准化\it{应用程序/大语言模型}与\it{外部数据源、工具}之间的交互方式。它解决了传统上每个应用都要为每种外部能力单独实现一套对接协议的问题，把\it{能力暴露}与\it{能力调用}统一为一种标准形态。
@@ -35,7 +35,7 @@ MCP 定义了三种能力原语：
 \end{enumerate}
 MCP 支持多种传输方式：\it{stdio}（本地子进程通信）、\it{HTTP}（基于 JSON-RPC 2.0 的 Streamable HTTP）、\it{SSE}（Server-Sent Events）等。本文使用的 FS 仿真控制接口采用\bf{HTTP JSON-RPC 2.0} 传输方式。
 
-需要特别说明的是：\bf{MCP 并不只服务于 AI 助手场景}。它本质上是“结构化工具调用”的标准协议。在本文的集成方案中，MCP Server 就是 FS 仿真引擎的能力网关，云端后端把它当作一个普通的远程服务调用即可，不涉及任何大语言模型（LLM）。这样 WEBAPP 获得了三个好处：一是\it{工具定义标准化}，通过 \texttt{tools/list} 即可发现仿真引擎的全部能力及参数；二是\it{调用格式统一}，所有仿真操作都走同一种 JSON-RPC 请求/响应结构；三是\it{职责清晰}，仿真引擎的复杂内部逻辑被隔离在 MCP Server 内部，WEBAPP 无需关心。
+需要特别说明的是：\bf{MCP 并不只服务于 AI 助手场景}。它本质上是“结构化工具调用”的标准协议。在本文的集成方案中，MCP Server 就是 FS 仿真引擎的能力网关，云端后端把它当作一个普通的远程服务调用即可，不涉及任何大语言模型（LLM）。这样 WebApp 获得了三个好处：一是\it{工具定义标准化}，通过 \texttt{tools/list} 即可发现仿真引擎的全部能力及参数；二是\it{调用格式统一}，所有仿真操作都走同一种 JSON-RPC 请求/响应结构；三是\it{职责清晰}，仿真引擎的复杂内部逻辑被隔离在 MCP Server 内部，WebApp 无需关心。
 
 \subsection{FS 仿真控制 MCP 接口介绍}
 \bf{FactorySimulation（FS）}是面向工厂物流与生产系统的仿真引擎。FS 的 MCP Server 运行在仿真引擎进程中，默认端点地址为 \texttt{http://127.0.0.1:8081/mcp}（生产环境可按部署修改），鉴权方式为请求头 \texttt{X-API-Key}，请求体为 JSON-RPC 2.0 格式。会话初始化先发送 \texttt{initialize}，再发送 \texttt{notifications/initialized}，之后通过 \texttt{tools/list} 查询工具清单、通过 \texttt{tools/call} 调用具体工具。
@@ -88,7 +88,7 @@ FS 仿真控制 MCP 接口按功能分为以下七类：
     \item\texttt{DATASET\_NOT\_FOUND} (数据集不存在)
     \item\texttt{INTERNAL\_ERROR} (内部错误)
 \end{itemize}
-    WEBAPP 后端解析出该 JSON 后，应将 \texttt{success/code/message/data} 原样（或按公司统一响应格式转换后）返回给前端。
+    WebApp 后端解析出该 JSON 后，应将 \texttt{success/code/message/data} 原样（或按公司统一响应格式转换后）返回给前端。
 
 \subsubsection{模型状态机}
 FS 远程仿真模型的状态取值及常见流转如下：
@@ -118,8 +118,8 @@ RUNNING / PAUSED -> STOPPED -> LOADED (reset 后)
 \end{itemize}
 其中动画帧是 Qos 0\footnote{\bf{Qos 0}: 即最多只发送一次，不保证消息一定会送达, MQTT客户端未订阅就错过了。}、非 Retain 的二进制消息，不能按 UTF-8/JSON 解析；一般WEB应用开发中，状态通常需要双端(即前端和后端)订阅\footnote{\bf{双端订阅}：前端和后端同时订阅，WEB应用在多租户场景时，会有同时多个模型加载、多个模型在仿真的情况，前端显示模型库时希望看到哪些模型被其它用户加载和仿真。因此后端需要订阅这些状态消息，在内存中进行当前加载模型的状态维护，并落库备查。}，进度、控制台消息由前端订阅，动画帧由前端通过 WebSocket 桥接订阅。
 
-\subsection{基于snowy框架开发与FS仿真集成的WEBAP的步骤}
-\bf{snowy} 是国内开源的前后端分离快速开发平台，采用 SpringBoot 3 + MyBatis-Plus + Sa-Token + AntDesignVue 3 + Vite 等技术栈，提供代码生成、权限管理（含 Sa-Token 鉴权）、国密加密等开箱即用的能力。FS 集成业务放在独立的业务插件模块 \texttt{snowy-plugin-fscloud} 中实现，WEBAPP 的启动模块 \texttt{snowy-web-app} 只负责启动与数据库/Web 配置。总体开发步骤如下：
+\subsection{基于snowy框架开发与FS仿真集成的WebApp的步骤}
+\bf{snowy} 是国内开源的前后端分离快速开发平台，采用 SpringBoot 3 + MyBatis-Plus + Sa-Token + AntDesignVue 3 + Vite 等技术栈，提供代码生成、权限管理（含 Sa-Token 鉴权）、国密加密等开箱即用的能力。FS 集成业务放在独立的业务插件模块 \texttt{snowy-plugin-fscloud} 中实现，WebApp 的启动模块 \texttt{snowy-web-app} 只负责启动与数据库/Web 配置。总体开发步骤如下：
 
 \begin{enumerate}[label=\arabic*)]
 	\item \bf{工程搭建与环境准备}\label{sec:brief-step1}
