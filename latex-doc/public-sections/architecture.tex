@@ -58,7 +58,7 @@
 	\item \bf{实时数据流（FS $\rightarrow$ MQTT Broker $\rightarrow$ 后端/前端）}：仿真运行期间，FS 引擎把 \texttt{status/progress/console} 和 \texttt{animation/*} 消息发布到内置 MQTT Broker；\it{后端与前端各自独立订阅、二者没有 MQTT 联系}。
 	\item \bf{订阅主题}：后端 \texttt{MqttClientService}（Paho TCP）订阅 \texttt{factory/sim/+/+/+}（\it{所有用户所有模型}）并同步状态到数据库。
 	\item \bf{前端订阅}：前端（WebSocket + mqtt.js）订阅 \texttt{factory/sim/\{userId\}/\{modelId\}/\#}（\it{当前用户当前模型}），接收动画帧与结构化对象帧用于展示。
-	\item \bf{模型数据流（FS-Cloud-Plugin $\rightarrow$ 后端 $\rightarrow$ 数据库）}：FS 建模器通过 FS-Cloud-Plugin 登录后端并上传 \texttt{.fs} 模型文件，后端落盘后写入 \texttt{fs\_model\_file}，形成模型库；仿真控制时后端按记录拼出模型文件绝对路径传给 \texttt{loadRemoteSimulationModel}。
+	\item \bf{模型数据流（FS-Cloud-Plugin $\rightarrow$ 后端 $\rightarrow$ 数据库）}：FS 建模器通过 FS-Cloud-Plugin\secref{appendix:plugin}登录后端并上传 \texttt{.fs} 模型文件，后端落盘后写入 \texttt{fs\_model\_file}，形成模型库；仿真控制时后端按记录拼出模型文件绝对路径传给 \texttt{loadRemoteSimulationModel}。
 \end{enumerate}
 
 \subsection{MCP 接口在系统中的调用流程}

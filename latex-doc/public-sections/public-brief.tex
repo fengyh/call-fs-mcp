@@ -18,6 +18,8 @@ FactorySimulation 仿真模型实例
 \end{lstlisting}\vspace{-30pt}
 \par 仿真引擎运行期间的状态、进度、控制台日志以及浏览器动画帧，通过 \bf{MQTT} 实时消息通道推送给后端和前端（pub/sub方式），与 MCP 的请求-响应式调用（request/response）形成互补，共同构成 WebApp 与 FS 集成的完整数据通路。
 
+本文所述的示例代码可在\url{https://cnb.cool/fsDevRef/call-fs-mcp}获取。对应的 FS 试用版、模型上传云端的Plugins 请按\href{https://www.factorysimulation.cn/}{FactorySimulation官网}所述联系方式获取。
+
 \subsection{MCP 介绍}
 \bf{MCP（Model Context Protocol，模型上下文协议）}是由 Anthropic 于 2024 年底提出并开源的开放标准协议，用于标准化\it{应用程序/大语言模型}与\it{外部数据源、工具}之间的交互方式。它解决了传统上每个应用都要为每种外部能力单独实现一套对接协议的问题，把\it{能力暴露}与\it{能力调用}统一为一种标准形态。
 
@@ -61,7 +63,7 @@ FS 仿真控制 MCP 接口按功能分为以下七类：
 \end{tabular}
 \end{table}
 
-\tips{MCP 工具清单以实际部署版本的 \texttt{tools/list} 返回为准，上表列出的是当前版本的完整工具集。}
+\tips{MCP 工具清单以实际FS版本的 \texttt{tools/list} 返回为准，上表列出的是当前版本的完整工具集。}
 
 \subsubsection{统一业务响应格式}
 所有仿真工具调用成功后的业务结果，存放在 MCP 响应的 \texttt{result.content[0].text} 字段中，是一个 JSON 字符串。该 JSON 采用统一的业务响应结构：
@@ -126,8 +128,8 @@ RUNNING / PAUSED -> STOPPED -> LOADED (reset 后)
 	\begin{itemize}
 		\item 拉取 \href{https://gitee.com/xiaonuobase/snowy}{snowy 框架代码}，创建业务插件模块 \texttt{snowy-plugin-fscloud}，并在 \texttt{snowy-web-app} 中引入该模块依赖\footnote{\bf{创建业务插件模块并在webApp中引入}：创建独立的业务插件模块，便于代码组织和复用。方法见\href{https://xiaonuo.vip/doc?catalogueId=1574674577108783105&menuId=1574678028987420674&lineIndex=1}{框架后端开发的“插件规范”}}。
 		\item 准备 MySQL 8.0 数据库（本项目约定库名 \texttt{fp\_mysql}）与 Redis，导入框架初始化脚本创建数据库表。\\框架初始化脚本位于：\texttt{snowy-web-app/src/main/resources/\_sql/snowy\_mysql.sql}。
-        \item 按\ref{appendix:database-ddl}章节所述DDL，创建3个表，用于持久化模型库、仿真参数快照和仿真结果快照。
-		\item 运行 FS 仿真引擎（\texttt{fs-mcp} 版，可作桌面端也可作服务端），确认 MCP 端点可用\footnote{\bf{确认 MCP 端点可用}: 使用Cherry Studio或Reasonix等工具添加MCP(`http://127.0.0.1:8081/mcp`)，看是否可以浏览到CP工具。具体操作见附录“CherryStudio辅助调试”\ref{appendix:cherry-studio}}、确认 MQTT Broker（FS 内置）正常工作\footnote{\bf{确认MQTT Broker正常工作}: 使用MQTTX辅助工具，看是否可以正常建立连接，具体操作见附录“MQTTX辅助调试”\ref{appendix:mqttx}}。
+        \item 按\secref{appendix:database-ddl}章节所述DDL，创建3个表，用于持久化模型库、仿真参数快照和仿真结果快照。
+		\item 运行 FS 仿真引擎（\texttt{fs-mcp} 版，可作桌面端也可作服务端），确认 MCP 端点可用\footnote{\bf{确认 MCP 端点可用}: 使用Cherry Studio或Reasonix等工具添加MCP(`http://127.0.0.1:8081/mcp`)，看是否可以浏览到CP工具。具体操作见附录“CherryStudio辅助调试”\secref{appendix:cherry-studio}}、确认 MQTT Broker（FS 内置）正常工作\footnote{\bf{确认MQTT Broker正常工作}: 使用MQTTX辅助工具，看是否可以正常建立连接，具体操作见附录“MQTTX辅助调试”\secref{appendix:mqttx}}。
 	\end{itemize}
 	\item \bf{配置 MCP 连接参数}
 	通过 \texttt{@ConfigurationProperties} 定义 \texttt{McpProperties}\footnote{\bf{McpProperties位于}: snowy-plugin/snowy-plugin-fscloud/src/main/java/vip/xiaonuo/fscloud/config/McpProperties.java}，读取配置项 \texttt{fscloud.mcp.endpoint-url}（默认 \texttt{http://127.0.0.1:8081/mcp}）与 \texttt{fscloud.mcp.api-key}，生产环境可在 \texttt{application-prod.properties\footnote{\bf{生产环境配置文件位于}:snowy-web-app/src/main/resources/application-prod.properties}} 中覆盖。API Key 属于敏感信息，\bf{不应下发给前端}。
@@ -153,7 +155,7 @@ return callTool("startRemoteSimulation", args);
 	\item \bf{建立模型库}\label{sec:brief-step4}
 	\begin{itemize}
 		\item 数据库建表 \texttt{fs\_model\_file}，保存模型元数据（名称、引擎版本、文件路径、\texttt{sim\_status}、\texttt{model\_id} 等），对应实体 \texttt{FsModelFile} 与 Service/Impl。
-		\item 后端支持 \texttt{fs-cloud-plugin} 建模器插件\footnote{\bf{建模器插件}: 通过plugin上传模型只是可选的方法之一，它的好处是可以在fs建模器中调试好模型之后直接上传到云平台，并能同时上传模型截图作为封面。云平台也可以采用在浏览器上传.fs模型文件的方法建立模型库的方法。} 的登录，提供模型上传接口 \texttt{POST /fscloud/modelfile/upload}：文件落盘到静态目录，\texttt{.zfs} 压缩包解压，随后把元数据写入 \texttt{fs\_model\_file} 完成“上传、落盘、落库”。
+		\item 后端支持 \texttt{fs-cloud-plugin} 建模器插件\footnote{\bf{建模器插件}: 通过plugin\secref{appendix:plugin}上传模型只是可选的方法之一，它的好处是可以在fs建模器中调试好模型之后直接上传到云平台，并能同时上传模型截图作为封面。云平台也可以采用在浏览器上传.fs模型文件的方法建立模型库的方法。} 的登录，提供模型上传接口 \texttt{POST /fscloud/modelfile/upload}：文件落盘到静态目录，\texttt{.zfs} 压缩包解压，随后把元数据写入 \texttt{fs\_model\_file} 完成“上传、落盘、落库”。
 		\item 开发前端模型库页面，展示模型列表，提供上传、加载、卸载操作。
 	\end{itemize}
 	\item \bf{开发仿真控制后端接口（SimController）}\label{sec:brief-step5}

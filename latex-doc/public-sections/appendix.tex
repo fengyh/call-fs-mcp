@@ -450,7 +450,7 @@
     }
   ],
   "missingTables": []
-}    
+}
 \end{verbatim}
 }\subsection{Demo程序的部分截图}
 \begin{figure}[h!]
@@ -517,7 +517,7 @@ CREATE TABLE `fs_model_file` (
   KEY `idx_user_id` (`user_id`) USING BTREE,
   KEY `idx_name` (`name`) USING BTREE,
   KEY `idx_model_company` (`model_company`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=2090346294581600258 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='仿真模型文件表';    
+) ENGINE=InnoDB AUTO_INCREMENT=2090346294581600258 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci ROW_FORMAT=DYNAMIC COMMENT='仿真模型文件表';
 \end{verbatim}
 }
 
@@ -539,7 +539,7 @@ CREATE TABLE `fs_sim_param_snapshot` (
   KEY `IDX_FS_SIM_PARAM_SNAPSHOT_MODEL` (`MODEL_FILE_ID`) USING BTREE,
   KEY `IDX_FS_SIM_PARAM_SNAPSHOT_AT` (`MODEL_FILE_ID`,`SNAPSHOT_AT`) USING BTREE,
   KEY `IDX_FS_SIM_PARAM_SNAPSHOT_RUN` (`RUN_ID`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC COMMENT='仿真参数快照';    
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci ROW_FORMAT=DYNAMIC COMMENT='仿真参数快照';
 \end{verbatim}
 }
 
@@ -564,10 +564,11 @@ CREATE TABLE `fs_sim_result_snapshot` (
   PRIMARY KEY (`ID`),
   UNIQUE KEY `UK_FS_SIM_RESULT_SNAPSHOT_RUN` (`RUN_ID`),
   KEY `IDX_FS_SIM_RESULT_SNAPSHOT_MODEL` (`MODEL_FILE_ID`,`SNAPSHOT_AT`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='仿真结果快照';    
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='仿真结果快照';
 \end{verbatim}
 }
 
+\clearpage
 \section{附录：CherryStudio辅助调试}\label{appendix:cherry-studio}
 \begin{figure}[h!]
 	\centering
@@ -579,12 +580,14 @@ CREATE TABLE `fs_sim_result_snapshot` (
 	\includegraphics[width=0.9\textwidth]{pics/mcp/cherry-studio-2.png}
 	\caption{查看MCP工具}\label{fig:cherry-studio-2}
 \end{figure}
+\clearpage
 \begin{figure}[h!]
 	\centering
 	\includegraphics[width=0.9\textwidth]{pics/mcp/cherry-studio-3.png}
 	\caption{自然语言提问，LLM自动调用MCP工具}\label{fig:cherry-studio-3}
 \end{figure}
 
+\clearpage
 \section{附录：MQTTX辅助调试}\label{appendix:mqttx}
 \begin{figure}[h!]
 	\centering
@@ -595,4 +598,32 @@ CREATE TABLE `fs_sim_result_snapshot` (
 	\centering
 	\includegraphics[width=0.9\textwidth]{pics/mcp/mqttx-2.png}
 	\caption{MQTTX订阅主题调试}\label{fig:mqttx-2}
+\end{figure}
+
+\clearpage
+\section{附录：FS模型上传Plugin}\label{appendix:plugin}
+在安装目录下创建plugins子目录，并将\secref{fig:plugin}红框中的两个插件文件放入plugins目录下即可使用：
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.6\textwidth]{pics/mcp/plugin.png}
+	\caption{FS模型上传Plugin}\label{fig:plugin}
+\end{figure}
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.6\textwidth]{pics/mcp/plugin-select-server.png}
+	\caption{选择FS模型上传的服务器}\label{fig:plugin-select-server}
+\end{figure}
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.6\textwidth]{pics/mcp/plugin-upload.png}
+	\caption{上传FS模型}\label{fig:plugin-upload}
+\end{figure}
+
+\clearpage
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=0.6\textwidth]{pics/mcp/plugin-uploaded.png}
+	\caption{上传FS模型成功后显示}\label{fig:plugin-uploaded}
 \end{figure}
