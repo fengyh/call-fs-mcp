@@ -51,6 +51,61 @@
     "message": "Model loaded."
 }
 \end{lstlisting}\vspace{-30pt}
+\tips{本章节只写出了出参的data部分的关键属性，完整的出入参只举这一个例子}:
+{\scriptsize
+\begin{verbatim}
+入参：
+{
+	"userId":"demo-1786605437737",
+	"recordId":"record-1786605437726",
+	"modelFileName":"D:\\works\\factory-planner\\call-fs-mcp\\snowy-web-app\\target\\test-classes\\step-by-step.fs",
+	"loadInUI":false
+}    
+
+出参：
+{
+	"success":true,
+	"code":"OK",
+	"message":"success",
+	"data":{
+		"userId":"demo-1786605437737",
+		"recordId":"record-1786605437726",
+		"modelId":"9dc81f329656",
+		"modelFileName":"step-by-step.fs",
+		"modelFilePath":"D:\\works\\factory-planner\\call-fs-mcp\\snowy-web-app\\target\\test-classes\\step-by-step.fs",
+		"uiLoaded":false,
+		"status":"LOADED",
+		"simTime":0,
+		"message":"Model loaded.",
+		"loadedAt":1786605441608,
+		"startedAt":0,
+		"finishedAt":0,
+		"accelerateFactor":50,
+		"minAccelerateFactor":1,
+		"maxAccelerateFactor":1000,
+		"animationEnabled":false,
+		"animationStreaming":false,
+		"animationLayerId":"root",
+		"animationFrameRate":5,
+		"animationFrameSequence":0,
+		"animationLastFrameAt":0,
+		"animationFrameTopic":"factory/sim/demo-1786605437737/9dc81f329656/animation/root/frame",
+		"animationLastObjectFrameAt":0,
+		"animationLastObjectCount":0,
+		"animationObjectFrameTopic":"factory/sim/demo-1786605437737/9dc81f329656/animation/root/objects",
+		"eventPublishingEnabled":false,
+		"eventPublishIntervalMs":500,
+		"eventTopic":"factory/sim/demo-1786605437737/9dc81f329656/events",
+		"eventLastPublishedAt":0,
+		"eventCount":0,
+		"eventHistoryTruncated":false,
+		"eventHistoryDiscardedCount":0,
+		"timelineSnapshotsAvailable":0,
+		"timelineHistoryTruncated":false
+	}
+}
+\end{verbatim}
+}
 
 \subsubsection{unloadRemoteSimulationModel}
 \bf{方法描述}：停止并卸载模型；若模型加载了 UI，同时移除对应桌面 tab。运行/暂停中会先停止再卸载。
