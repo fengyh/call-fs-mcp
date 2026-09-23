@@ -35,3 +35,10 @@ tmp/
 
 ### static 调试用模型库落盘路径 ###
 static/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.vscode

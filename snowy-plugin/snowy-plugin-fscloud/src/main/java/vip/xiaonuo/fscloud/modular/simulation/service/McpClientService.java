@@ -200,7 +200,7 @@ public class McpClientService {
 
     /** 获取结果数据集分页 */
     public JSONObject getResultDatasetPage(String userId, String modelId, String runId,
-                                            String dataset, int limit, int offset) {
+                                           String dataset, int limit, int offset) {
         JSONObject args = new JSONObject();
         args.put("userId", userId);
         args.put("modelId", modelId);
@@ -209,6 +209,26 @@ public class McpClientService {
         args.put("limit", limit);
         args.put("offset", offset);
         return callTool("getRemoteSimulationResultDatasetPage", args);
+    }
+
+    /**
+     * 获取能耗功率曲线分页（MCP getRemoteSimulationEnergyPowerCurvePage）。
+     * 仅可在仿真结束且 resultStatus=READY 后调用。
+     */
+    public JSONObject getEnergyPowerCurvePage(String userId, String modelId, String runId,
+                                              String componentId, String mediumId, String scopeType,
+                                              String deviceName, int limit, int offset) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("runId", runId != null ? runId : "");
+        args.put("componentId", componentId != null ? componentId : "");
+        args.put("mediumId", mediumId != null ? mediumId : "");
+        args.put("scopeType", (scopeType == null || scopeType.trim().isEmpty()) ? "ALL_DEVICES" : scopeType);
+        args.put("deviceName", deviceName != null ? deviceName : "");
+        args.put("limit", limit);
+        args.put("offset", offset);
+        return callTool("getRemoteSimulationEnergyPowerCurvePage", args);
     }
 
     /** 获取动画层列表 */
@@ -281,7 +301,7 @@ public class McpClientService {
 
     /** 分页查询完整对象位置快照（全量快照需多次分页拉取，snapshotId 需原样回传防止漂移） */
     public JSONObject getObjectPositionSnapshotPage(String userId, String modelId, String runId, String layerId,
-            long simTime, String snapshotId, String entityKind, int offset, int limit) {
+                                                    long simTime, String snapshotId, String entityKind, int offset, int limit) {
         JSONObject args = new JSONObject();
         args.put("userId", userId);
         args.put("modelId", modelId);
@@ -382,9 +402,9 @@ public class McpClientService {
             if (result.containsKey("error")) {
                 JSONObject error = result.getJSONObject("error");
                 throw new McpServiceException(
-                        error.getInt("code"),
-                        error.getStr("message"),
-                        requestBody
+                    error.getInt("code"),
+                    error.getStr("message"),
+                    requestBody
                 );
             }
 

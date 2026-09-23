@@ -1,0 +1,33 @@
+{
+  "resources": {
+    "loader_cap": "2.5",
+    "loader_load_time": "30",
+    "loader_dump_time": "30",
+    "loader_speed_loaded": "12.5",
+    "loader_speed_empty": "17.5",
+    "bulldozer_speed": "10",
+    "bulldozer_work_time": "30",
+    "loader_fuel": "20",
+    "dozer_fuel": "25",
+    "clearance": "2.0",
+    "dozer_blade_cap": "2.5",
+    "dozer_blade_height_cm": "8"
+  },
+  "grid": {
+    "precise": "D:\\Desktop\\5\\v3_blade_adjust\\grid\\精确区.txt",
+    "full": "D:\\Desktop\\5\\v3_blade_adjust\\grid\\完整区域.txt",
+    "cell_x": "4.2",
+    "cell_y": "7.5",
+    "out_dir": "D:\\Desktop\\5\\v3_blade_adjust\\grid"
+  },
+  "planning": {
+    "excel": "D:\\Desktop\\5\\v3_blade_adjust\\施工网格数据表.xlsx",
+    "source_type": "取土带",
+    "source_x": "95.0",
+    "source_y": "auto",
+    "strip_length": "50.0",
+    "entry_grids": "",
+    "loaders": 1,
+    "dozers": 1
+  }
+}
