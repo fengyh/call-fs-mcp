@@ -1,4 +1,10 @@
 {
+  "mcp": {
+    "endpoint_url": "http://127.0.0.1:8081/mcp",
+    "api_key": "7sK9p2G@2026",
+    "user_id": "pyqt-local",
+    "load_in_ui": true
+  },
   "resources": {
     "loader_cap": "2.5",
     "loader_load_time": "30",

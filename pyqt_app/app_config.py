@@ -69,7 +69,17 @@ RESOURCE_FIELDS = [
 DEFAULT_RESOURCE_VALUES = {key: default
                            for key, _label, default, _hint, _flag in RESOURCE_FIELDS}
 
+# ==================== MCP 远程仿真连接 ====================
+# 对应 Java 侧 fscloud.mcp.*（McpProperties / application-{profile}.properties）
+MCP_DEFAULTS = {
+    "endpoint_url": "http://127.0.0.1:8081/mcp",
+    "api_key": "7sK9p2G@2026",
+    "user_id": "pyqt-local",
+    "load_in_ui": True,
+}
+
 DEFAULT_CONFIG = {
+    "mcp": dict(MCP_DEFAULTS),
     "resources": dict(DEFAULT_RESOURCE_VALUES),
     "grid": {
         "precise": DEFAULT_PRECISE_TXT,
@@ -114,6 +124,17 @@ def save_config(cfg):
             json.dump(cfg, f, ensure_ascii=False, indent=2)
     except Exception:
         pass
+
+
+def mcp_settings(cfg=None):
+    """取 MCP 连接配置；空值字段回落到 DEFAULT_CONFIG 的 mcp 段"""
+    mcpc = (cfg or load_config()).get("mcp") or {}
+    settings = dict(MCP_DEFAULTS)
+    for key, value in mcpc.items():
+        if value is None or str(value).strip() == "":
+            continue
+        settings[key] = value
+    return settings
 
 
 def resource_cli_args(resources):
