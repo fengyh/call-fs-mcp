@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 """页签5：设备参数表单（保存到 app_config.json，供仿真页签使用）"""
+import os
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QSpinBox, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+    QFileDialog, QSpinBox, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QFrame, QLineEdit, QScrollArea, QGridLayout, QMessageBox,
 )
 
@@ -15,6 +17,7 @@ class MCPModule(QWidget):
 
     def __init__(self, main_window):
         super().__init__()
+        self.model_file_name: str = ""
         self.main = main_window
         self.edits = {}
         self._build_ui()
@@ -24,7 +27,7 @@ class MCPModule(QWidget):
         layout.setContentsMargins(20, 16, 20, 16)
         layout.setSpacing(12)
 
-        # ---- 左侧：固定宽度 400（上：model-card 固定高 200；下：自由伸缩）----
+        # ---- 左侧：固定宽度 400（上：model-card_model 固定高 200；下：自由伸缩）----
         left_widget = QWidget()
         left_widget.setFixedWidth(400)
         left = QVBoxLayout(left_widget)
@@ -32,26 +35,25 @@ class MCPModule(QWidget):
         left.setSpacing(10)
 
         # 模型卡片（固定高度 200）
-        card = QFrame()
-        card.setObjectName("card")
-        card.setFixedHeight(200)
-        form = QGridLayout(card)
+        card_model = QFrame()
+        card_model.setObjectName("card")
+        card_model.setFixedHeight(200)
+        form = QGridLayout(card_model)
         form.setContentsMargins(16, 12, 16, 12)
         form.setHorizontalSpacing(8)
         form.setVerticalSpacing(8)
+        form.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self.loaders_spin = QSpinBox()
-        self.loaders_spin.setRange(1, 5)
-        self.loaders_spin.setValue(10)
-        self.dozers_spin = QSpinBox()
-        self.dozers_spin.setRange(1, 5)
-        self.dozers_spin.setValue(20)
-        form.addWidget(QLabel("装载机数:"), 0, 0)
-        form.addWidget(self.loaders_spin, 0, 1)
-        form.addWidget(QLabel("推土机数:"), 0, 2)
-        form.addWidget(self.dozers_spin, 0, 3)
 
-        left.addWidget(card)
+        self.open_btn = QPushButton("📂加载模型")
+        self.open_btn.clicked.connect(self._open_model)
+        form.addWidget(self.open_btn, 0, 0)
+        self.model_file_show = QLabel("尚未加载模型")
+        self.model_file_show.setStyleSheet(
+            "background: #334155; color: #E2E8F0; border-radius: 4px; padding: 4px 6px;")
+        form.addWidget(self.model_file_show, 0, 1, 1, 3)
+
+        left.addWidget(card_model)
 
         # 左侧下方：自由伸缩区
         left_bottom = QFrame()
@@ -67,4 +69,16 @@ class MCPModule(QWidget):
         layout.addWidget(right_widget, 1)
 
 
-
+    def _open_model(self):
+        if self.open_btn.text() == "❌关闭模型":
+            self.model_file_name = ""
+            self.model_file_show.setText("尚未加载模型")
+            self.open_btn.setText("📂加载模型")
+            return
+        else:
+            path, _ = QFileDialog.getOpenFileName(
+                self, "FS仿真模型", None,"FS 文件 (*.fs);")
+            if path:
+                self.model_file_name = path
+                self.model_file_show.setText(os.path.basename(path))
+                self.open_btn.setText("❌关闭模型")
