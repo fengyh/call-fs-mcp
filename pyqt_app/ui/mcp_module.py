@@ -85,27 +85,25 @@ class MCPModule(QWidget):
         self.model_file_show.setStyleSheet(
             "background: #334155; color: #E2E8F0; border-radius: 4px; padding: 4px 6px;")
         form.addWidget(self.model_file_show, 0, 1, 1, 3)
+        
+        self.info_labels = {
+            "status": self._info_row(form, 1, "FS 状态"),
+            "record": self._info_row(form, 2, "recordId"),
+            "model": self._info_row(form, 3, "modelId"),
+            "user": self._info_row(form, 4, "userId"),
+            "endpoint": self._info_row(form, 5, "endpoint"),
+        }
+
 
         left.addWidget(card_model)
 
         # 左侧下方：MCP 会话状态
-        card_info = QFrame()
-        card_info.setObjectName("card")
-        info = QGridLayout(card_info)
-        info.setContentsMargins(16, 12, 16, 12)
-        info.setHorizontalSpacing(8)
-        info.setVerticalSpacing(6)
-        info.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self.info_labels = {
-            "status": self._info_row(info, 0, "FS 状态"),
-            "record": self._info_row(info, 1, "recordId"),
-            "model": self._info_row(info, 2, "modelId"),
-            "user": self._info_row(info, 3, "userId"),
-            "endpoint": self._info_row(info, 4, "endpoint"),
-        }
-        left.addWidget(card_info, 1)
         layout.addWidget(left_widget)
+        left_bottom = QFrame()
+        left_bottom.setObjectName("card")
+
+        left.addWidget(left_bottom, 1)
 
         # ---- 右侧：操作按钮 + 日志 ----
         right_widget = QWidget()
@@ -153,7 +151,7 @@ class MCPModule(QWidget):
         value.setWordWrap(True)
         value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         grid.addWidget(key, row, 0, Qt.AlignmentFlag.AlignTop)
-        grid.addWidget(value, row, 1)
+        grid.addWidget(value, row, 1, 1, 3)
         return value
 
     # ==================== 本地模型文件（原有逻辑） ====================
