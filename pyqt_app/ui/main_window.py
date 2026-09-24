@@ -11,12 +11,15 @@ from ui.grid_module import GridModule
 from ui.equipment_module import EquipmentModule
 from ui.planning_module import PlanningModule
 from ui.optimization_module import OptimizationModule
+from ui.mcp_module import MCPModule
+
 
 TABS = [
     ("grid", "① 网格生成", "点云网格划分"),
     ("equipment", "② 设备参数", "资源参数配置"),
     ("planning", "③ 单次仿真", "单配置仿真"),
     ("optimization", "④ 配置寻优", "多配置扫描与帕累托分析"),
+    ("fs_mcp_demo", "⑤ 通过MCP与FS集成演示", "Python集成FS方法演示"),
 ]
 
 
@@ -55,11 +58,13 @@ class MainWindow(QMainWindow):
         self.module_equip = EquipmentModule(self)
         self.module_plan = PlanningModule(self)
         self.module_optim = OptimizationModule(self)
+        self.module_mcp = MCPModule(self)
 
         self.stack.addWidget(self.module_grid)    # index 0
         self.stack.addWidget(self.module_equip)   # index 1
         self.stack.addWidget(self.module_plan)    # index 2
         self.stack.addWidget(self.module_optim)   # index 3
+        self.stack.addWidget(self.module_mcp)     # index 4
 
         root.addWidget(self.stack, 1)
         self._create_status_bar(root)
