@@ -109,7 +109,7 @@ class MCPModule(QWidget):
 
         # ---- 左侧：固定宽度 400（上：模型卡片固定高 200；下：MCP 调用日志）----
         left_widget = QWidget()
-        left_widget.setFixedWidth(400)
+        left_widget.setFixedWidth(500)
         left = QVBoxLayout(left_widget)
         left.setContentsMargins(0, 0, 0, 0)
         left.setSpacing(10)
@@ -162,7 +162,7 @@ class MCPModule(QWidget):
         log_box.addLayout(log_head)
         self.log = QPlainTextEdit()
         self.log.setReadOnly(True)
-        self.log.setMaximumHeight(150)
+        # self.log.setMaximumHeight(150)
         log_box.addWidget(self.log, 1)
         left.addWidget(card_log, 1)
 
@@ -283,7 +283,7 @@ class MCPModule(QWidget):
         value.setWordWrap(True)
         value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         grid.addWidget(key, row, column, Qt.AlignmentFlag.AlignTop)
-        grid.addWidget(value, row, column + 1)
+        grid.addWidget(value, row, column + 1, 1, 3)
         return value
 
     # ==================== 本地模型文件 ====================
