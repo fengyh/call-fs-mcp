@@ -1,10 +1,17 @@
 # 1. Python与FS集成最小验证系统构建
 
-## 1.1 需求
+## 1.1 加载和关闭需求
 
-- 在pyqt_app/ui/mcp_module.py中，先验证通过MCP加载和关闭FS模型
+- [x] 在pyqt_app/ui/mcp_module.py中，先验证通过MCP加载和关闭FS模型
   - 已在该程序中实现了磁盘文件的打开和关闭（只是文件名的获取）
   - 还需要调用后文的封装的MCP接口实现在FS中打开和关闭模型
+## 1.2 仿真控制需求 
+在pyqt_app/ui/mcp_module.py中添加以下ui和相应处理:
+- [ ] 开始、暂停、继续共用button1，根据text()，点击时调用相应的MCP接口
+- [ ] 停止button2, 点击时调用相应的MCP接口, 停止仿真
+- [ ] 重置button3, 点击时调用相应的MCP接口, 重置仿真
+- [ ] 加速因子slide-bar，1-1000取值, 滑动结束（鼠标放开）时，调用相应的MCP接口设置加速因子
+- [ ] button1、button2、button3的enable和disable状态，参考 snowy-admin-web/src/views/fscloud/simcontrol/index.vue 的 btn1Text、btn2Text、btn3Text的处理
 
 # 2. 移植接口封装类java->python
 

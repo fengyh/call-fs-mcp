@@ -54,6 +54,7 @@ class MCPModule(QWidget):
         self._update_info()
         self._refresh_buttons()
 
+
     # ==================== UI ====================
 
     def _build_ui(self):
@@ -79,8 +80,11 @@ class MCPModule(QWidget):
         form.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         self.open_btn = QPushButton("📂加载模型")
+        # 全局 QPushButton 有 16px 左右内边距，去掉左侧内边距才能和下方各行的标题左对齐
+        self.open_btn.setStyleSheet("padding-left: 0px;")
         self.open_btn.clicked.connect(self._open_model)
-        form.addWidget(self.open_btn, 0, 0)
+        form.addWidget(self.open_btn, 0, 0,
+                       Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self.model_file_show = QLabel("尚未加载模型")
         self.model_file_show.setStyleSheet(
             "background: #334155; color: #E2E8F0; border-radius: 4px; padding: 4px 6px;")
