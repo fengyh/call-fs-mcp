@@ -7,12 +7,81 @@
   - 还需要调用后文的封装的MCP接口实现在FS中打开和关闭模型
 ## 1.2 仿真控制需求 
 在pyqt_app/ui/mcp_module.py中添加以下ui和相应处理:
-- [ ] 开始、暂停、继续共用button1，根据text()，点击时调用相应的MCP接口
-- [ ] 停止button2, 点击时调用相应的MCP接口, 停止仿真
-- [ ] 重置button3, 点击时调用相应的MCP接口, 重置仿真
-- [ ] 加速因子slide-bar，1-1000取值, 滑动结束（鼠标放开）时，调用相应的MCP接口设置加速因子
-- [ ] button1、button2、button3的enable和disable状态，参考 snowy-admin-web/src/views/fscloud/simcontrol/index.vue 的 btn1Text、btn2Text、btn3Text的处理
+- [x] 开始、暂停、继续共用button1，根据text()，点击时调用相应的MCP接口
+- [x] 停止button2, 点击时调用相应的MCP接口, 停止仿真
+- [x] 重置button3, 点击时调用相应的MCP接口, 重置仿真
+- [x] 加速因子slide-bar，1-1000取值, 滑动结束（鼠标放开）时，调用相应的MCP接口设置加速因子
+- [x] button1、button2、button3的enable和disable状态，参考 snowy-admin-web/src/views/fscloud/simcontrol/index.vue 的 btn1Text、btn2Text、btn3Text的处理
+- [x] 需订阅MQTT（对应于vue版前端的websocket）的仿真状态、仿真进度、仿真控制台，并在相应的位置显示
+### 备注
+- 暂时不实现参数快照、动画订阅、结果快照
+- 如果方便，需要遵循模块化设计，在其它class中处理仿真相关的数据管理
+### 实施记录
 
+#### 2026-08-23 需求 1.2 仿真控制（已实现并验证）
+
+**变更文件**
+
+| 文件 | 变更 | 说明 |
+|---|---|---|
+| `pyqt_app/mcp_client/mqtt_client.py` | 新增 | `MqttSubscriber(QObject)`：paho-mqtt 订阅 `factory/sim/{userId}/{modelId}/+`，信号 `connected`/`disconnected`/`failed`/`status_received`/`progress_received`/`console_received` |
+| `pyqt_app/mcp_client/sim_state.py` | 新增 | `SimulationState(QObject)`：MCP↔SIM_STATUS 映射、状态机、进度、控制台环形缓冲、按钮文案/使能派生量（不依赖 Widget） |
+| `pyqt_app/ui/mcp_module.py` | 改造 | 右侧新增仿真控制行（button1/2/3 + 开动画 + 加速因子 slider）、实时状态行、FS 控制台日志区；MCP 调用日志移入左下卡片（小高度只读区） |
+| `pyqt_app/ui/main_window.py` | 修改 | 新增 `closeEvent` → `module_mcp.shutdown()`（断开 MQTT、等待后台线程） |
+| `pyqt_app/app_config.py` / `app_config.json` | 修改 | `mcp` 段新增 `show_animation`、`accelerate_factor`；新增 `mqtt` 段（`broker_host`/`broker_port`/`client_id_prefix`/`topic_prefix`/`keepalive`）与 `mqtt_settings()` |
+
+依赖：新增第三方库 `paho-mqtt 2.1.0`（`pip install --user paho-mqtt`）。缺失时 `mqtt_client.py` 仍可导入，仅 MQTT 功能不可用并给出提示。
+
+**需求逐条对应**
+
+| 需求 | 实现 |
+|---|---|
+| 开始/暂停/继续 共用 button1 | `run_btn`，点击 → `_on_run_clicked()` 按 `SimulationState.btn1_action`（与按钮文本同源）分派：`start`→`startSimulation(userId, modelId, showAnimation)`、`pause`→`pauseSimulation`、`resume`→`resumeSimulation` |
+| 停止 button2 | `stop_btn` → `stopSimulation(userId, modelId)` |
+| 重置 button3 | `reset_btn` → `resetSimulation(userId, modelId)` |
+| 加速因子 slider（1-1000，松开下发） | `QSlider(1..1000)` + 数值标签；`valueChanged` 只更新标签，`sliderReleased` 才调用 `setAccelerateFactor`，并写入 `app_config.json` 的 `mcp.accelerate_factor` |
+| 按钮 enable/disable 参照 `simcontrol/index.vue` | `SimulationState.btn1_enabled/btn2_enabled/btn3_enabled`，规则见下表 |
+| 订阅 MQTT 并显示状态/进度/控制台 | 加载成功自动订阅，卸载/关闭停止订阅；状态、进度（`x% (步/总步)`）、最近消息时间、MQTT 连接状态显示在状态卡片；`console` 消息进入「FS 控制台日志」区（带条数统计与清除按钮） |
+
+**按钮规则（照搬 `simcontrol/index.vue` 第 280-311 行，输入为 MQTT/接口返回的 MCP 状态）**
+
+| MCP 状态 | 本地状态 | button1 | button2(停止) | button3(重置) |
+|---|---|---|---|---|
+| 无 modelId | —（≈NOTYET） | 禁用 | 禁用 | 禁用 |
+| `LOADED` / `RESET` | WAITING | 「▶ 开始」可用 | 禁用 | 可用 |
+| `RUNNING` | GOING | 「⏸ 暂停」可用 | 可用 | 禁用 |
+| `PAUSED` | PAUSED | 「⏵ 继续」可用 | 可用 | 禁用 |
+| `FINISHED`/`STOPPED`/`FAILED` | FINISHED | 「▶ 开始」可用 | 禁用 | 可用 |
+
+另有统一约束：MCP 调用进行中（`_busy`）时上述按钮全部禁用。
+
+**MQTT 设计**
+
+- Broker 与协议：`tcp://127.0.0.1:1883`（Python 用 TCP；浏览器走 `ws://...:8083/mqtt`，即前端 `mqttClient.js` 的 MQTT over WebSocket），MQTT 3.1.1、QoS 0、clean session、keepalive 30、`reconnect_delay_set(1, 10)` 自动重连，clientId = `pyqt-fs-{userId}-{毫秒}`。
+- 订阅主题：`factory/sim/{userId}/{modelId}/+`（与前端订阅一致；Java 后端为 `factory/sim/+/+/+`，这里按用户/模型收窄）。
+- payload（以 `docs/MqttClientTest.log.md` 与 Java `MqttClientService.handleMessage` 为准）：
+  - `status` → `{"username","modelId","state":"running|paused|finished|loaded|stopped|reset|failed","timestamp"}`
+  - `progress` → `{"username","modelId","progress":12.5,"simTimeStep":250,"totalStep":2000,"timestamp"}`
+  - `console` → `{"username","modelId","level","content","timestamp"}`
+- 字段兼容：前端两处字段假设不一致（`simcontrol` 读 `data.status`/`data.simTime`，`modelfile` 与 Java 后端读 `state`/`progress`/`simTimeStep`），Python 侧以 Java 后端为准并同时兼容另一套命名。
+- 数据流：`FS → MQTT → MqttSubscriber（paho 网络线程）→ pyqtSignal → SimulationState（UI 线程）→ 界面刷新`；MCP 接口返回的 `status` 走同一状态机，MQTT 消息随后校正。
+
+**验证记录（本机实测）**
+
+- `python -m py_compile` 全部新增/修改文件通过；`from ui.mcp_module import MCPModule` 等导入检查通过。
+- MQTT 连通性与全链路（真实连接 `127.0.0.1:1883`，用 `verify-publisher` 向**本用户自己的 topic** 发布模拟消息）：订阅 `factory/sim/pyqt-local/MID-1/+` 成功；`status: running` → 按钮变「⏸ 暂停」（停止可用、重置禁用）；`progress` → `25.0% (500/2000 步)`；两条 `console` 正确入库（界面计数 2 条、时间戳格式化）；`paused` → 「⏵ 继续」；`finished` → 「▶ 开始」且重置可用；兼容 `{timestamp, simTime}` 命名 → `37.5% (750/2000 步)`；单条 14 行日志被截断为 10 行 + `{...以下省略...}`；卸载后订阅自动停止（`MQTT: 未连接`）。
+- 按钮分派与状态机（offscreen，替换 `_run` 与 `_save_pref` 避免真实调用）：禁用状态下点击无任何调用；LOADED→`start`/`reset`、RUNNING→`pause`/`stop`、PAUSED→`resume`/`stop`、FINISHED→`start`/`reset` 分派正确；拖动 slider 仅更新标签、松开才产生 `setAccelerateFactor` 调用与偏好写入；`开动画`/`loadInUI` 复选框切换即持久化。
+- 接口返回注入：`start` 成功 → `RUNNING` + `runId` 记录 + 按钮切换；`pause` 失败（`INVALID_STATE`）、`load` 失败（`MODEL_FILE_NOT_FOUND`）、调用异常（`MCP 错误 -1`）均正确写入 MCP 调用日志与状态栏；`MainWindow` 构造冒烟通过，`closeEvent` 后 MQTT 已断开。
+- 待人工验证：真实模型「加载 → 开始/暂停/继续 → 停止 → 重置 → 关闭」全流程与 FS 引擎实际表现、MQTT 真实推送。
+
+**实施中的默认决定（与需求文本的差异说明）**
+
+1. button1 分派使用 `SimulationState.btn1_action`（`start`/`pause`/`resume`）而非比较中文按钮文本；该属性与 `btn1_text` 同源，等价于「根据 text() 分派」且避免文本含图标时比较出错。
+2. `开动画` 复选框：需求表未列，但 `startRemoteSimulation` 必须传 `showAnimation`，故补一个复选框（默认 `false`，即不启动动画推流），值持久化到 `app_config.json`。
+3. `RESET` 状态映射：前端 `myModel.updateStatus` 的映射表缺 `RESET`（会导致重置后按钮全灰），这里按「重置后回到待仿真（WAITING）」处理。
+4. MCP 调用进行中若再次触发调用（如快速连续拖动加速因子），本次调用被忽略并在日志中提示，避免并发覆盖后台线程。
+
+**遗留（按需求备注暂不实现）**：参数快照、动画订阅（`animation/*` JPEG/对象帧）、结果快照、MU 事件（`events`）；后续按需接入。
 # 2. 移植接口封装类java->python
 
 ## 2.1 需求

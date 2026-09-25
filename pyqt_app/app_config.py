@@ -76,10 +76,24 @@ MCP_DEFAULTS = {
     "api_key": "7sK9p2G@2026",
     "user_id": "pyqt-local",
     "load_in_ui": True,
+    "show_animation": False,      # startRemoteSimulation 的 showAnimation
+    "accelerate_factor": 50,      # 加速因子 slider 初值（1-1000）
+}
+
+# ==================== MQTT 实时消息 ====================
+# 对应 Java 侧 fscloud.mqtt.*（MqttProperties）与前端utils/mqttClient.js
+# topic 约定：factory/sim/{userId}/{modelId}/{type}，type = status / progress / console
+MQTT_DEFAULTS = {
+    "broker_host": "127.0.0.1",
+    "broker_port": 1883,
+    "client_id_prefix": "pyqt-fs",
+    "topic_prefix": "factory/sim",
+    "keepalive": 30,
 }
 
 DEFAULT_CONFIG = {
     "mcp": dict(MCP_DEFAULTS),
+    "mqtt": dict(MQTT_DEFAULTS),
     "resources": dict(DEFAULT_RESOURCE_VALUES),
     "grid": {
         "precise": DEFAULT_PRECISE_TXT,
@@ -131,6 +145,17 @@ def mcp_settings(cfg=None):
     mcpc = (cfg or load_config()).get("mcp") or {}
     settings = dict(MCP_DEFAULTS)
     for key, value in mcpc.items():
+        if value is None or str(value).strip() == "":
+            continue
+        settings[key] = value
+    return settings
+
+
+def mqtt_settings(cfg=None):
+    """取 MQTT 连接配置；空值字段回落到 DEFAULT_CONFIG 的 mqtt 段"""
+    mc = (cfg or load_config()).get("mqtt") or {}
+    settings = dict(MQTT_DEFAULTS)
+    for key, value in mc.items():
         if value is None or str(value).strip() == "":
             continue
         settings[key] = value

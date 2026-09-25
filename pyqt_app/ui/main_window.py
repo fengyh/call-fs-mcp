@@ -227,3 +227,13 @@ class MainWindow(QMainWindow):
         color = "#22C55E" if ok else "#EF4444"
         self.status_label.setText("● %s" % text)
         self.status_label.setStyleSheet("color:%s; font-size:11px;" % color)
+
+    # ==================== 退出清理 ====================
+
+    def closeEvent(self, event):
+        """关闭窗口前释放页签5 的 MQTT 连接与后台线程"""
+        try:
+            self.module_mcp.shutdown()
+        except Exception:
+            pass
+        super().closeEvent(event)
