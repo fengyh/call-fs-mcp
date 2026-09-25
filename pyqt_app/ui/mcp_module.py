@@ -597,7 +597,7 @@ class MCPModule(QWidget):
         self.reset_btn.setEnabled(not busy and self.state.btn3_enabled)
 
         self.sim_info_labels["status"].setText(self.state.status_label)
-        self.sim_info_labels["progress"].setText(self.state.progress_text)
+        self.sim_info_labels["progress"].setText(self.state.sim_time_text)
         self.sim_info_labels["mqtt"].setText("已连接" if self.state.mqtt_connected else "未连接")
         self.sim_info_labels["last"].setText(self.state.last_message_text)
         status_color = {

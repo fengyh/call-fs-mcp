@@ -5,7 +5,7 @@
     "user_id": "pyqt-local",
     "load_in_ui": true,
     "show_animation": true,
-    "accelerate_factor": 580
+    "accelerate_factor": 1000
   },
   "mqtt": {
     "broker_host": "127.0.0.1",

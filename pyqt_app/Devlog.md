@@ -18,10 +18,6 @@
 - 如果方便，需要遵循模块化设计，在其它class中处理仿真相关的数据管理
 ### 实施记录
 
-## 1.3 仿真控制debug
-### bug to fix
-- [ ] 仿真进度不是计算百分数，而是直接显示 simTime 的值 (毫秒)，显示时转换为 x天 hh:MM:ss.sss 的格式
-
 #### 2026-08-23 需求 1.2 仿真控制（已实现并验证）
 
 **变更文件**
@@ -86,6 +82,60 @@
 4. MCP 调用进行中若再次触发调用（如快速连续拖动加速因子），本次调用被忽略并在日志中提示，避免并发覆盖后台线程。
 
 **遗留（按需求备注暂不实现）**：参数快照、动画订阅（`animation/*` JPEG/对象帧）、结果快照、MU 事件（`events`）；后续按需接入。
+
+## 1.3 仿真控制debug
+### bug to fix
+- [x] 仿真进度不是计算百分数，而是直接显示 simTime 的值 (毫秒)，显示时转换为 x天 hh:MM:ss.sss 的格式
+### 实施记录
+
+#### 2026-08-23 需求 1.3 仿真进度显示修复
+
+**问题定位**
+
+真实 `progress` 消息（证据：`docs/McpClientTest.mqttx.export.json`，MQTTX 对 `factory/sim/+/+/+` 的真实抓包）为：
+
+```json
+{"username":"demo-1786607903143","recordId":"record-1786607903133","modelId":"a10eddf6cc80",
+ "runId":"11070f5c-94fc-4986-950d-3e57d3f7ceb7","uiLoaded":false,"event":"simulationProgress",
+ "timestamp":1786607904822,"status":"RUNNING","simTime":99159500,"msgType":"progress"}
+```
+
+- `simTime` 为**仿真毫秒**（依据：`latex-doc/public-sections/interface.tex:23`）。
+- 真实消息**不含** `progress`/`simTimeStep`/`totalStep`；这三个字段只存在于 `docs/MqttClientTest.log.md` 的测试客户端伪造消息里。
+- 1.2 的实现按伪造字段做百分数换算（`totalStep` 缺失 → `progress=0`），导致真实运行时「仿真进度」恒显示 `-`。
+
+**修复内容**
+
+| 文件 | 改动 |
+|---|---|
+| `pyqt_app/mcp_client/sim_state.py` | 新增 `format_sim_time(ms)`；状态字段 `progress`/`sim_time_step`/`total_step` → `sim_time`（仿真毫秒）；`update_from_mqtt_progress` 只取 `simTime`（不使用 `status` 等其它字段）；派生量 `progress_text` → `sim_time_text`；`reset_runtime` 复位 `sim_time` |
+| `pyqt_app/ui/mcp_module.py` | 状态行「仿真进度」改用 `state.sim_time_text`（标签文案不变） |
+
+**时间格式规则**：从最高非零单位开始显示，前面为 0 的单位不显示；毫秒固定 3 位、时/分/秒各 2 位；天数非零时带「天」字。
+
+| `simTime`(ms) | 显示 |
+|---|---|
+| `0` / `250` | `00.000` / `00.250` |
+| `20000` | `20.000` |
+| `72750` | `01:12.750` |
+| `60000` / `600000` | `01:00.000` / `10:00.000` |
+| `3600000` | `01:00:00.000` |
+| `86400000` | `1天 00:00:00.000` |
+| `99159500` | `1天 03:32:39.500` |
+| `None` / 负数 / 非数字 | `00.000` |
+
+未加载模型（无 `modelId`）时显示 `-`。
+
+**验证记录（本机实测）**
+
+- `format_sim_time` 逐例校验 14 例（上表全部取值 + `None`、负数、浮点 `72750.7`、字符串 `"x"`）全部通过。
+- 离线回放真实抓包的 `status`（`LOADED`/`RUNNING`）与 `progress`（`simTime` 为 `0`、`99159500`）消息：状态机与按钮使能正确，进度显示 `00.000` → `1天 03:32:39.500`；用户提供的实例（`simTime=72750`、`status=STOPPED`）→ `01:12.750`，且 `status` 未被用于状态更新（符合「不要使用其它字段」）。
+- 真实 MQTT 端到端（连 `127.0.0.1:1883`，用隔离的 userId/modelId 自发布）：界面「仿真进度」连续刷新 `00.250 → 20.000 → 01:12.750 → 1天 03:32:39.500`；`RUNNING`/`PAUSED`/`STOPPED` 的状态文案与按钮使能正确；停止后进度保留。
+- 交叉验证：验证期间订阅到本机真实运行的 `factory/sim/pyqt-local/223fb9269181` 的 `status: STOPPED` 消息，界面随之显示「仿真结束」，说明真实 FS 消息格式与我们的解析完全兼容。
+- `python -m py_compile` 与导入检查通过；offscreen `MainWindow` 冒烟：进度 `-` → `00.000` → `1天 03:32:39.500`。
+
+**与 1.2 记录的差异更正**：1.2 记录中「进度（`x% (步/总步)`）」「兼容 `{timestamp, simTime}` 命名」等描述基于测试客户端的伪造字段，按本节结论作废。
+
 # 2. 移植接口封装类java->python
 
 ## 2.1 需求

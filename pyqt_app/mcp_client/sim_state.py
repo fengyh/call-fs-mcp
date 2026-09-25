@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
 """FS 仿真运行状态模型（不依赖 Widget，便于单独测试与复用）
 
-数据来源两条，共同写入同一份状态：
+数据来源三条，共同写入同一份状态：
 
-1. MCP 接口返回：`loadModel` 返回的 `status`，以及 start/pause/resume/stop/reset 返回的 `status`
-2. MQTT 实时消息：`factory/sim/{userId}/{modelId}/{status|progress|console}`
+1. 仿真状态：MCP 接口返回的 `status`（loadModel / start / pause / resume / stop / reset）+ MQTT `status` 消息
+2. 仿真进度：MQTT `progress` 消息的 `simTime`（仿真毫秒）→ `format_sim_time` 格式化为 `x天 hh:MM:ss.sss`；
+   真实 `progress` 消息（见 `docs/McpClientTest.mqttx.export.json`）形如
+   `{"event":"simulationProgress","status":"RUNNING","simTime":99159500,"msgType":"progress"}`
+3. 控制台日志：MQTT `console` 消息
+
+注：`docs/MqttClientTest.log.md` 里的 `progress`/`simTimeStep`/`totalStep` 是测试客户端伪造字段，
+真实 FS 消息不含，本模块不使用。
 
 按钮文案与使能规则照搬前端
 `snowy-admin-web/src/views/fscloud/simcontrol/index.vue` 的
@@ -70,8 +76,43 @@ def format_console_line(timestamp_ms, level, content):
     return "[%s] [%s] %s" % (format_clock(timestamp_ms), level, content)
 
 
+def format_sim_time(ms):
+    """仿真毫秒 → 时间串：从最高非零单位开始显示，前面为 0 的单位不显示
+
+    毫秒固定 3 位，分/秒/时各 2 位；天数非零时带「天」字前缀。
+
+    >>> format_sim_time(0)          # 全零，只留秒.毫秒
+    '00.000'
+    >>> format_sim_time(20000)      # 只有秒
+    '20.000'
+    >>> format_sim_time(72750)      # 只有分秒
+    '01:12.750'
+    >>> format_sim_time(3600000)    # 有时无天
+    '01:00:00.000'
+    >>> format_sim_time(99159500)   # 有天
+    '1天 03:32:39.500'
+    """
+    try:
+        total = int(ms)
+    except (TypeError, ValueError):
+        total = 0
+    if total < 0:
+        total = 0
+    days, rem = divmod(total, 86_400_000)
+    hours, rem = divmod(rem, 3_600_000)
+    minutes, rem = divmod(rem, 60_000)
+    seconds, millis = divmod(rem, 1_000)
+    if days:
+        return "%d天 %02d:%02d:%02d.%03d" % (days, hours, minutes, seconds, millis)
+    if hours:
+        return "%02d:%02d:%02d.%03d" % (hours, minutes, seconds, millis)
+    if minutes:
+        return "%02d:%02d.%03d" % (minutes, seconds, millis)
+    return "%02d.%03d" % (seconds, millis)
+
+
 class SimulationState(QObject):
-    """FS 仿真运行状态：状态机、进度、控制台日志"""
+    """FS 仿真运行状态：状态机、仿真时间进度、控制台日志"""
 
     changed = pyqtSignal()              # 状态/进度等派生量变化
     console_appended = pyqtSignal(str)  # 追加的一行控制台文本
@@ -84,9 +125,7 @@ class SimulationState(QObject):
         self.run_id = ""
         self.mcp_status = ""            # MCP 状态（大写）；空 = 未加载
         self.sim_status = ""            # SIM_STATUS_*；空 = 无
-        self.sim_time_step = 0
-        self.total_step = 0
-        self.progress = 0.0             # 0-100
+        self.sim_time = 0               # 仿真时间（仿真毫秒），来自 MQTT progress 消息
         self.last_message_at = 0        # 最近 MQTT 消息时间（ms）
         self.mqtt_connected = False
         self.console_logs = []          # [(timestamp_ms, level, content)]
@@ -112,10 +151,8 @@ class SimulationState(QObject):
         self.changed.emit()
 
     def reset_runtime(self):
-        """复位进度类数据（不清控制台日志）"""
-        self.sim_time_step = 0
-        self.total_step = 0
-        self.progress = 0.0
+        """复位仿真进度（不清控制台日志）"""
+        self.sim_time = 0
         self.last_message_at = 0
 
     # ==================== 状态 ====================
@@ -145,25 +182,22 @@ class SimulationState(QObject):
         self.changed.emit()
         return True
 
-    # ==================== 进度 ====================
+    # ==================== 进度（仿真时间） ====================
 
     def update_from_mqtt_progress(self, payload):
-        """处理 MQTT progress 消息
+        """处理 MQTT progress 消息，只取 simTime（仿真毫秒）作为进度
 
-        真实字段：{"progress": 12.5, "simTimeStep": 250, "totalStep": 2000, "timestamp": ...}
-        兼容前端 simcontrol 使用的 {"timestamp", "simTime"} 命名。
+        真实消息形如：
+
+        {"username":"pyqt-local","recordId":"pyqt-d9c045ae","modelId":"223fb9269181",
+         "runId":"52cf3b86-...","uiLoaded":true,"event":"simulationProgress",
+         "timestamp":1790342395550,"status":"STOPPED","simTime":72750,"msgType":"progress"}
+
+        仅使用 simTime；仿真状态由 status 消息驱动，不在此处更新。
         """
-        step = payload.get("simTimeStep", payload.get("simTime"))
-        total = payload.get("totalStep")
-        progress = payload.get("progress", payload.get("simProgress"))
-        if isinstance(step, (int, float)):
-            self.sim_time_step = int(step)
-        if isinstance(total, (int, float)):
-            self.total_step = int(total)
-        if isinstance(progress, (int, float)):
-            self.progress = float(progress)
-        elif self.total_step > 0:
-            self.progress = round(self.sim_time_step * 100.0 / self.total_step, 1)
+        sim_time = payload.get("simTime")
+        if isinstance(sim_time, (int, float)):
+            self.sim_time = int(sim_time)
         self._touch_message(payload)
         self.changed.emit()
         return True
@@ -212,12 +246,11 @@ class SimulationState(QObject):
         return SIM_STATUS_LABEL.get(self.sim_status) or (self.mcp_status or "未知")
 
     @property
-    def progress_text(self):
-        if self.total_step > 0:
-            return "%.1f%% (%d/%d 步)" % (self.progress, self.sim_time_step, self.total_step)
-        if self.progress:
-            return "%.1f%%" % self.progress
-        return "-"
+    def sim_time_text(self):
+        """仿真进度显示：未加载模型为 '-'，否则为仿真时间串（x天 hh:MM:ss.sss）"""
+        if not self.loaded:
+            return "-"
+        return format_sim_time(self.sim_time)
 
     @property
     def last_message_text(self):
