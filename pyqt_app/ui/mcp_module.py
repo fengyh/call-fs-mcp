@@ -390,10 +390,26 @@ class MCPModule(QWidget):
             self._append_log("[继续] 请求 FS 继续仿真: userId=%s modelId=%s" % (user_id, model_id))
             self._run("resume", lambda: self.mcp.resumeSimulation(user_id, model_id))
         else:
+            # 需求 1.5：启动前先按界面值同步 FS 的动画与加速因子，再启动仿真
             show_animation = self.animate_chk.isChecked()
-            self._append_log("[启动] 请求 FS 启动仿真: userId=%s modelId=%s showAnimation=%s"
-                             % (user_id, model_id, show_animation))
-            self._run("start", lambda: self.mcp.startSimulation(user_id, model_id, show_animation))
+            factor = int(self.accelerate_slider.value())
+            self._append_log("[启动] 请求 FS 同步动画/加速因子并启动: userId=%s modelId=%s "
+                             "showAnimation=%s accelerateFactor=%s"
+                             % (user_id, model_id, show_animation, factor))
+            self._run("start", lambda: self._start_sequence(
+                user_id, model_id, show_animation, factor))
+
+    def _start_sequence(self, user_id, model_id, show_animation, factor):
+        """启动仿真前置序列（需求 1.5）：①同步动画 → ②同步加速因子 → ③启动仿真
+
+        三步在同一后台线程内串行执行，保证先后顺序（`_busy` 机制下无法连续发起多次调用）；
+        前置两步业务失败不阻断启动，仅连接层异常（McpServiceException）会中断序列。
+        """
+        return {
+            "animation": self.mcp.setAnimationEnabled(user_id, model_id, show_animation),
+            "accelerate": self.mcp.setAccelerateFactor(user_id, model_id, factor),
+            "start": self.mcp.startSimulation(user_id, model_id, show_animation),
+        }
 
     def _stop_simulation(self):
         """button2：停止仿真"""
@@ -517,7 +533,9 @@ class MCPModule(QWidget):
                 self._handle_unload(result)
             elif label == "refresh":
                 self._handle_refresh(result)
-            elif label in ("start", "pause", "resume", "stop", "reset"):
+            elif label == "start":
+                self._handle_start_sequence(result)
+            elif label in ("pause", "resume", "stop", "reset"):
                 self._handle_sim_control(label, result)
             elif label == "accel":
                 self._handle_accelerate(result)
@@ -635,6 +653,27 @@ class MCPModule(QWidget):
         self._append_log("[%s] 成功 → status=%s message=%s"
                          % (action, status or "-", data.get("message", "")))
         self.main.set_status("%s 完成（%s）" % (action, self.state.status_label))
+
+    def _handle_start_sequence(self, results):
+        """启动序列结果：先在日志呈现前置两步，再按 start 的业务响应更新状态机"""
+        animation = results.get("animation") or {}
+        accelerate = results.get("accelerate") or {}
+        anim_data = animation.get("data") or {}
+        accel_data = accelerate.get("data") or {}
+        self._log_start_step("①动画", animation,
+                             "animationEnabled=%s" % anim_data.get("animationEnabled"))
+        self._log_start_step("②加速因子", accelerate,
+                             "accelerateFactor=%s" % accel_data.get("accelerateFactor"))
+        self._handle_sim_control("start", results.get("start") or {})
+
+    def _log_start_step(self, name, result, detail):
+        """打印启动前置步骤结果；失败只警告、不阻断启动"""
+        if result.get("success", False):
+            self._append_log("[启动] 前置%s → 成功（%s）" % (name, detail))
+        else:
+            self._append_log("[启动] 前置%s → 失败 %s: %s（忽略，继续启动）"
+                             % (name, result.get("code", "?"),
+                                result.get("message", "设置失败")))
 
     def _handle_accelerate(self, result):
         if not result.get("success", False):

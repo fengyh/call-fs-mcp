@@ -184,6 +184,42 @@
 
 **待人工验证（含副作用，按惯例在 GUI 手动进行）**：勾选/取消「开动画」时 FS 桌面工具栏复选框是否跟随（`loadInUI=true` 时会同步）；RUNNING 状态下悬停重置按钮应看到禁用原因；停止后点重置，`getStatus` 应返回 `status=LOADED`、`simTime=0`、`message="Simulation reset."`，界面进度随之归零。
 
+## 1.5 同步动画、加速因子
+
+### 需求
+
+- [x] 点击"开始"按钮时，先按动画是否打勾、加速因子的位置先调用相应的MCP工具设置了FS的动画和加速因子之后再启动仿真。
+
+### 实施记录
+
+#### 2026-08-23 需求 1.5 启动前同步动画与加速因子
+
+**实现**
+
+| 文件 | 改动 |
+|---|---|
+| `pyqt_app/ui/mcp_module.py` | ① `_on_run_clicked` 的「启动」分支改为调用 `_start_sequence`（「暂停/继续」分支不变）；② 新增 `_start_sequence(user_id, model_id, show_animation, factor)`：在同一个后台任务内串行 `setRemoteSimulationAnimationEnabled` → `setRemoteSimulationAccelerateFactor` → `startRemoteSimulation`；③ 新增 `_handle_start_sequence` / `_log_start_step`：逐条打印前置结果，第三步复用既有 `_handle_sim_control("start", …)`；④ `_on_done` 中 `start` 单独走新分支 |
+
+**关键取舍（已确认）**
+
+1. 前置两步（动画/加速因子）设置失败 → **忽略并继续启动**，日志标注「（忽略，继续启动）」。
+2. 每次点「开始」都**无条件**设置两项（不做“值变化才下发”的缓存判断）。
+3. 仅「启动」分支做前置同步；「暂停/继续」不额外调用。
+4. 三步串行放在**同一个** `McpCallRunner` 任务内：`_busy` 机制下无法连续发起三次 `_run`，且这样能保证先后顺序；连接层异常（`McpServiceException`）会中断序列，业务失败（`success=false`）不会。
+5. 参数取界面值：动画取「开动画」勾选，加速因子取滑块当前值；`startRemoteSimulation` 的 `showAnimation` 仍为同一勾选值。
+
+**验证记录（本机实测：将 `mcp.setAnimationEnabled/setAccelerateFactor/startSimulation` 替换为桩，未对 FS 发出真实调用）**
+
+- 正常序列：调用顺序 `anim:MID-1:True → accel:MID-1:1000 → start:MID-1:True`；日志 4 条（请求行 + ①动画成功 + ②加速因子成功 + 启动成功）；状态变「仿真中」、button1 变「⏸ 暂停」、停止按钮可用。
+- 参数跟随界面：取消勾选 + 滑块置 37 → `anim:…:False → accel:…:37 → start:…:False`。
+- 前置失败：动画返回 `INVALID_STATE` → 仍继续加速因子与启动，日志 `[启动] 前置①动画 → 失败 INVALID_STATE: not allowed now（忽略，继续启动）`。
+- 异常中断：动画调用抛 `McpServiceException` → 序列中断（仅发出 `anim`），`McpCallRunner.failed` 上报，状态栏「MCP 调用失败」。
+- 分支隔离：RUNNING 时点击 → 仅 `pause`；PAUSED 时点击 → 仅 `resume`。
+- `python -m py_compile` + `MainWindow` 冒烟通过。
+- 旁证（真实环境，由使用者在 GUI 操作产生）：FS 只读 `listRemoteSimulationModels` 返回 `message="Simulation animation enabled."`、`animationEnabled=true`、`status="FINISHED"`，说明 1.4 的动画开关在真实 FS 上已生效。
+
+**待人工验证（含副作用）**：在 GUI 中改变「开动画」勾选与加速因子滑块后点「开始」，对照日志的三步顺序，并观察 FS 桌面工具栏的动画复选框与速度滑块是否与界面一致。
+
 # 2. 移植接口封装类java->python
 
 ## 2.1 需求
