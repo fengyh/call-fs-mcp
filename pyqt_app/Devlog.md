@@ -220,6 +220,49 @@
 
 **待人工验证（含副作用）**：在 GUI 中改变「开动画」勾选与加速因子滑块后点「开始」，对照日志的三步顺序，并观察 FS 桌面工具栏的动画复选框与速度滑块是否与界面一致。
 
+## 1.6 右下添加其它内容的tab
+
+在右下“FS 控制台日志”的位置，改为4个tab："控制台日志"、"仿真动画"、"仿真参数"、"仿真结果"。
+
+### 需求
+
+- [x] 将现在的”FS 控制台日志“的内容，包括”xx 条“、"清除"按钮，移到”控制台日志“tab
+- [x] 如果可能，将这4个tab的内容用另外的.py文件封装成模块，因为"仿真动画"、"仿真参数"、"仿真结果"的内容比较复杂
+- [x] "仿真动画"、"仿真参数"、"仿真结果"的具体功能实现放在后面的需求
+
+### 实施记录
+
+#### 2026-08-23 需求 1.6 右下四页签（控制台日志 / 仿真动画 / 仿真参数 / 仿真结果）
+
+**变更文件**
+
+| 文件 | 变更 | 说明 |
+|---|---|---|
+| `pyqt_app/ui/sim_tabs/__init__.py` | 新增 | 导出 `ConsoleLogTab` / `AnimationTab` / `ParameterTab` / `ResultTab` 与 `TAB_TITLES`（顺序即页签顺序） |
+| `pyqt_app/ui/sim_tabs/console_log_tab.py` | 新增 | `ConsoleLogTab`：顶部「xx 条」+「清除」+ 只读日志区，自包含处理 MQTT console |
+| `pyqt_app/ui/sim_tabs/animation_tab.py` | 新增 | `AnimationTab`：占位 |
+| `pyqt_app/ui/sim_tabs/parameter_tab.py` | 新增 | `ParameterTab`：占位 |
+| `pyqt_app/ui/sim_tabs/result_tab.py` | 新增 | `ResultTab`：占位 |
+| `pyqt_app/ui/mcp_module.py` | 修改 | 右下改为 `QTabWidget`；删除原「FS 控制台日志」标题行与 `console_log`/`console_count` 控件、`_append_console`；控制台相关信号连线移入 tab |
+
+**实现要点**
+
+1. `ConsoleLogTab` **自包含**：内部连接 `SimulationState.console_appended`（追加一行）、`console_cleared`（清空显示）、`changed`（刷新「xx 条」）；「清除」按钮调 `state.clear_console()`，同时清空显示与 `state.console_logs`（与改造前行为一致）。
+2. 另外三个 tab 为**纯占位**：居中提示「仿真动画 / 仿真参数 / 仿真结果：待后续需求实现」，仅保留 `main` / `state` 引用，不预留额外接口。
+3. `mcp_module.py` 只负责构造与挂载：`self.sim_tabs = QTabWidget()`，按 `TAB_TITLES` / `TAB_CLASSES` 循环 `addTab`；另暴露 `self.tabs`（列表）与 `self.console_tab` 便于后续按索引访问。
+4. 样式复用 `ui/main_window.py` 已有的 `QTabWidget::pane` / `QTabBar::tab` 暗色规则，未新增样式。
+5. 未改动：左侧「MCP 调用日志」、右上控制行与状态卡、MCP/MQTT 逻辑。
+
+**验证记录（本机实测）**
+
+- tab 结构：`count()==4`，标题依次为「控制台日志 / 仿真动画 / 仿真参数 / 仿真结果」；依次 `setCurrentIndex` 后 `currentWidget()` 类型为 `ConsoleLogTab / AnimationTab / ParameterTab / ResultTab`。
+- 控制台追加：注入 2 条（INFO/WARN）→ 第 1 tab 显示 `[22:50:59] [INFO] Simulation initialized`、`[22:51:00] [WARN] AGV002 battery low`，条数 `2 条`。
+- 清除按钮：点击后文本为空、条数归 `0 条`、`state.console_logs` 清空。
+- 真实 MQTT 端到端（隔离 userId/modelId，订阅 `factory/sim/pyqt-verify/tabs-…/+`）：自发布 3 条 console（INFO/WARN/ERROR）→ 第 1 tab 实时显示 3 条，条数 `3 条`。
+- `python -m py_compile` 全部新增/修改文件通过；导入检查与 `MainWindow` 冒烟通过。
+
+**遗留**：「仿真动画」「仿真参数」「仿真结果」的具体功能（含各自 MCP/MQTT 数据接入）留待后续需求。
+
 # 2. 移植接口封装类java->python
 
 ## 2.1 需求

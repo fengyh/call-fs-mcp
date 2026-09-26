@@ -18,7 +18,7 @@ import uuid
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QCheckBox, QFileDialog, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QPlainTextEdit, QMessageBox, QGridLayout, QSlider,
+    QFrame, QPlainTextEdit, QMessageBox, QGridLayout, QSlider, QTabWidget,
 )
 
 from app_config import APP_DIR, mcp_settings, mqtt_settings, save_config
@@ -26,6 +26,7 @@ from mcp_client import McpClient
 from mcp_client.mcp_runner import McpCallRunner
 from mcp_client.mqtt_client import MqttSubscriber
 from mcp_client.sim_state import SimulationState
+from ui.sim_tabs import TAB_CLASSES, TAB_TITLES
 
 # 后台调用 label → 中文动作名（日志与状态栏用）
 ACTION_LABEL = {
@@ -89,8 +90,6 @@ class MCPModule(QWidget):
 
         # 状态模型 → 界面
         self.state.changed.connect(self._refresh_sim_ui)
-        self.state.console_appended.connect(self._append_console)
-        self.state.console_cleared.connect(self.console_log.clear)
 
         # 初始值（来自 app_config.json，可持久化）
         self.load_in_ui_chk.setChecked(bool(self.settings["load_in_ui"]))
@@ -261,24 +260,15 @@ class MCPModule(QWidget):
         # right.addWidget(card_state)
         left.addWidget(card_state)
 
-        # 第四行：FS 控制台日志（MQTT console）
-        console_head = QHBoxLayout()
-        console_title = QLabel("FS 控制台日志")
-        console_title.setStyleSheet("color:#94A3B8; font-size:12px;")
-        console_head.addWidget(console_title)
-        console_head.addStretch()
-        self.console_count = QLabel("0 条")
-        self.console_count.setStyleSheet("color:#64748B; font-size:11px;")
-        console_head.addWidget(self.console_count)
-        clear_console_btn = QPushButton("清除")
-        clear_console_btn.setFixedHeight(24)
-        clear_console_btn.clicked.connect(self.state.clear_console)
-        console_head.addWidget(clear_console_btn)
-        right.addLayout(console_head)
-
-        self.console_log = QPlainTextEdit()
-        self.console_log.setReadOnly(True)
-        right.addWidget(self.console_log, 1)
+        # 第四行：右下四个子页签（控制台日志 / 仿真动画 / 仿真参数 / 仿真结果）
+        self.sim_tabs = QTabWidget()
+        self.tabs = []
+        for title, tab_cls in zip(TAB_TITLES, TAB_CLASSES):
+            tab = tab_cls(self.main, self.state)
+            self.sim_tabs.addTab(tab, title)
+            self.tabs.append(tab)
+        self.console_tab = self.tabs[0]      # 「控制台日志」，自包含处理 MQTT console 消息
+        right.addWidget(self.sim_tabs, 1)
 
         layout.addWidget(right_widget, 1)
 
@@ -744,7 +734,6 @@ class MCPModule(QWidget):
         self.sim_info_labels["status"].setStyleSheet("color:%s; font-weight:600;" % status_color)
         self.sim_info_labels["mqtt"].setStyleSheet(
             "color:%s;" % ("#22C55E" if self.state.mqtt_connected else "#94A3B8"))
-        self.console_count.setText("%d 条" % len(self.state.console_logs))
         self._update_info()
 
     def _refresh_buttons(self):
@@ -762,9 +751,6 @@ class MCPModule(QWidget):
 
     def _append_log(self, line):
         self.log.appendPlainText(line)
-
-    def _append_console(self, line):
-        self.console_log.appendPlainText(line)
 
     # ==================== 退出清理 ====================
 
