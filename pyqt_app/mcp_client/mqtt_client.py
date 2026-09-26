@@ -166,7 +166,7 @@ class MqttSubscriber(QObject):
         if msg_type == "status":
             self.status_received.emit(payload)
         elif msg_type == "progress":
-            print("MQTT 进度: %s" % payload)
+            # print("MQTT 进度: %s" % payload)
             self.progress_received.emit(payload)
         elif msg_type == "console":
             self.console_received.emit(payload)

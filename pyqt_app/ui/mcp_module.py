@@ -258,7 +258,8 @@ class MCPModule(QWidget):
             "mqtt": self._info_row(state_grid, 1, "MQTT", column=0),
             "last": self._info_row(state_grid, 1, "最近消息", column=2),
         }
-        right.addWidget(card_state)
+        # right.addWidget(card_state)
+        left.addWidget(card_state)
 
         # 第四行：FS 控制台日志（MQTT console）
         console_head = QHBoxLayout()
