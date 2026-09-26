@@ -42,3 +42,7 @@ __pycache__/
 *.pyo
 *.pyd
 .vscode
+
+# reasonix
+.reasonix
+reasonix.toml
