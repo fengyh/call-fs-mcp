@@ -26,7 +26,9 @@ from mcp_client import McpClient
 from mcp_client.mcp_runner import McpCallRunner
 from mcp_client.mqtt_client import MqttSubscriber
 from mcp_client.sim_state import SimulationState
-from ui.sim_tabs import TAB_CLASSES, TAB_TITLES
+from ui.sim_tabs import (
+    TAB_TITLES, AnimationTab, ConsoleLogTab, ParameterTab, ResultTab,
+)
 
 # 后台调用 label → 中文动作名（日志与状态栏用）
 ACTION_LABEL = {
@@ -61,9 +63,6 @@ class MCPModule(QWidget):
 
         self.state = SimulationState(self)   # 仿真状态/进度/控制台（含按钮派生量）
 
-        self._build_ui()
-        self.mcp_log.connect(self._append_log)
-
         # MCP 客户端（Java McpClientService 的 Python 移植，构造时注入连接配置）
         self.mcp = McpClient(
             endpoint_url=self.settings["endpoint_url"],
@@ -71,7 +70,7 @@ class MCPModule(QWidget):
             log_hook=self.mcp_log.emit,
         )
 
-        # MQTT 订阅（status / progress / console）
+        # MQTT 订阅（status / progress / console / animation/*）
         self.mqtt = MqttSubscriber(
             broker_host=self.mqtt_config["broker_host"],
             broker_port=self.mqtt_config["broker_port"],
@@ -81,6 +80,11 @@ class MCPModule(QWidget):
             log_hook=self.mcp_log.emit,
             parent=self,
         )
+
+        self._build_ui()                 # 子页签需要注入 mcp / mqtt
+        self.mcp_log.connect(self._append_log)
+        self.animation_tab.log_line.connect(self._append_log)
+
         self.mqtt.connected.connect(self._on_mqtt_connected)
         self.mqtt.disconnected.connect(self._on_mqtt_disconnected)
         self.mqtt.failed.connect(self._on_mqtt_failed)
@@ -262,12 +266,18 @@ class MCPModule(QWidget):
 
         # 第四行：右下四个子页签（控制台日志 / 仿真动画 / 仿真参数 / 仿真结果）
         self.sim_tabs = QTabWidget()
+        tab_widgets = [
+            ConsoleLogTab(self.main, self.state),
+            AnimationTab(self.main, self.state, mcp=self.mcp, mqtt=self.mqtt),
+            ParameterTab(self.main, self.state),
+            ResultTab(self.main, self.state),
+        ]
         self.tabs = []
-        for title, tab_cls in zip(TAB_TITLES, TAB_CLASSES):
-            tab = tab_cls(self.main, self.state)
+        for title, tab in zip(TAB_TITLES, tab_widgets):
             self.sim_tabs.addTab(tab, title)
             self.tabs.append(tab)
         self.console_tab = self.tabs[0]      # 「控制台日志」，自包含处理 MQTT console 消息
+        self.animation_tab = self.tabs[1]    # 「仿真动画」，注入 MCP / MQTT 依赖
         right.addWidget(self.sim_tabs, 1)
 
         layout.addWidget(right_widget, 1)
@@ -592,6 +602,7 @@ class MCPModule(QWidget):
             return
         self._append_log("[关闭] 成功 → 已从 FS 卸载 modelId=%s" % self.state.model_id)
         self.state.clear_model()
+        self.animation_tab.reset()
         self.main.set_status("FS 模型已关闭")
 
     def _handle_refresh(self, result):
@@ -641,6 +652,10 @@ class MCPModule(QWidget):
         if label == "reset":
             # 重置成功后本地仿真进度立即归零（进度只由 MQTT progress.simTime 驱动）
             self.state.reset_sim_time()
+        if label == "start":
+            # 需求 1.7：启动成功后开始接收该模型的动画流（层目录 + root 层帧）
+            self.animation_tab.on_simulation_started(self.settings["user_id"],
+                                                     self.state.model_id)
         self._append_log("[%s] 成功 → status=%s message=%s"
                          % (action, status or "-", data.get("message", "")))
         self.main.set_status("%s 完成（%s）" % (action, self.state.status_label))

@@ -263,6 +263,57 @@
 
 **遗留**：「仿真动画」「仿真参数」「仿真结果」的具体功能（含各自 MCP/MQTT 数据接入）留待后续需求。
 
+## 1.7 仿真动画
+
+### 需求
+
+- [x] 在 pyqt_app/ui/sim_tabs/animation_tab.py 中实现动画
+- [x] 仿真启动后（pyqt_app/ui/mcp_module.py中点击”开始“按钮），通过MQTT订阅动画流数据，并在animation_tab.py中显示
+- [x] 可按不同层级（.fs多层次建模）切换，默认root层。这些多层级的名称，在一行内排列。
+- [x] 动画单击可全屏（在程序范围即可，不用PC的屏幕全屏），Esc键恢复布局
+- [x] 动画显示 - 高清svg静态图片显示可通过 checkbox 切换
+- [x] 具体操作逻辑，请参照 snowy-admin-web/src/views/fscloud/simcontrol/index.vue
+
+### 实施记录
+
+#### 2026-08-23 需求 1.7 仿真动画（MQTT 帧 + 层级切换 + 高清 SVG + 程序内全屏）
+
+**变更文件**
+
+| 文件 | 变更 | 说明 |
+|---|---|---|
+| `pyqt_app/ui/sim_tabs/animation_tab.py` | 重写 | `AnimationTab`：工具行（直播标签 / 高清勾选 / 全屏按钮）+ 层级条 + 视口编排，自包含处理 MQTT 动画信号与 MCP 调用 |
+| `pyqt_app/ui/sim_tabs/animation_view.py` | 新增 | `AnimationView`：JPEG / SVG 渲染、单击全屏、滚轮缩放、左键拖动 |
+| `pyqt_app/mcp_client/mqtt_client.py` | 修改 | 新增 `animation/#` 订阅与 `animation_frame(bytes, layerId)` / `animation_state(dict)` / `animation_layers(dict)` 信号；`_on_message` 增加动画分支（`frame` 为二进制，不做 JSON 解析） |
+| `pyqt_app/ui/mcp_module.py` | 修改 | `McpClient` / `MqttSubscriber` 创建提前到 `_build_ui()` 之前并注入 `AnimationTab`；启动成功 → `on_simulation_started()`；卸载成功 → `reset()` |
+| `pyqt_app/ui/sim_tabs/__init__.py` | 修改 | 注释说明 `AnimationTab` 需额外注入 mcp / mqtt |
+
+**与需求逐条对应**
+
+| 需求 | 实现 |
+|---|---|
+| 在 `animation_tab.py` 中实现动画 | `AnimationTab` 完整实现；视口渲染与全屏拆到 `animation_view.py`（已确认） |
+| 启动后经 MQTT 订阅动画流并显示 | 「开始」成功 → `on_simulation_started(userId, modelId)` → `listRemoteSimulationAnimationLayers` 取层目录；MQTT 随连接订阅 `factory/sim/{userId}/{modelId}/animation/#`，收帧即显示（`animation/{layerId}/frame` 二进制 JPEG → `QPixmap.loadFromData`） |
+| 层级切换（默认 root、名称一行排列） | 层级按钮一行排列（`root` 显示「主模型」、其余用 `displayName`，`root` 排最前），超出横向滚动；点击 → `selectRemoteSimulationAnimationLayer(userId, modelId, layerId, 5)` |
+| 单击全屏（程序内）+ Esc 恢复 | `AnimationView` 未全屏时单击 → reparent 到主窗口并铺满；`QShortcut(Esc)` 恢复原父子关系与布局位置；全屏时跟随窗口 resize |
+| 高清 SVG checkbox 切换 | 「显示高清静态图」勾选 → 先继续显示 JPEG，异步 `getSvgPicture` 取到后用 `QSvgRenderer` 渲染显示（底色 `#E8E8E8`）；取消 → 回最近一帧 JPEG；切层且高清开启时自动重取 |
+| 参照 `simcontrol/index.vue` | 层排序与「主模型」文案、`frameRate=5`、高清切换顺序（先 JPEG 后 SVG）、全屏态滚轮缩放（0.2x~5x，以鼠标为中心）与左键拖动、全屏态单击不重置视图 |
+
+**实现要点**
+
+- 非活动层帧直接丢弃（避免切层瞬间串层）；切换层时保留旧帧直到新层帧到达（同前端）。
+- MCP 调用（取层目录 / 切层 / 取 SVG）经 `McpCallRunner` 在后台线程执行，各类运行器忙时忽略重复请求；SVG 结果用 `layerId` 校验，防止切层期间的过期结果覆盖画面。
+- 动画状态（层目录、当前层、推流标签）由 tab 自包含管理，与 1.6 的 `ConsoleLogTab` 风格一致。
+- 本次范围外：结构化对象帧（`animation/{layerId}/objects`）、`frameMeta`、`events`。
+
+**验证记录（本机实测）**
+
+- offscreen 桩验证：`listLayers` → 层条 `[主模型(选中), 车间A, 车间B]`；`root` 帧显示 128×96，非活动层 `g2` 帧被丢弃；`animation_state` → 「● 直播 7 fps」/「未推流（7 fps）」；`switch_layer("g1")` → `selectLayer(g1, 5)` + 层条高亮切换 + g1 帧被接受；高清 → `getSvg(g1)` + SVG 渲染 640×360 + 底色 `#E8E8E8`，取消 → 回 JPEG（底色 `#000000`）；高清开启时切层 → `selectLayer(g2, 5)` + `getSvg(g2)`；全屏 → 视口 reparent 到窗口且 `geometry == window.rect`、按钮变「🗕 恢复」、Esc 快捷键启用；Esc → 父子关系与按钮恢复、快捷键禁用；`reset()` → 层条 / 画面 / 标签全部清空。
+- 真实 MQTT 端到端（隔离 userId/modelId，向 `animation/*` 发布会话内构造的数据）：订阅 `.../+` 与 `.../animation/#` 成功；`animation/layers` → 层条「主模型 / 子模型一」；`animation/state` → 「● 直播 5 fps」；`animation/root/frame`（二进制 JPEG）→ 视口显示 160×120；非活动层 `sub1/frame` 被丢弃；切到 `sub1` 后同帧被接受（80×60）。
+- `python -m py_compile` 全部新增 / 修改文件通过；导入检查与 `MainWindow` 冒烟通过。
+
+**待人工验证（含副作用）**：真实 FS 上「加载 → 开始」后观察 JPEG 动画是否连续、层条切层、勾选高清显示 SVG、单击全屏与 Esc 恢复、全屏态滚轮缩放与拖动。
+
 # 2. 移植接口封装类java->python
 
 ## 2.1 需求

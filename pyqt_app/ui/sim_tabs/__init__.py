@@ -11,7 +11,7 @@ from ui.sim_tabs.result_tab import ResultTab
 
 #: 子页签标题（顺序与 TAB_CLASSES 一致）
 TAB_TITLES = ("控制台日志", "仿真动画", "仿真参数", "仿真结果")
-#: 子页签类
+#: 子页签类（`AnimationTab` 需要额外注入 mcp / mqtt，实例化由 ui/mcp_module.py 显式完成）
 TAB_CLASSES = (ConsoleLogTab, AnimationTab, ParameterTab, ResultTab)
 
 __all__ = ["ConsoleLogTab", "AnimationTab", "ParameterTab", "ResultTab",

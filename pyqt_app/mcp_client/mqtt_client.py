@@ -49,6 +49,9 @@ class MqttSubscriber(QObject):
     status_received = pyqtSignal(dict)   # 仿真状态消息
     progress_received = pyqtSignal(dict) # 仿真进度消息
     console_received = pyqtSignal(dict)  # 仿真控制台消息
+    animation_frame = pyqtSignal(bytes, str)  # 动画 JPEG 帧（原始字节, layerId）
+    animation_state = pyqtSignal(dict)        # animation/state（推流状态、帧率）
+    animation_layers = pyqtSignal(dict)       # animation/layers（层目录，QoS1 Retain）
 
     def __init__(self, broker_host=DEFAULT_BROKER_HOST, broker_port=DEFAULT_BROKER_PORT,
                  client_id_prefix="pyqt-fs", topic_prefix=DEFAULT_TOPIC_PREFIX,
@@ -63,6 +66,7 @@ class MqttSubscriber(QObject):
         self.user_id = ""
         self.model_id = ""
         self.topic = ""
+        self.animation_topic = ""
         self.running = False
         self._client = None
 
@@ -83,7 +87,7 @@ class MqttSubscriber(QObject):
         return "tcp://%s:%d" % (self.broker_host, self.broker_port)
 
     def start(self, user_id, model_id):
-        """连接 Broker 并订阅 factory/sim/{userId}/{modelId}/+，返回是否已发起连接"""
+        """连接 Broker 并订阅状态类主题（`.../+`）与动画主题（`.../animation/#`）"""
         self.stop()
         if not user_id or not model_id:
             self.failed.emit("MQTT 订阅需要 userId 与 modelId")
@@ -94,7 +98,9 @@ class MqttSubscriber(QObject):
 
         self.user_id = str(user_id)
         self.model_id = str(model_id)
-        self.topic = "%s/%s/%s/+" % (self.topic_prefix, self.user_id, self.model_id)
+        base = "%s/%s/%s" % (self.topic_prefix, self.user_id, self.model_id)
+        self.topic = base + "/+"
+        self.animation_topic = base + "/animation/#"
 
         client_id = "%s-%s-%d" % (self.client_id_prefix, self.user_id,
                                   int(time.time() * 1000))
@@ -135,13 +141,14 @@ class MqttSubscriber(QObject):
         self.user_id = ""
         self.model_id = ""
         self.topic = ""
+        self.animation_topic = ""
 
     # ==================== paho 回调 ====================
 
     def _on_connect(self, client, userdata, flags, reason_code, properties=None):
         if self._is_success(reason_code):
-            client.subscribe(self.topic, qos=0)
-            self.log("MQTT 已连接并订阅 %s" % self.topic)
+            client.subscribe([(self.topic, 0), (self.animation_topic, 0)])
+            self.log("MQTT 已连接并订阅 %s 、%s" % (self.topic, self.animation_topic))
             self.connected.emit()
         else:
             self.log("MQTT 连接被拒绝: %s" % reason_code)
@@ -154,6 +161,12 @@ class MqttSubscriber(QObject):
 
     def _on_message(self, client, userdata, message):
         topic = getattr(message, "topic", "") or ""
+
+        # 动画主题：factory/sim/{userId}/{modelId}/animation/...
+        if "/animation/" in topic:
+            self._on_animation_message(topic, message)
+            return
+
         msg_type = topic.rsplit("/", 1)[-1]
         try:
             payload = json.loads(message.payload.decode("utf-8", "replace"))
@@ -166,11 +179,32 @@ class MqttSubscriber(QObject):
         if msg_type == "status":
             self.status_received.emit(payload)
         elif msg_type == "progress":
-            # print("MQTT 进度: %s" % payload)
             self.progress_received.emit(payload)
         elif msg_type == "console":
             self.console_received.emit(payload)
-        # 其它（如 events、animation 子主题）本次不处理
+        # 其它（如 events）本次不处理
+
+    def _on_animation_message(self, topic, message):
+        """animation/# 下的消息：`{layerId}/frame` 是二进制 JPEG，其余为 JSON"""
+        kind = topic.rsplit("/", 1)[-1]
+        if kind == "frame":
+            layer_id = topic.split("/animation/", 1)[1].rsplit("/", 1)[0]
+            self.animation_frame.emit(bytes(message.payload), layer_id)
+            return
+        if kind not in ("state", "layers"):
+            return                       # frameMeta / objects 本次不处理
+        try:
+            payload = json.loads(message.payload.decode("utf-8", "replace"))
+        except Exception as exc:
+            self.log("MQTT 动画消息解析失败 (%s): %s" % (topic, exc))
+            return
+        if not isinstance(payload, dict):
+            return
+        payload["_topic"] = topic
+        if kind == "state":
+            self.animation_state.emit(payload)
+        else:
+            self.animation_layers.emit(payload)
 
     @staticmethod
     def _is_success(reason_code):
