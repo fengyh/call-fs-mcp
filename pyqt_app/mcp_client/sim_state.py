@@ -155,6 +155,14 @@ class SimulationState(QObject):
         self.sim_time = 0
         self.last_message_at = 0
 
+    def reset_sim_time(self):
+        """只把仿真进度归零（重置仿真成功后调用），保留最近消息时间"""
+        if self.sim_time == 0:
+            return False
+        self.sim_time = 0
+        self.changed.emit()
+        return True
+
     # ==================== 状态 ====================
 
     def _apply_mcp_status(self, mcp_status):

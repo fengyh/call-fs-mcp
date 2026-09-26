@@ -136,6 +136,54 @@
 
 **与 1.2 记录的差异更正**：1.2 记录中「进度（`x% (步/总步)`）」「兼容 `{timestamp, simTime}` 命名」等描述基于测试客户端的伪造字段，按本节结论作废。
 
+## 1.4 重置、开关动画debug
+### 问题
+- 重置应该没有正确调用MCP工具，因为在FS中没有看到重置的结果显示
+- “开动画开关”不但要在仿真启动时先设置，而且在任何时候改变其开关状态，都需要调用相应的MCP工具。目前没有看到FS中的动画被控制的迹象
+### to fix
+- [x] 动画开关状态改变时，调用相应的MCP工具，可参照"snowy-admin-web/src/views/fscloud/simcontrol/index.vue 565~573"
+- [x] 重置button按下，调用相应的MCP工具，可参照“snowy-admin-web/src/views/fscloud/simcontrol/index.vue doReset函数”
+### 实施记录
+
+#### 2026-08-23 需求 1.4 重置与动画开关修复
+
+**问题诊断**
+
+1. 「开动画」开关：`pyqt_app/ui/mcp_module.py` 中该复选框此前只写本地偏好（`_save_pref`），**不调用任何 MCP 工具**，所以取消勾选后 FS 侧动画仍保持开启（实测 FS 返回 `animationEnabled=true`）。
+2. 「重置」：调用链本身与前端一致（`resetRemoteSimulation(userId, modelId)`），只读实测 `listRemoteSimulationModels` 返回 `status="LOADED"`、`runId=null`、`simTime=0`、`message="Simulation reset."`，说明此前已成功执行过。用户“看不到重置结果”的成因是：
+   - RUNNING/PAUSED 时按钮按前端规则（`btn3Disabled`）禁用，点击完全静默、没有任何提示；
+   - `start/pause/resume/stop/reset` 点击时没有请求日志，无法从日志判断是否发出过调用；
+   - 重置成功后本地「仿真进度」不会归零（1.3 起进度只由 MQTT `progress.simTime` 驱动）。
+
+**修改内容**
+
+| 文件 | 改动 |
+|---|---|
+| `pyqt_app/ui/mcp_module.py` | ① 「开动画」勾选变化 → 新增 `_on_animation_toggled`：保存偏好 + 已加载模型时调用 `setRemoteSimulationAnimationEnabled`；未加载时与前端一致直接返回（只记本地日志）。② 加载模型成功、`↻刷新已加载` 时经 `_sync_animation_from` **回读** FS 的 `animationEnabled` 同步界面勾选（`loadModel` 未返回该字段时补一次 `getStatus`，label=`sync`）。③ `start/pause/resume/stop/reset` 增加请求日志；新增 `_require_loaded()` 前置检查，未加载/调用进行中时给出日志与状态栏提示（不再静默）。④ 控制按钮动态 tooltip 说明禁用原因。⑤ 重置成功后调用 `state.reset_sim_time()`。⑥ 构造期 `setChecked` 用 `blockSignals` 屏蔽，避免初始化即下发调用。 |
+| `pyqt_app/mcp_client/sim_state.py` | 新增 `reset_sim_time()`：只把仿真进度归零（保留最近消息时间），供重置成功后调用 |
+
+**与需求文本的对应**
+
+| 需求 | 实现 |
+|---|---|
+| 动画开关状态改变时调用相应 MCP 工具（参照 `simcontrol/index.vue:565-573`） | `animate_chk.toggled` → `_on_animation_toggled`：已加载时调 `setRemoteSimulationAnimationEnabled(userId, modelId, enabled)`；未加载时不调用（同前端 `if (!myModel.isLoaded || !myModel.modelId) return`）；启动仿真仍用同一勾选值作为 `showAnimation` |
+| 重置 button 按下调用相应 MCP 工具（参照 `doReset`） | `reset_btn` → `_reset_simulation` → `resetRemoteSimulation(userId, modelId)`，与前端 `fsSimResetModel` 同一工具、同一参数 |
+
+**本节的决策（已确认）**：动画开关采用“勾选变化时调用 + 加载/刷新时从 FS 回读”；重置保持前端规则（RUNNING/PAUSED 禁用，只补 tooltip 与提示，不自动 `stop`）；重置成功后本地进度立即归零。
+
+**验证记录（本机实测：offscreen 注入 + 真实只读查询）**
+
+- 构造期不触发 MCP 调用（`blockSignals` 生效）；未加载时切换勾选只写偏好、无调用；已加载时切换产生 `anim` 调用。
+- `anim` 成功响应 → 状态栏“动画已开启”；`_sync_animation_from` 在界面与 FS 不一致时更新勾选，且**不再下发** MCP 调用（无回环）。
+- `loadModel` 返回含 `animationEnabled` 时不补调用；不含时补一次 `getStatus`（label=`sync`）；`↻刷新已加载` 从 `listRemoteSimulationModels` 回读并同步勾选。
+- 重置成功注入 → 「仿真进度」`01:12.750` → `00.000`，状态回到「待仿真」，日志 `[重置仿真] 成功 → status=LOADED message=Simulation reset.`。
+- 未加载模型时调用停止/重置 → 日志 `[停止仿真]/[重置仿真] 未加载模型，已忽略` + 状态栏“请先「加载到 FS」再执行…”。
+- 动态 tooltip：LOADED/FINISHED 为空；RUNNING 时为“仅待仿真/仿真结束时可重置；仿真中/已暂停请先「停止」”，且按钮禁用。
+- 真实只读 `getStatus("pyqt-local","223fb9269181")` → FS `animationEnabled=true`，回读后界面勾选同步为 True 并记日志。
+- `python -m py_compile` 通过；`MainWindow` 冒烟通过（勾选 `True`、加速因子 `1000`，与 `app_config.json` 一致）。
+
+**待人工验证（含副作用，按惯例在 GUI 手动进行）**：勾选/取消「开动画」时 FS 桌面工具栏复选框是否跟随（`loadInUI=true` 时会同步）；RUNNING 状态下悬停重置按钮应看到禁用原因；停止后点重置，`getStatus` 应返回 `status=LOADED`、`simTime=0`、`message="Simulation reset."`，界面进度随之归零。
+
 # 2. 移植接口封装类java->python
 
 ## 2.1 需求

@@ -38,6 +38,8 @@ ACTION_LABEL = {
     "stop": "停止仿真",
     "reset": "重置仿真",
     "accel": "设置加速因子",
+    "anim": "开关动画",
+    "sync": "读取动画状态",
 }
 
 
@@ -92,7 +94,10 @@ class MCPModule(QWidget):
 
         # 初始值（来自 app_config.json，可持久化）
         self.load_in_ui_chk.setChecked(bool(self.settings["load_in_ui"]))
+        # 初始勾选不下发 MCP 调用（blockSignals 屏蔽 _on_animation_toggled）
+        self.animate_chk.blockSignals(True)
         self.animate_chk.setChecked(bool(self.settings["show_animation"]))
+        self.animate_chk.blockSignals(False)
         self.accelerate_slider.setValue(int(self.settings["accelerate_factor"]))
         self._on_accelerate_value(self.accelerate_slider.value())
         self.info_labels["user"].setText(str(self.settings["user_id"]))
@@ -215,9 +220,10 @@ class MCPModule(QWidget):
             ctrl_row.addWidget(btn)
 
         self.animate_chk = QCheckBox("开动画")
-        self.animate_chk.setToolTip("对应 startRemoteSimulation 的 showAnimation")
-        self.animate_chk.toggled.connect(
-            lambda checked: self._save_pref("show_animation", bool(checked)))
+        self.animate_chk.setToolTip(
+            "改变时立即调用 setRemoteSimulationAnimationEnabled；\n"
+            "启动仿真时同时作为 showAnimation 传入")
+        self.animate_chk.toggled.connect(self._on_animation_toggled)
         ctrl_row.addWidget(self.animate_chk)
 
         ctrl_row.addSpacing(8)
@@ -358,36 +364,53 @@ class MCPModule(QWidget):
 
     # ==================== 仿真控制（MCP） ====================
 
+    def _require_loaded(self, action):
+        """仿真控制前置检查：未加载模型或调用进行中时给出提示（不再静默忽略）"""
+        if not self.state.loaded:
+            self._append_log("[%s] 未加载模型，已忽略" % action)
+            self.main.set_status("请先「加载到 FS」再执行%s" % action, ok=False)
+            return False
+        if self._busy:
+            self._append_log("[%s] 上一次 MCP 调用未结束，已忽略" % action)
+            self.main.set_status("MCP 调用中，请稍候", ok=False)
+            return False
+        return True
+
     def _on_run_clicked(self):
         """button1：按当前状态分派 启动/暂停/继续（同前端 btn1Click 按文本分派）"""
-        if not self.state.loaded or self._busy:
+        if not self._require_loaded("启动/暂停/继续"):
             return
         user_id = self.settings["user_id"]
         model_id = self.state.model_id
         action = self.state.btn1_action
         if action == "pause":
+            self._append_log("[暂停] 请求 FS 暂停仿真: userId=%s modelId=%s" % (user_id, model_id))
             self._run("pause", lambda: self.mcp.pauseSimulation(user_id, model_id))
         elif action == "resume":
+            self._append_log("[继续] 请求 FS 继续仿真: userId=%s modelId=%s" % (user_id, model_id))
             self._run("resume", lambda: self.mcp.resumeSimulation(user_id, model_id))
         else:
             show_animation = self.animate_chk.isChecked()
-            self._append_log("[启动] showAnimation=%s" % show_animation)
+            self._append_log("[启动] 请求 FS 启动仿真: userId=%s modelId=%s showAnimation=%s"
+                             % (user_id, model_id, show_animation))
             self._run("start", lambda: self.mcp.startSimulation(user_id, model_id, show_animation))
 
     def _stop_simulation(self):
         """button2：停止仿真"""
-        if not self.state.loaded or self._busy:
+        if not self._require_loaded("停止仿真"):
             return
         user_id = self.settings["user_id"]
         model_id = self.state.model_id
+        self._append_log("[停止] 请求 FS 停止仿真: userId=%s modelId=%s" % (user_id, model_id))
         self._run("stop", lambda: self.mcp.stopSimulation(user_id, model_id))
 
     def _reset_simulation(self):
-        """button3：重置仿真"""
-        if not self.state.loaded or self._busy:
+        """button3：重置仿真（对齐前端 simcontrol 的 doReset）"""
+        if not self._require_loaded("重置仿真"):
             return
         user_id = self.settings["user_id"]
         model_id = self.state.model_id
+        self._append_log("[重置] 请求 FS 重置仿真: userId=%s modelId=%s" % (user_id, model_id))
         self._run("reset", lambda: self.mcp.resetSimulation(user_id, model_id))
 
     def _on_accelerate_value(self, value):
@@ -403,6 +426,38 @@ class MCPModule(QWidget):
         user_id = self.settings["user_id"]
         model_id = self.state.model_id
         self._run("accel", lambda: self.mcp.setAccelerateFactor(user_id, model_id, int(value)))
+
+    # ==================== 动画开关（MCP） ====================
+
+    def _on_animation_toggled(self, checked):
+        """「开动画」勾选变化：保存本地偏好；已加载模型时立即调用 MCP 开关动画
+
+        对应前端 snowy-admin-web/src/views/fscloud/simcontrol/index.vue 565-573
+        的 watch(showAnimationEnabled)。
+        """
+        self._save_pref("show_animation", bool(checked))
+        if not self.state.loaded:
+            self._append_log("[动画] 未加载模型，仅记录本地值 enabled=%s" % bool(checked))
+            return
+        user_id = self.settings["user_id"]
+        model_id = self.state.model_id
+        self._append_log("[动画] 请求 FS 开关动画: userId=%s modelId=%s enabled=%s"
+                         % (user_id, model_id, bool(checked)))
+        self._run("anim",
+                  lambda: self.mcp.setAnimationEnabled(user_id, model_id, bool(checked)))
+
+    def _sync_animation_from(self, data, source):
+        """从 FS 返回的数据回读 animationEnabled，同步界面勾选（不再下发 MCP 调用）"""
+        if not isinstance(data, dict) or "animationEnabled" not in data:
+            return False
+        enabled = bool(data.get("animationEnabled"))
+        if self.animate_chk.isChecked() != enabled:
+            self._append_log("[动画] %s：FS 当前动画=%s，同步界面勾选" % (source, enabled))
+        self.animate_chk.blockSignals(True)
+        self.animate_chk.setChecked(enabled)
+        self.animate_chk.blockSignals(False)
+        self._save_pref("show_animation", enabled)
+        return True
 
     def _save_pref(self, key, value):
         """把界面偏好写回 app_config.json 的 mcp 段"""
@@ -466,6 +521,10 @@ class MCPModule(QWidget):
                 self._handle_sim_control(label, result)
             elif label == "accel":
                 self._handle_accelerate(result)
+            elif label == "anim":
+                self._handle_animation(result)
+            elif label == "sync":
+                self._handle_sync(result)
         finally:
             self._sync_mqtt_subscription()
             self._refresh_sim_ui()
@@ -511,6 +570,10 @@ class MCPModule(QWidget):
             return
         self.main.set_status("FS 模型已加载: %s" % os.path.basename(
             data.get("modelFilePath") or self.model_file_name))
+        # 回读 FS 侧动画状态；loadModel 未返回 animationEnabled 时补一次 getStatus
+        user_id = self.settings["user_id"]
+        if not self._sync_animation_from(data, "加载模型"):
+            self._run("sync", lambda: self.mcp.getStatus(user_id, model_id))
 
     def _handle_unload(self, result):
         if not result.get("success", False):
@@ -545,6 +608,8 @@ class MCPModule(QWidget):
             self.state.set_model(first.get("modelId") or "", first.get("recordId") or "",
                                  first.get("status") or "LOADED")
             self._append_log("[刷新] 已同步本地状态到 FS 中的模型")
+        if models:
+            self._sync_animation_from(models[0], "刷新已加载")
         self.main.set_status("已加载模型 %d 个" % len(models))
 
     def _handle_sim_control(self, label, result):
@@ -564,6 +629,9 @@ class MCPModule(QWidget):
             self.state.update_mcp_status(status)
         else:
             self.state.changed.emit()
+        if label == "reset":
+            # 重置成功后本地仿真进度立即归零（进度只由 MQTT progress.simTime 驱动）
+            self.state.reset_sim_time()
         self._append_log("[%s] 成功 → status=%s message=%s"
                          % (action, status or "-", data.get("message", "")))
         self.main.set_status("%s 完成（%s）" % (action, self.state.status_label))
@@ -578,6 +646,28 @@ class MCPModule(QWidget):
         factor = data.get("accelerateFactor", self.accelerate_slider.value())
         self._append_log("[加速因子] 已设置为 %sx" % factor)
         self.main.set_status("加速因子 %sx" % factor)
+
+    def _handle_animation(self, result):
+        """setRemoteSimulationAnimationEnabled 的业务响应处理"""
+        if not result.get("success", False):
+            self._append_log("[动画] 失败 → %s: %s"
+                             % (result.get("code", "?"), result.get("message", "开关动画失败")))
+            self.main.set_status("动画开关失败", ok=False)
+            return
+        data = result.get("data") or {}
+        enabled = data.get("animationEnabled", self.animate_chk.isChecked())
+        self._append_log("[动画] 成功 → FS 动画=%s streaming=%s"
+                         % (enabled, data.get("animationStreaming")))
+        self._sync_animation_from(data, "开关动画")
+        self.main.set_status("动画已%s" % ("开启" if enabled else "关闭"))
+
+    def _handle_sync(self, result):
+        """getStatus 回读：加载模型后 FS 未返回 animationEnabled 时补充读取"""
+        if not result.get("success", False):
+            self._append_log("[动画] 回读 FS 动画状态失败 → %s: %s"
+                             % (result.get("code", "?"), result.get("message", "查询失败")))
+            return
+        self._sync_animation_from(result.get("data") or {}, "读取状态")
 
     # ==================== 界面同步 ====================
 
@@ -595,6 +685,12 @@ class MCPModule(QWidget):
         self.run_btn.setEnabled(not busy and self.state.btn1_enabled)
         self.stop_btn.setEnabled(not busy and self.state.btn2_enabled)
         self.reset_btn.setEnabled(not busy and self.state.btn3_enabled)
+        # 禁用原因可视化（前端规则：RUNNING/PAUSED 不可重置，需先「停止」）
+        self.run_btn.setToolTip("" if self.state.btn1_enabled else "请先「加载到 FS」")
+        self.stop_btn.setToolTip("" if self.state.btn2_enabled else "仅仿真中/已暂停时可停止")
+        self.reset_btn.setToolTip(
+            "" if self.state.btn3_enabled
+            else "仅待仿真/仿真结束时可重置；仿真中/已暂停请先「停止」")
 
         self.sim_info_labels["status"].setText(self.state.status_label)
         self.sim_info_labels["progress"].setText(self.state.sim_time_text)
