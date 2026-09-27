@@ -383,6 +383,56 @@
 
 **待人工验证**：GUI 上进入全屏后，确认层级条与「显示高清静态图」勾选仍可见可操作，Esc / 「🗕 恢复」都能回到原页签位置且标题不变。
 
+## 1.9 仿真参数
+
+### 需求
+
+本需求可对标vue版本：snowy-admin-web/src/views/fscloud/simparam/index.vue
+
+- [x] 在pyqt_app/ui/sim_tabs/parameter_tab.py实现参数的管理
+- [x] 不需要落库，但需要回写模型
+- [x] 需要编辑table
+- [x] remark为‘Out’的table不显示为参数表（将在仿真结果中处理）
+
+### 实施记录
+
+#### 2026-08-23 需求 1.9 仿真参数（参数表读取 / 编辑 / 回写模型）
+
+**实现**
+
+| 文件 | 改动 |
+|---|---|
+| `pyqt_app/ui/sim_tabs/parameter_tab.py` | 重写：工具栏（`⟳取模型参数` / `💾保存到模型` / `↩还原` + 脏标记 + 概览/反馈标签）+ 参数表选择条 + 可编辑 `QTableWidget`；自包含处理 MCP 调用（`McpCallRunner` 后台线程） |
+| `pyqt_app/ui/mcp_module.py` | `ParameterTab` 注入 `mcp`；加载模型成功 → `on_model_loaded()`；卸载前 `confirm_discard("关闭模型")`；卸载成功 → `reset()` |
+
+**需求逐条对应**
+
+| 需求 | 实现 |
+|---|---|
+| 在 `parameter_tab.py` 实现参数管理 | 取参数 / 编辑 / 保存 / 还原全部在该文件内实现 |
+| 不需要落库，但需要回写模型 | 不实现「快照写库」；回写走 `batchUpdateRemoteSimulationParameterTable(userId, modelId, tablesJson, bSaveModel=true)` —— 回写内存模型并保存 `.fs` 文件 |
+| 需要编辑 table | 单元格可编辑（脏单元格浅黄高亮）+ 表头列名双击修改（`QInputDialog`）；「保存到模型」前有确认框，成功后自动重取 |
+| `remark='Out'` 的表不显示 | 用 `listRemoteSimulationParameterTables`（缺 remark 时回退快照 `mcpRows`）构建 remark 映射，按**归一化表名**（去前导 `.` 与 `Param_` 前缀）过滤 `remark.lower() == "out"`；实测当前模型的 `.结论` 被正确过滤 |
+
+**关键技术点（实测得出）**
+
+- 表名格式不一致：清单给 `.初始化参数`，快照给 `初始化参数` → 过滤按归一化表名匹配，回写使用快照里的原表名。
+- 快照 `tables[]` 不含 `remark` → remark 只能从参数表清单或 `mcpRows` 获取。
+- `QTableWidget` 表头**不支持原地编辑**，列名改为「双击表头 + 输入框」（`horizontalHeader().sectionDoubleClicked`）。
+- 参数表概览与操作反馈拆成两个标签，避免 `_refresh_buttons()` 每次刷新覆盖掉「写入成功 / 失败」提示。
+- 运行中（`RUNNING/PAUSED`）禁用「保存到模型」（MCP 会返回 `INVALID_STATE`），失败时把该错误码转成中文提示。
+- 只提交界面上显示的表（排除 `remark='Out'` 的输出表），避免触碰输出表。
+
+**已确认的取舍**：`bSaveModel=true`；编辑能力 = 单元格 + 列名 + 脏标记 + 一键还原（不做增删行列 —— 04 文档明确 `columns/columnCount` 仅用于校验、不会修改模型表结构）；未保存保护 = 「取参数 / 还原 / 关闭模型」前确认；**切换参数表不弹确认**（编辑实时保存在内存，切换不丢内容，已用按钮 tooltip 说明）。
+
+**验证记录（本机实测）**
+
+- 真实只读（模型 `ef2629a66bf0`）：显示表 `['初始化参数']`、过滤 `['结论']`、表格 `1×6`、表头 `['回填长度','回填宽度','回填深度','土方单次运输体积','装载机数','推土机数']`、行 `['50','200','2','3','5','5']`。
+- offscreen 桩验证：`Out`/`out` 均被过滤；单元格编辑 → 脏标记 + 浅黄底 + 保存/还原使能；改回原值 → 脏标记消失；列名双击修改 → 记录并同步到待提交数据；`↩还原` → 回到上次内容；保存 → 捕获 `bSaveModel=true`、仅提交非 Out 表（`columnCount` 与 columns 一致）、反馈「已写入 1 张表 / 2 行」；`INVALID_STATE` → 中文提示；运行中保存按钮禁用、停止后恢复；卸载前选「取消」不会调用卸载、选「继续」才调用；`reset()` 清空。
+- `python -m py_compile` 全部修改文件通过；`MainWindow` 冒烟通过。
+
+**待人工验证（含副作用：会写入模型并保存 .fs 文件）**：GUI 中编辑单元格 / 列名后点「保存到模型」，确认返回的 `updatedTableCount/updatedRowCount/modelSaved`，以及重新「取模型参数」后数值保持不变；仿真运行中保存应被拒绝并给出提示。
+
 # 2. 移植接口封装类java->python
 
 ## 2.1 需求

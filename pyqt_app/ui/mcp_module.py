@@ -84,6 +84,7 @@ class MCPModule(QWidget):
         self._build_ui()                 # 子页签需要注入 mcp / mqtt
         self.mcp_log.connect(self._append_log)
         self.animation_tab.log_line.connect(self._append_log)
+        self.parameter_tab.log_line.connect(self._append_log)
 
         self.mqtt.connected.connect(self._on_mqtt_connected)
         self.mqtt.disconnected.connect(self._on_mqtt_disconnected)
@@ -269,7 +270,7 @@ class MCPModule(QWidget):
         tab_widgets = [
             ConsoleLogTab(self.main, self.state),
             AnimationTab(self.main, self.state, mcp=self.mcp, mqtt=self.mqtt),
-            ParameterTab(self.main, self.state),
+            ParameterTab(self.main, self.state, mcp=self.mcp),
             ResultTab(self.main, self.state),
         ]
         self.tabs = []
@@ -278,6 +279,7 @@ class MCPModule(QWidget):
             self.tabs.append(tab)
         self.console_tab = self.tabs[0]      # 「控制台日志」，自包含处理 MQTT console 消息
         self.animation_tab = self.tabs[1]    # 「仿真动画」，注入 MCP / MQTT 依赖
+        self.parameter_tab = self.tabs[2]    # 「仿真参数」，注入 MCP 依赖
         right.addWidget(self.sim_tabs, 1)
 
         layout.addWidget(right_widget, 1)
@@ -351,6 +353,8 @@ class MCPModule(QWidget):
     def _unload_from_fs(self):
         """在 FS 中卸载模型：unloadModel(userId, modelId)"""
         if not self.state.loaded:
+            return
+        if not self.parameter_tab.confirm_discard("关闭模型"):
             return
         user_id = self.settings["user_id"]
         model_id = self.state.model_id
@@ -593,6 +597,7 @@ class MCPModule(QWidget):
         user_id = self.settings["user_id"]
         # 登记到动画 tab：未启动仿真时也可查看高清静态图（需求 1.8）
         self.animation_tab.on_model_loaded(user_id, model_id)
+        self.parameter_tab.on_model_loaded(user_id, model_id)
         if not self._sync_animation_from(data, "加载模型"):
             self._run("sync", lambda: self.mcp.getStatus(user_id, model_id))
 
@@ -605,6 +610,7 @@ class MCPModule(QWidget):
         self._append_log("[关闭] 成功 → 已从 FS 卸载 modelId=%s" % self.state.model_id)
         self.state.clear_model()
         self.animation_tab.reset()
+        self.parameter_tab.reset()
         self.main.set_status("FS 模型已关闭")
 
     def _handle_refresh(self, result):
