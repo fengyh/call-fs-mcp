@@ -468,6 +468,59 @@ _apply_dirty_marks → setBackground → itemChanged → _on_item_changed → _a
 
 **遗留建议**：当前使用 `QTableWidget` 逐单元格创建 item，5000 行约需 0.66s；若后续出现数万行的参数表，建议改为 `QTableView + QAbstractTableModel` 虚拟化（本次未做，避免大改动引入回归）。
 
+## 1.10 仿真结果
+
+### 需求
+
+本需求可对标vue版本：snowy-admin-web/src/views/fscloud/simdata/index.vue
+
+- [x] 配置文件：通过pyqt_app/ui/sim_tabs/result_tab_map.json配置文件，控制哪些类别/子类的表显示，哪些类别/子类的表不显示。对标：snowy-admin-web/src/views/fscloud/simdata/TableTitleKeyMap.js
+- [x] 同样需要分页显示表
+- [x] 同样需要显示图
+
+### 实施记录
+
+#### 2026-08-23 需求 1.10 仿真结果（配置驱动的分页表格 + 图表）
+
+**实现**
+
+| 文件 | 改动 |
+|---|---|
+| `pyqt_app/ui/sim_tabs/result_tab_map.json` | 新增：类别 / 子类显示与图表配置（对标 `TableTitleKeyMap.js`），4 组 29 子类，其中 15 个子类带 `chart` |
+| `pyqt_app/ui/sim_tabs/result_chart.py` | 新增：matplotlib 图表组件（柱状 / 折线、堆叠、分组多系列、时间轴格式化、深色主题 + 中文字体） |
+| `pyqt_app/ui/sim_tabs/result_tab.py` | 重写：工具栏 + 类别条 + 子类条 +「表格 / 图表」切换 + 分页条；`ResultTableModel` 只读表模型；结果总览摘要（含 `leanMetrics` / `energyAnalysis` 摊平） |
+| `pyqt_app/ui/mcp_module.py` | `ResultTab` 注入 `mcp`；`log_line` 接日志；加载 / 卸载联动 |
+
+**需求逐条对应**
+
+| 需求 | 实现 |
+|---|---|
+| 配置文件控制类别 / 子类显示 | `result_tab_map.json` 的 `show` 字段；`show=false` 的组 / 子类不出现（已实测：把 `basic.rbData` 置 false 后从子类条消失） |
+| 分页显示表 | `getRemoteSimulationResultDatasetPage(dataset, limit, offset)`；页码条（共 N 条 / 第 x/y 页 / 上一页·下一页 / 每页 25·50·100·200，`limit ≤ 1000`）；结果总览组用 `summaryResults` 的 `rows` 本地分页（对齐前端 `local-paging`） |
+| 显示图 | 由 `chart` 字段驱动：3 个 `timeSeries` 折线（`wip.timeline`、`lean.wipTimeline`、`energy.powerCurve`）+ 12 个统计类柱状（含 `utilRate`、`lean.oee` 的堆叠构成）；有图表的子类出现「表格 / 图表」切换 |
+
+**关键技术点**
+
+- 配置文件由 Node 直接从 `TableTitleKeyMap.js` 导出（`import` + `JSON.stringify`），避免手抄中文标题 / 单位 / `type` / `decimals`；随后注入 `chart` 配置并校验 x / y 列是否真实存在
+- 单元格格式化对齐前端 `ResultTable.vue` 的 `formatValue` / `fmtTimestamp`：`s/i/f/t`（`t`：天>0 → `X天 hh:mm:ss`、时>0 → `hh:mm:ss`、分>0 → `mm:ss`、秒>0 → `s`、否则 `0`）
+- 表格使用 **`QTableView` + 只读 `QAbstractTableModel`**（虚拟化，避免参数表那种逐格创建 item 的开销与递归风险），行号按分页偏移显示
+- 图表用 matplotlib `FigureCanvasQTAgg` 嵌入；折线支持 `groupBy` 多系列，柱状支持 `stacked`
+- `resultStatus != READY` 时给出明确提示；`RESULT_NOT_READY` 也转成中文提示
+
+**验证记录（本机实测）**
+
+- 配置：4 组 29 子类、15 个 `chart`；`show=false` 过滤生效；各子类的 x / y 列均存在
+- 就绪流程（桩 `getResultSnapshot`）：状态「结果就绪（runId=run-1）」；组条「结果总览 / 基础结果 / 精益结果 / 能耗结果」、子类条按 `tabBrief` 生成（节拍 / 产量/小时 / 设备利用率 / 精益指标 / 能耗分析）
+- 表格：`overview.taktTime` 表头 `['对象名','类型','单元','首件时间(h:m:s)','末件时间(h:m:s)','有效时间(h:m:s)','加工数(件)','节拍(h:m:s)','UPH(件/时)']`、首行 `['S1','Station','u','1','5','4','10','0','9.00']`（时间串与 2 位小数符合前端规则）
+- 分页：`basic/wip.timeline` → 调用 `('page','wip.timeline',50,0)`、共 123 条、1/3 页；「下一页」→ `offset=50`；每页改 100 → 调用 `('page','partCycleTime',100,0)`、1/2 页
+- 图表：`wip.timeline` → 折线 1 条 / 50 个数据点 / 标题「WIP 趋势」；`utilRate` → 堆叠柱 4 个系列 / 标题「设备利用率构成」；无 `chart` 的子类（如 `partCycleTime`）「表格 / 图表」按钮隐藏、默认表格
+- 未就绪：真实只读（模型 `c57dc6fc17ff`、`resultStatus=NOT_READY`）→「结果未就绪（resultStatus=NOT_READY）：请在仿真结束后再获取」
+- `python -m py_compile` + `MainWindow` 冒烟（4 个子页签切换）通过
+
+**待人工验证（需真实结果数据）**：完成一次仿真（加载 → 开始 → 自然结束）后点「获取仿真结果」，确认各子类表格、分页与图表（折线 / 堆叠柱）显示正常。
+
+**本次范围**：仅当前仿真结果；不含横向对比与历史结果快照（依赖后端落库接口 `fsSaveResultSnapshot` / `fsListSnapshots`，需求未提）。
+
 # 2. 移植接口封装类java->python
 
 ## 2.1 需求

@@ -85,6 +85,7 @@ class MCPModule(QWidget):
         self.mcp_log.connect(self._append_log)
         self.animation_tab.log_line.connect(self._append_log)
         self.parameter_tab.log_line.connect(self._append_log)
+        self.result_tab.log_line.connect(self._append_log)
 
         self.mqtt.connected.connect(self._on_mqtt_connected)
         self.mqtt.disconnected.connect(self._on_mqtt_disconnected)
@@ -271,7 +272,7 @@ class MCPModule(QWidget):
             ConsoleLogTab(self.main, self.state),
             AnimationTab(self.main, self.state, mcp=self.mcp, mqtt=self.mqtt),
             ParameterTab(self.main, self.state, mcp=self.mcp),
-            ResultTab(self.main, self.state),
+            ResultTab(self.main, self.state, mcp=self.mcp),
         ]
         self.tabs = []
         for title, tab in zip(TAB_TITLES, tab_widgets):
@@ -280,6 +281,7 @@ class MCPModule(QWidget):
         self.console_tab = self.tabs[0]      # 「控制台日志」，自包含处理 MQTT console 消息
         self.animation_tab = self.tabs[1]    # 「仿真动画」，注入 MCP / MQTT 依赖
         self.parameter_tab = self.tabs[2]    # 「仿真参数」，注入 MCP 依赖
+        self.result_tab = self.tabs[3]       # 「仿真结果」，注入 MCP 依赖
         right.addWidget(self.sim_tabs, 1)
 
         layout.addWidget(right_widget, 1)
@@ -598,6 +600,7 @@ class MCPModule(QWidget):
         # 登记到动画 tab：未启动仿真时也可查看高清静态图（需求 1.8）
         self.animation_tab.on_model_loaded(user_id, model_id)
         self.parameter_tab.on_model_loaded(user_id, model_id)
+        self.result_tab.on_model_loaded(user_id, model_id)
         if not self._sync_animation_from(data, "加载模型"):
             self._run("sync", lambda: self.mcp.getStatus(user_id, model_id))
 
@@ -611,6 +614,7 @@ class MCPModule(QWidget):
         self.state.clear_model()
         self.animation_tab.reset()
         self.parameter_tab.reset()
+        self.result_tab.reset()
         self.main.set_status("FS 模型已关闭")
 
     def _handle_refresh(self, result):
