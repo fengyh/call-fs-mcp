@@ -10,9 +10,8 @@
 - 切换层：`selectRemoteSimulationAnimationLayer(userId, modelId, layerId, 5)`，高清开启时重取 SVG
 - 全屏：单击动画区域（或用工具行按钮）进入程序内全屏，Esc 恢复
 """
-from PyQt6.QtCore import QByteArray, QSize, Qt, pyqtSignal
-from PyQt6.QtGui import QColor, QKeySequence, QPainter, QPixmap, QShortcut
-from PyQt6.QtSvg import QSvgRenderer
+from PyQt6.QtCore import QEvent, Qt, pyqtSignal
+from PyQt6.QtGui import QKeySequence, QPixmap, QShortcut
 from PyQt6.QtWidgets import (
     QCheckBox, QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea, QVBoxLayout, QWidget,
 )
@@ -43,12 +42,16 @@ class AnimationTab(QWidget):
         self.frame_rate = DEFAULT_FRAME_RATE
 
         self._jpeg_pixmap = None    # 最近一帧 JPEG
-        self._svg_pixmap = None     # 最近一张高清 SVG 渲染结果
+        self._has_svg = False       # 当前层的高清 SVG 是否已取到并矢量显示中
         self._layers_runner = None
         self._select_runner = None
         self._svg_runner = None
         self._fullscreen = False
         self._esc_shortcut = None
+        self._origin_tabs = None        # 全屏前所在的 QTabWidget（用于退出时复原页签）
+        self._origin_parent = None      # 兜底：全屏前的父控件
+        self._origin_index = -1
+        self._origin_title = "仿真动画"
 
         self._build_ui()
         self._connect_mqtt()
@@ -72,7 +75,7 @@ class AnimationTab(QWidget):
         self.hd_chk.toggled.connect(self._on_hd_toggled)
         tool_row.addWidget(self.hd_chk)
         self.full_btn = QPushButton("🗖 全屏")
-        self.full_btn.setFixedHeight(24)
+        self.full_btn.setFixedHeight(30)     # 全局 QSS padding 6px + 13px 字号需要 ~28px，24px 会裁字
         self.full_btn.setToolTip("单击动画区域也可全屏；全屏时 Esc 恢复")
         self.full_btn.clicked.connect(self._toggle_fullscreen)
         tool_row.addWidget(self.full_btn)
@@ -81,7 +84,7 @@ class AnimationTab(QWidget):
         # 层级条：一行内排列（超出横向滚动）
         self.layer_scroll = QScrollArea()
         self.layer_scroll.setWidgetResizable(True)
-        self.layer_scroll.setFixedHeight(36)
+        self.layer_scroll.setFixedHeight(46)   # 30px 按钮 + 14px 横向滚动条 + 边距
         self.layer_scroll.setFrameShape(QFrame.Shape.NoFrame)
         self.layer_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.layer_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -95,7 +98,6 @@ class AnimationTab(QWidget):
 
         self.view = AnimationView()
         self.view.clicked.connect(self.enter_fullscreen)
-        self.view.fullscreen_changed.connect(self._on_fullscreen_changed)
         layout.addWidget(self.view, 1)
 
     def _connect_mqtt(self):
@@ -107,6 +109,21 @@ class AnimationTab(QWidget):
 
     # ==================== 对外入口 ====================
 
+    def on_model_loaded(self, user_id, model_id):
+        """模型加载成功后调用（mcp_module 的「加载到 FS」成功分支）
+
+        登记 user/model，使未启动仿真时也能查看高清静态图。
+        """
+        self.user_id = user_id or ""
+        self.model_id = model_id or ""
+        self._has_svg = False
+        self._jpeg_pixmap = None
+        self.view.clear()
+        self._log("[动画] 已登记模型 modelId=%s（勾选「显示高清静态图」可查看 SVG）"
+                  % self.model_id)
+        if self.hd_chk.isChecked():
+            self.load_svg()
+
     def on_simulation_started(self, user_id, model_id):
         """仿真启动成功后调用（mcp_module 的「开始」成功分支）"""
         self.user_id = user_id or ""
@@ -114,7 +131,7 @@ class AnimationTab(QWidget):
         self.active_layer = "root"
         self.streaming = False
         self._jpeg_pixmap = None
-        self._svg_pixmap = None
+        self._has_svg = False
         self.view.clear()
         self._log("[动画] 开始接收动画流: userId=%s modelId=%s（默认 root 层）"
                   % (self.user_id, self.model_id))
@@ -132,7 +149,7 @@ class AnimationTab(QWidget):
         self.streaming = False
         self.frame_rate = DEFAULT_FRAME_RATE
         self._jpeg_pixmap = None
-        self._svg_pixmap = None
+        self._has_svg = False
         self._rebuild_layer_bar()
         self._update_stream_label()
         self.view.clear()
@@ -179,6 +196,7 @@ class AnimationTab(QWidget):
     def load_svg(self):
         """取当前层的高清 SVG 静态图：getSvgPicture"""
         if not (self.mcp and self.user_id and self.model_id):
+            self._log("[动画] 尚无已加载模型，无法取高清静态图")
             return
         if self._svg_runner is not None and self._svg_runner.isRunning():
             return
@@ -217,7 +235,7 @@ class AnimationTab(QWidget):
         self.active_layer = data.get("layerId") or layer_id
         if data.get("frameRate"):
             self.frame_rate = int(data["frameRate"])
-        self._svg_pixmap = None       # 换层后旧的高清图失效
+        self._has_svg = False         # 换层后旧的高清图失效
         self._rebuild_layer_bar()
         self._update_stream_label()
         self._log("[动画] 已切换到层 %s（等待该层帧）" % self.active_layer)
@@ -237,14 +255,13 @@ class AnimationTab(QWidget):
         if not svg_text:
             self._log("[动画] 响应中没有 svg 字段")
             return
-        pixmap = self._render_svg(svg_text)
-        if pixmap is None:
-            self._log("[动画] SVG 渲染失败（%s 字节）" % data.get("byteLength"))
+        if not self.view.set_svg(svg_text):
+            self._log("[动画] SVG 无法渲染（%s 字节）" % data.get("byteLength"))
             return
-        self._svg_pixmap = pixmap
-        self.view.set_pixmap(pixmap, BACK_LIGHT)
-        self._log("[动画] 已显示高清静态图（层=%s, %dx%d）"
-                  % (self.active_layer, pixmap.width(), pixmap.height()))
+        self._has_svg = True
+        self._log("[动画] 已显示高清静态图（矢量，层=%s，%sx%s，%s 字节）"
+                  % (data.get("layerId") or self.active_layer, data.get("width"),
+                     data.get("height"), data.get("byteLength")))
 
     # ==================== MQTT 消息 ====================
 
@@ -257,7 +274,7 @@ class AnimationTab(QWidget):
             self._log("[动画] JPEG 帧解码失败（%d 字节）" % len(data))
             return
         self._jpeg_pixmap = pixmap
-        if not self.hd_chk.isChecked() or self._svg_pixmap is None:
+        if not self.hd_chk.isChecked() or not self._has_svg:
             self.view.set_pixmap(pixmap, BACK_BLACK)
 
     def _on_layers(self, payload):
@@ -287,12 +304,12 @@ class AnimationTab(QWidget):
     def _on_hd_toggled(self, checked):
         """高清开关：参照前端——先继续显示 JPEG，SVG 取到后替换；取消则回到 JPEG"""
         if checked:
-            self._svg_pixmap = None
+            self._has_svg = False
             if self._jpeg_pixmap is not None:
                 self.view.set_pixmap(self._jpeg_pixmap, BACK_BLACK)
             self.load_svg()
             return
-        self._svg_pixmap = None
+        self._has_svg = False
         if self._jpeg_pixmap is not None:
             self.view.set_pixmap(self._jpeg_pixmap, BACK_BLACK)
         else:
@@ -320,7 +337,8 @@ class AnimationTab(QWidget):
             btn = QPushButton(text)
             btn.setCheckable(True)
             btn.setChecked(layer_id == self.active_layer)
-            btn.setFixedHeight(24)
+            btn.setFixedHeight(30)          # 同全屏按钮：避免全局 padding 导致文字被裁
+            btn.setMinimumWidth(60)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             parent_name = layer.get("parentLayerId")
             btn.setToolTip("layerId=%s%s" % (layer_id,
@@ -341,7 +359,7 @@ class AnimationTab(QWidget):
             color = "#64748B"
         self.stream_label.setStyleSheet("color:%s; font-size:11px;" % color)
 
-    # ==================== 全屏 ====================
+    # ==================== 全屏（整个 tab 铺满窗口） ====================
 
     def _toggle_fullscreen(self):
         if self._fullscreen:
@@ -349,43 +367,80 @@ class AnimationTab(QWidget):
         else:
             self.enter_fullscreen()
 
+    def _fullscreen_host(self):
+        """返回 (所在 QTabWidget, 页签索引)；不在 QTabWidget 中时返回 (None, -1)"""
+        stack = self.parentWidget()                       # QTabWidget 内部的 QStackedWidget
+        tabs = stack.parentWidget() if stack is not None else None
+        if tabs is not None and hasattr(tabs, "removeTab") and hasattr(tabs, "insertTab"):
+            index = tabs.indexOf(self)
+            if index >= 0:
+                return tabs, index
+        return None, -1
+
     def enter_fullscreen(self):
+        """把整个「仿真动画」tab 铺满主窗口
+
+        这样工具行（高清切换 / 恢复按钮）与层级条在全屏时仍然可见可操作
+        （对齐前端 `.anim-fullscreen` 作用于整张动画卡片）。
+        """
         if self._fullscreen:
             return
+        host = self.window()
+        self._origin_parent = self.parentWidget()
+        tabs, index = self._fullscreen_host()
+        self._origin_tabs = tabs
+        self._origin_index = index
+        self._origin_title = tabs.tabText(index) if index >= 0 else "仿真动画"
+
         if self._esc_shortcut is None:
-            self._esc_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), self.window())
+            self._esc_shortcut = QShortcut(QKeySequence(Qt.Key.Key_Escape), host)
             self._esc_shortcut.activated.connect(self.exit_fullscreen)
-        self._fullscreen = True
         self._esc_shortcut.setEnabled(True)
-        self.view.enter_fullscreen()
+
+        if tabs is not None:
+            tabs.removeTab(index)        # 一并移除页签标签，退出时用 insertTab 复原
+
+        self._fullscreen = True
+        self.full_btn.setText("🗕 恢复")
+        # 用对象名限定，避免样式级联到子控件（工具行 / 层级条保持原样）
+        self.setObjectName("animTabFullscreen")
+        self.setStyleSheet("#animTabFullscreen { background:#000000; }")
+        self.setParent(host)
+        self.setGeometry(host.rect())
+        self.show()
+        self.raise_()
+        host.installEventFilter(self)
+        self.view.set_fullscreen(True)
 
     def exit_fullscreen(self):
+        """恢复 tab 在 QTabWidget 中的原页签位置、标题与样式"""
         if not self._fullscreen:
             return
         self._fullscreen = False
+        host = self.parentWidget()
+        if host is not None:
+            host.removeEventFilter(self)
         if self._esc_shortcut is not None:
             self._esc_shortcut.setEnabled(False)
-        self.view.exit_fullscreen()
+        self.view.set_fullscreen(False)
+        self.full_btn.setText("🗖 全屏")
+        self.setStyleSheet("")
 
-    def _on_fullscreen_changed(self, fullscreen):
-        self._fullscreen = fullscreen
-        self.full_btn.setText("🗕 恢复" if fullscreen else "🗖 全屏")
+        tabs, index, title = self._origin_tabs, self._origin_index, self._origin_title
+        if tabs is not None and index >= 0:
+            tabs.insertTab(index, self, title)     # 重建页签标签
+            tabs.setCurrentWidget(self)
+        elif self._origin_parent is not None:
+            self.setParent(self._origin_parent)
+        self.show()
+
+    def eventFilter(self, obj, event):
+        """全屏时跟随主窗口尺寸变化"""
+        if self._fullscreen and event.type() == QEvent.Type.Resize:
+            self.setGeometry(obj.rect())
+        return super().eventFilter(obj, event)
 
     # ==================== 工具 ====================
-
-    def _render_svg(self, svg_text):
-        renderer = QSvgRenderer(QByteArray(svg_text.encode("utf-8")))
-        if not renderer.isValid():
-            return None
-        size = renderer.defaultSize()
-        if size.isEmpty():
-            size = QSize(1280, 720)
-        pixmap = QPixmap(size)
-        pixmap.fill(QColor(BACK_LIGHT))
-        painter = QPainter(pixmap)
-        renderer.render(painter)
-        painter.end()
-        return pixmap
 
     def _log(self, message):
         self.log_line.emit(message)

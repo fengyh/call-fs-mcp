@@ -591,6 +591,8 @@ class MCPModule(QWidget):
             data.get("modelFilePath") or self.model_file_name))
         # 回读 FS 侧动画状态；loadModel 未返回 animationEnabled 时补一次 getStatus
         user_id = self.settings["user_id"]
+        # 登记到动画 tab：未启动仿真时也可查看高清静态图（需求 1.8）
+        self.animation_tab.on_model_loaded(user_id, model_id)
         if not self._sync_animation_from(data, "加载模型"):
             self._run("sync", lambda: self.mcp.getStatus(user_id, model_id))
 

@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
-"""仿真动画视口：显示 JPEG 帧 / SVG 高清静态图，支持「程序内全屏」与缩放拖动
+"""仿真动画视口：显示 JPEG 帧 / SVG 高清静态图，支持缩放与拖动
 
 对齐 `snowy-admin-web/src/views/fscloud/simcontrol/index.vue` 动画区域的交互：
 
-- 未全屏时单击视口 → 进入全屏（覆盖整个应用窗口）；全屏时单击不重置视图
+- 画面：JPEG 帧走位图路径；高清 SVG 走矢量路径（按目标矩形实时渲染，缩放不模糊）
+- 未全屏时单击视口 → 请求进入全屏（由 `AnimationTab` 把整个 tab 铺满窗口）；全屏时单击不重置视图
 - 全屏时滚轮缩放（0.2x~5x，以鼠标位置为中心）、左键拖动平移
-- Esc 退出全屏由 `AnimationTab` 的 QShortcut 触发（调用 `exit_fullscreen()`）
+- 退出全屏：`AnimationTab` 的「🗕 恢复」按钮或 Esc 快捷键
 """
-from PyQt6.QtCore import QEvent, QPoint, QRect, Qt, pyqtSignal
+from PyQt6.QtCore import QByteArray, QPoint, QRect, QRectF, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QPainter, QPixmap
+from PyQt6.QtSvg import QSvgRenderer
 from PyQt6.QtWidgets import QWidget
 
 BACK_BLACK = "#000000"       # JPEG 动画底色（同前端 .animation-viewport）
@@ -20,24 +22,20 @@ ZOOM_STEP = 0.1
 class AnimationView(QWidget):
     """动画视口（自绘：按比例适应 + 缩放 + 平移）"""
 
-    clicked = pyqtSignal()                # 未全屏时单击（用于进入全屏）
-    fullscreen_changed = pyqtSignal(bool)
+    clicked = pyqtSignal()                # 未全屏时单击（由 AnimationTab 切换全屏）
 
     def __init__(self, placeholder="加载模型并开始仿真后显示动画", parent=None):
         super().__init__(parent)
         self._placeholder = placeholder
         self._pixmap = None
+        self._svg_renderer = None      # 矢量模式（高清 SVG）
         self._background = BACK_BLACK
 
-        self._fullscreen = False
+        self._fullscreen = False       # 仅表示"处于全屏"，面板尺寸由 AnimationTab 控制
         self._zoom = 1.0
         self._pos = QPoint(0, 0)
         self._dragging = False
         self._drag_offset = QPoint(0, 0)
-
-        self._origin_parent = None
-        self._origin_layout = None
-        self._origin_index = -1
 
         self.setMinimumHeight(160)
         self.setStyleSheet("background:%s;" % BACK_BLACK)
@@ -47,21 +45,57 @@ class AnimationView(QWidget):
     # ==================== 内容 ====================
 
     def set_pixmap(self, pixmap, background=BACK_BLACK):
-        """设置当前画面（JPEG 帧或 SVG 渲染结果）"""
+        """设置位图画面（JPEG 帧）"""
         self._pixmap = pixmap
+        self._svg_renderer = None
         if background and background != self._background:
             self._background = background
             self.setStyleSheet("background:%s;" % background)
         self.update()
 
-    def clear(self):
-        """清空画面，回到占位提示"""
+    def set_svg(self, svg_text, background=BACK_LIGHT):
+        """设置矢量画面（高清 SVG）：绘制时按目标矩形实时渲染，缩放不模糊
+
+        返回 SVG 是否能被渲染。
+        """
+        renderer = QSvgRenderer(QByteArray(svg_text.encode("utf-8")))
+        if not renderer.isValid():
+            return False
+        self._svg_renderer = renderer
         self._pixmap = None
+        if background and background != self._background:
+            self._background = background
+            self.setStyleSheet("background:%s;" % background)
+        self.update()
+        return True
+
+    def clear(self):
+        """清空画面，回到占位提示（底色复位为 JPEG 模式的黑底）"""
+        self._pixmap = None
+        self._svg_renderer = None
+        if self._background != BACK_BLACK:
+            self._background = BACK_BLACK
+            self.setStyleSheet("background:%s;" % BACK_BLACK)
         self._reset_view()
         self.update()
 
     def has_pixmap(self):
         return self._pixmap is not None and not self._pixmap.isNull()
+
+    def has_content(self):
+        """是否有可显示内容（位图或矢量）"""
+        return self._svg_renderer is not None or self.has_pixmap()
+
+    def _content_size(self):
+        """当前内容的原始尺寸（矢量取 SVG 声明尺寸）"""
+        if self._svg_renderer is not None:
+            size = self._svg_renderer.defaultSize()
+            if size.isEmpty():
+                return 1280, 720
+            return size.width(), size.height()
+        if self.has_pixmap():
+            return self._pixmap.width(), self._pixmap.height()
+        return 0, 0
 
     def _reset_view(self):
         self._zoom = 1.0
@@ -73,12 +107,12 @@ class AnimationView(QWidget):
         painter = QPainter(self)
         painter.fillRect(self.rect(), QColor(self._background))
 
-        if not self.has_pixmap():
+        if not self.has_content():
             painter.setPen(QColor("#64748B"))
             painter.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, self._placeholder)
             return
 
-        pw, ph = self._pixmap.width(), self._pixmap.height()
+        pw, ph = self._content_size()
         if pw <= 0 or ph <= 0:
             return
         # 按比例适应视口后再应用缩放
@@ -86,8 +120,13 @@ class AnimationView(QWidget):
         w, h = max(1, int(pw * scale)), max(1, int(ph * scale))
         x = int((self.width() - w) / 2.0 + self._pos.x())
         y = int((self.height() - h) / 2.0 + self._pos.y())
+        rect = QRect(x, y, w, h)
+        if self._svg_renderer is not None:
+            # 矢量直接绘制到目标矩形：缩放/全屏放大都保持清晰（高清）
+            self._svg_renderer.render(painter, QRectF(rect))
+            return
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
-        painter.drawPixmap(QRect(x, y, w, h), self._pixmap)
+        painter.drawPixmap(rect, self._pixmap)
 
     # ==================== 鼠标交互 ====================
 
@@ -131,53 +170,18 @@ class AnimationView(QWidget):
         self._zoom = new_zoom
         self.update()
 
-    # ==================== 程序内全屏 ====================
+    # ==================== 全屏状态（由 AnimationTab 控制） ====================
 
     def is_fullscreen(self):
         return self._fullscreen
 
-    def enter_fullscreen(self):
-        """把视口 reparent 到主窗口并铺满，退出时恢复原布局位置"""
-        if self._fullscreen:
+    def set_fullscreen(self, enabled):
+        """设置全屏标记：只影响单击/缩放/拖动行为与光标，面板铺满由 AnimationTab 负责"""
+        enabled = bool(enabled)
+        if enabled == self._fullscreen:
             return
-        host = self.window()
-        self._origin_parent = self.parentWidget()
-        self._origin_layout = (self._origin_parent.layout()
-                               if self._origin_parent is not None else None)
-        self._origin_index = (self._origin_layout.indexOf(self)
-                              if self._origin_layout is not None else -1)
-
-        self.setParent(host)
-        self.setGeometry(host.rect())
-        self.setCursor(Qt.CursorShape.OpenHandCursor)
+        self._fullscreen = enabled
+        self.setCursor(Qt.CursorShape.OpenHandCursor if enabled
+                       else Qt.CursorShape.PointingHandCursor)
         self._reset_view()
-        self.show()
-        self.raise_()
-        self.setFocus()
-        host.installEventFilter(self)
-        self._fullscreen = True
-        self.fullscreen_changed.emit(True)
-
-    def exit_fullscreen(self):
-        """恢复原父控件与布局位置"""
-        if not self._fullscreen:
-            return
-        self._fullscreen = False
-        host = self.parentWidget()
-        if host is not None:
-            host.removeEventFilter(self)
-        if self._origin_layout is not None:
-            index = max(0, self._origin_index)
-            self._origin_layout.insertWidget(index, self)
-        elif self._origin_parent is not None:
-            self.setParent(self._origin_parent)
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self._reset_view()
-        self.show()
-        self.fullscreen_changed.emit(False)
-
-    def eventFilter(self, obj, event):
-        # 全屏时跟随主窗口尺寸变化
-        if self._fullscreen and event.type() == QEvent.Type.Resize:
-            self.setGeometry(obj.rect())
-        return super().eventFilter(obj, event)
+        self.update()

@@ -314,6 +314,75 @@
 
 **待人工验证（含副作用）**：真实 FS 上「加载 → 开始」后观察 JPEG 动画是否连续、层条切层、勾选高清显示 SVG、单击全屏与 Esc 恢复、全屏态滚轮缩放与拖动。
 
+## 1.8 仿真动画debug
+
+### bug to fix
+
+- [x] svg高清整体图，现在显示的不是高清，请调用MCP工具取svg高清图片再显示
+- [x] 动画tab中的”全屏“checkbox和”主模型“文字显示不全
+- [x] “全屏”时，需保留层级选择、“动画”——“svg图片”切换
+
+### 实施记录
+
+#### 2026-08-23 需求 1.8 高清 SVG（矢量渲染）与控件文字修复
+
+**问题 1：高清 SVG「不是高清」**
+
+诊断（本机实测）：
+
+- 真实 `getSvgPicture("pyqt-local", "e6b11ac3b5cc", "root")` 返回 `success=true`、`1280×580`、`105270` 字节，`QSvgRenderer` 解析正常 → **MCP 取图与显示链路本身是通的**（日志 `[动画] 已显示高清静态图（层=root, 1280x580）`）。
+- 真正原因在渲染方式：`animation_tab._render_svg()` 把 SVG 光栅化成**固定分辨率** `QPixmap(1280×580)` 再由视口缩放显示 —— 全屏/滚轮放大时等同于位图放大，自然不清晰。
+- 另外触发面偏窄：`user_id/model_id` 只在「开始」成功后登记，加载模型后未启动时勾选高清既不取图、也无任何提示。
+
+修复：
+
+| 文件 | 改动 |
+|---|---|
+| `animation_view.py` | 新增矢量模式 `set_svg()` / `has_content()` / `_content_size()`；`paintEvent` 对 SVG 用 `QSvgRenderer.render(painter, 目标矩形)` **按目标尺寸实时矢量绘制**（缩放/全屏始终清晰）；`set_pixmap()` 切回位图模式；`clear()` 底色复位为黑底 |
+| `animation_tab.py` | `_on_svg_loaded()` 改走 `view.set_svg()`（不再生成固定分辨率位图）；`_svg_pixmap` → `_has_svg` 标志；新增 `on_model_loaded()`（加载模型后即可查看高清图）；`load_svg()` 缺少模型时输出提示；删除 `_render_svg()` |
+| `mcp_module.py` | `_handle_load` 成功分支调用 `animation_tab.on_model_loaded(...)` |
+
+**问题 2：「全屏」按钮与「主模型」文字显示不全**
+
+诊断（offscreen 实测）：按钮 `setFixedHeight(24)` 小于 `sizeHint` 高度 `25`，而全局 QSS 为 `QPushButton{padding:6px 16px; font-size:13px}`（需要约 28px），emoji「🗖」更高；层条容器固定 36px 还要容纳 14px 横向滚动条，进一步压缩。
+
+修复：全屏按钮与层按钮高度 24 → **30**（层按钮另加 `setMinimumWidth(60)`）；层条容器 36 → **46**（30 + 14 滚动条 + 边距）。未改全局 QSS。
+
+**验证记录（本机实测）**
+
+- 矢量清晰度：把同一张真实 SVG（105 KB）分别「矢量直接渲染到 1200×800」与「400×300 渲染后放大到 1200×800」，边缘梯度中位数/峰值 = **129/232** vs **42/77** → 矢量渲染明显更锐利。
+- 高清链路（真实 `getSvgPicture`，只读）：`on_model_loaded` → 勾选高清 → `_has_svg=True`、视口进入矢量模式、底色 `#E8E8E8`、日志 `[动画] 已显示高清静态图（矢量，层=root，1280x580，105270 字节）`；高清期间到达的 JPEG 帧不再覆盖画面；取消高清 → 回最近一帧 JPEG（黑底）；缺少 `model_id` 时提示「尚无已加载模型，无法取高清静态图」。
+- `clear()` 底色复位：`#E8E8E8` → `#000000`。
+- 控件尺寸：全屏按钮 `84×30`（sizeHint `84×25`）、层按钮高 `30`、`layer_scroll` 高 `46`；`QFontMetrics` 校验「文本宽 + 32px padding ≤ 按钮宽」全部满足。
+- 回归冒烟：`on_model_loaded` → 启动取层目录（层条「主模型 / 装配车间」）→ root 帧位图显示 → 高清切矢量 → 取消回位图 → 切层（高亮切换、新层帧被接受）→ 全屏 / Esc → `reset()` 全部符合预期。
+- `python -m py_compile` 全部修改文件通过；导入检查与 `MainWindow` 冒烟通过。
+
+**待人工验证**：GUI 中勾选高清后全屏/放大，确认画面依旧锐利（矢量重绘）；「🗖 全屏」与层条文字完整显示。
+
+#### 2026-08-23 需求 1.8 补充：全屏时保留层级选择与高清切换
+
+**问题**：原实现只把**视口** reparent 到主窗口铺满，`AnimationTab` 的工具行（高清切换 / 全屏按钮 / 直播标签）与层级条仍留在 tab 内、被整片覆盖 → 全屏时既看不到层名，也无法切换层级与「动画 / svg图片」。
+
+**修复（对齐前端 `.anim-fullscreen` 作用于整张动画卡片）**
+
+| 文件 | 改动 |
+|---|---|
+| `animation_tab.py` | 全屏改为**整个 tab 铺满主窗口**：`_fullscreen_host()` 定位所在 QTabWidget 并记录标题 → `removeTab(index)` 移出页面 → `setParent(window)` + `setGeometry(window.rect())` 铺满，样式用对象名限定（`#animTabFullscreen { background:#000000; }`，不级联到子控件）；退出时 `insertTab(index, self, title)` + `setCurrentWidget(self)` 复原页签位置与标题；`eventFilter` 跟随窗口 resize；保留「🗕 恢复」按钮与 Esc |
+| `animation_view.py` | 移除视口自身的 reparent 与 `fullscreen_changed` 信号，改为 `set_fullscreen(bool)` 标记：仅控制单击（未全屏时才请求全屏）、滚轮缩放、拖动与光标；面板铺满交由 tab 负责 |
+
+**踩坑记录**：最初用 QTabWidget 内部 `QStackedWidget.insertWidget()` 复原页面 —— 位置虽对，但 **tab bar 标签不会重建**（退出后标题少一个「仿真动画」，`count()` 停在 3）。改用 QTabWidget 的 `removeTab(index)` / `insertTab(index, widget, label)` 才完整复原；注意 `removeWidget()` 是 QStackedWidget 的方法，QTabWidget 上并不存在。
+
+**验证记录（offscreen 实测）**
+
+- 进入全屏（单击视口）：`AnimationTab.parentWidget()` 为主窗口、`geometry == window.rect()`、`view._fullscreen=True`、按钮变「🗕 恢复」；全屏中 `tab / 层条 / 高清勾选 / 恢复按钮` 的 `isVisible()` 均为真，层级按钮 2 个完整可见。
+- 全屏态操作：点击层级按钮 → `selectAnimationLayer("s1", 5)` 且高亮切换；勾选高清 → `getSvgPicture("s1")` 并转矢量显示（底色 `#E8E8E8`）；取消勾选 → 回 JPEG（底色 `#000000`）。
+- Esc 与「🗕 恢复」退出：`sim_tabs.count()` 由 3 恢复为 4、标题恢复「控制台日志 / 仿真动画 / 仿真参数 / 仿真结果」、`indexOf(tab)=1`、`currentWidget() is tab` 为真、样式清空、`view._fullscreen=False`、Esc 快捷键禁用；连续进出两次结果一致。
+- `reset()` 在全屏状态下自动退出并复原页签。
+- 回归：非全屏时滚轮/拖动无效（`zoom=1.0, pos=(0,0)`），全屏时生效（`zoom=0.9`、`pos=(-35,-16)`）；JPEG 帧显示与层级条正常。
+- `python -m py_compile` 全部修改文件通过；`MainWindow` 冒烟通过。
+
+**待人工验证**：GUI 上进入全屏后，确认层级条与「显示高清静态图」勾选仍可见可操作，Esc / 「🗕 恢复」都能回到原页签位置且标题不变。
+
 # 2. 移植接口封装类java->python
 
 ## 2.1 需求
