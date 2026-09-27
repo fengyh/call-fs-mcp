@@ -138,6 +138,7 @@ class ParameterTab(QWidget):
         self.user_id = ""
         self.model_id = ""
         self._clear_data()
+        self._set_status("")
         self._refresh_view()
 
     def has_dirty(self):
@@ -427,6 +428,7 @@ class ParameterTab(QWidget):
         self.backup = {}
         self.table_names = []
         self.active_table = ""
+        self.mcp_table_name = ""
         self.dropped_tables = []
         self.dirty_cells.clear()
         self.dirty_headers.clear()

@@ -141,13 +141,16 @@ class SimulationState(QObject):
         self.changed.emit()
 
     def clear_model(self):
-        """卸载成功后清空状态"""
+        """卸载成功后清空状态（含仿真进度与控制台日志）"""
         self.model_id = ""
         self.record_id = ""
         self.run_id = ""
         self.mcp_status = ""
         self.sim_status = ""
         self.reset_runtime()
+        if self.console_logs:
+            self.console_logs = []
+            self.console_cleared.emit()      # 通知控制台页签清空显示
         self.changed.emit()
 
     def reset_runtime(self):

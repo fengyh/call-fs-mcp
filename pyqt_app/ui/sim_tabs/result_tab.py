@@ -303,14 +303,20 @@ class ResultTab(QWidget):
         self._refresh_view()
 
     def reset(self):
+        """模型卸载后清空：数据、显示与按钮状态"""
         self.user_id = ""
         self.model_id = ""
         self.result = None
         self.rows = []
         self.total = 0
         self.page = 1
+        self.active_group = ""
+        self.active_dataset = ""
+        self.view_mode = "table"
         self.custom_tables, self.custom_metas, self.custom_loaded = {}, {}, False
-        self._set_status("")
+        self.table_model.set_data({}, [], 0)     # 清空表格内容
+        self.chart.clear()
+        self._set_status("")                     # 「获取仿真结果」使能由 _refresh_pager 统一维护
         self._refresh_view()
 
     # ==================== 取结果 ====================
@@ -372,6 +378,8 @@ class ResultTab(QWidget):
     def _refresh_datasets(self):
         self._clear_bar(self.dataset_bar_layout)
         datasets = self._datasets(self.active_group) if self.active_group else []
+        if self.active_group != CUSTOM_GROUP and self.result is None:
+            datasets = []      # 未取到结果（或已关闭模型）时不显示子类
         self.dataset_scroll.setVisible(bool(datasets))
         for dataset in datasets:
             meta = self._meta(self.active_group, dataset)
@@ -616,6 +624,8 @@ class ResultTab(QWidget):
         self.prev_btn.setEnabled(self.page > 1 and not self._busy)
         self.next_btn.setEnabled(pages > 0 and self.page < pages and not self._busy)
         self.page_size_box.setEnabled(not self._busy)
+        # 「获取仿真结果」使能统一在此维护：有已加载模型且当前无调用即可点（模型关闭后禁用）
+        self.load_btn.setEnabled(bool(self.user_id and self.model_id) and not self._busy)
 
     def _apply_view(self):
         chart_cfg = self._chart_cfg(self.active_group, self.active_dataset)
@@ -656,6 +666,7 @@ class ResultTab(QWidget):
         self._load_current()
 
     def _refresh_view(self):
+        self.overview_label.setText(self._overview_text())   # 概览随模型/结果变化
         self._refresh_groups()
         self._refresh_datasets()
         self._refresh_pager()

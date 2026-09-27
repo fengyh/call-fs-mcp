@@ -522,36 +522,63 @@ _apply_dirty_marks → setBackground → itemChanged → _on_item_changed → _a
 
 **本次范围**：仅当前仿真结果；不含横向对比与历史结果快照（依赖后端落库接口 `fsSaveResultSnapshot` / `fsListSnapshots`，需求未提）。
 
-#### 2026-08-23 需求 1.10 补充：「自定义结果」（remark=Out 的参数表）
+## 1.11 关闭模型后的清理工作
 
-**需求**：仿真参数中被过滤掉的 `remark='Out'`（大小写不敏感）参数表，在仿真结果中作为「自定义结果」子类显示，只读、不提供编辑。
+### 需求
+
+- [x] 关闭FS模型后，仿真参数、仿真结果中的数据需要清空，显示也需刷新（刷新后无数据显示）
+- [x] sim_state.py中的数据（例如runId等）清空
+- [x] 获取仿真结果按钮变为disabled
+
+### 实施记录
+
+#### 2026-08-23 需求 1.11 关闭模型后的清理
 
 **实现**
 
 | 文件 | 改动 |
 |---|---|
-| `pyqt_app/ui/sim_tabs/result_tab_map.json` | 新增 `custom` 组（空占位，子类运行时动态发现） |
-| `pyqt_app/ui/sim_tabs/result_tab.py` | 新增 `CUSTOM_GROUP`（组条标签「自定义结果」）、`_load_custom`（懒加载）、`_handle_custom_tables`（解析清单 + 快照并过滤 `remark.lower()=='out'`）、`_normalize`、`_kind_of`；抽出 `_load_local` 本地分页（结果总览与自定义结果共用）；`ResultTableModel` 增加非字典行防御 |
+| `pyqt_app/mcp_client/sim_state.py` | `clear_model()` 除原有的 `model_id` / `record_id` / `run_id` / `mcp_status` / `sim_status` 与 `reset_runtime()`（`sim_time`、`last_message_at`）外，新增清空 `console_logs` 并发出 `console_cleared`，使控制台页签同步清空显示 |
+| `pyqt_app/ui/sim_tabs/result_tab.py` | `reset()` 补齐：复位 `active_group` / `active_dataset` / `view_mode`；清空表格模型（`set_data({}, [], 0)`）与图表；**禁用「获取仿真结果」**；清空操作反馈；`_refresh_view()` 中同步刷新概览标签；`_refresh_datasets()` 在无结果（且非「自定义结果」组）时不再显示子类条 |
+| `pyqt_app/ui/sim_tabs/parameter_tab.py` | `_clear_data()` 增加清空 `mcp_table_name`；`reset()` 增加清空操作反馈文案 |
 
-**关键点**
+既有链路复核（1.9 / 1.10 已实现）：`mcp_module._handle_unload()` 在卸载成功后依次调用 `state.clear_model()`、`animation_tab.reset()`、`parameter_tab.reset()`、`result_tab.reset()`，随后 `_sync_mqtt_subscription()` 停止 MQTT、`_refresh_buttons()` 禁用「关闭 FS 模型」等按钮。
 
-- **行结构差异（本次调试发现的崩溃点）**：参数表的 `rows` 是**二维数组**，而结果页模型/图表按**字典行**取值 → 登记时把数组行按列名转成行字典。否则数组行进入 Qt 虚函数 `data()` 会抛 `AttributeError`，PyQt 无法把异常交回事件循环 → **进程直接 abort（`0xC0000409`）**；已在 `ResultTableModel.set_data/data` 增加非字典行防御，避免同类问题再次导致崩溃。
-- 列定义动态生成：列名作为标题、`unit` 为空、类型由参数表列类型映射（`int/integer/long…` → `i`；`double/float/decimal…` → `f`；其余 → `s`）；`f` 列未配置小数位时**保留原始文本**（避免丢精度）。
-- 表名归一化（清单给 `.结论`、快照给 `结论`）与参数页一致；`remark` 缺失时回退快照的 `mcpRows`。
-- 懒加载：切到「自定义结果」组时才调用 `listParameterTables` + `getParameterSnapshot`（不影响「获取仿真结果」的单次调用）；拉取失败会复位以便重试；无 Out 表时提示「未发现 remark=Out 的参数表」。
-- 只读：表格 `NoEditTriggers`，且无 `chart` 配置 → 不显示「表格 / 图表」切换。
+**验证记录（本机实测：模拟 `_handle_unload` 后逐项断言，17 项全部通过）**
 
-**验证记录（本机实测）**
+- 参数页：`tables` / `table_names` 清空、表格 0 行 0 列、三个按钮禁用、概览「未加载模型」、反馈为空、`mcp_table_name` 清空
+- 结果页：`result` 清空、`active_group` / `active_dataset` 复位、子类条隐藏、表格 0 行 0 列、分页「共 0 条 | 0 / 0」、**「获取仿真结果」按钮 disabled**、概览「未加载模型」、图表无数据
+- `sim_state`：`model_id` / `record_id` / `run_id` / `mcp_status` / `sim_status` 全空、`sim_time = 0`、`console_logs` 为空
+- 控制台页签：显示文本清空、计数「0 条」
+- 动画页：层条清空并隐藏、画面回到占位、标签「未开始」
+- 其它：「关闭 FS 模型」与仿真控制按钮禁用、MQTT 订阅已停止（`running=False`、`mqtt_connected=False`）
+- `python -m py_compile` + `MainWindow` 冒烟通过
 
-- 组条：`['结果总览','基础结果','精益结果','能耗结果','自定义结果']`
-- 切「自定义结果」→ 懒加载（`list` + `snap`）→ 子类 `['结论','OUT表2']`（`Out` / `OUT` 均识别，`初始化参数` / `忽略` 不出现）
-- 表格：表头 `['指标','数值']`、数据 `[['产量','1234.5'],['效率','88.25'],['备注','-']]`（空值 → `-`，`f` 列保留原文）、只读 ✓
-- 分页：120 行 → `1 / 3`、本页 50 行、下一页 → `2 / 3`、首行 `['50','行50']`；行号表头（Vertical）`['1','2']` ✓
-- 无 Out 表 → 子类为空 + 状态「未发现 remark=Out 的参数表（自定义结果为空）」
-- 状态文案：`自定义结果 1 张表（remark=Out）：结论`
-- `python -m py_compile` + `MainWindow` 冒烟（4 个子页签切换）通过
+**待人工验证**：真实「加载 → 仿真 → 关闭模型」后确认三个子页签均为空、按钮置灰。
 
-**待人工验证**：加载带 `remark=Out` 表的模型（如 `道路回填【5V5】.fs` 的 `.结论`），跑完仿真后切「自定义结果」确认数值；注意 `.结论` 当前为 0 列 0 行（模型未写入结论时为空表）。
+#### 2026-08-23 需求 1.11 修复：重新加载模型后「获取仿真结果」仍为 disabled
+
+**问题**：1.11 让 `reset()`（关闭模型）把「获取仿真结果」置灰后，**重新加载模型**时该按钮没有恢复 —— `on_model_loaded()` 只登记 user/model 并刷新视图，而按钮使能此前只在 MCP 调用结束（`_on_done` / `_on_failed`）时更新过，于是新一次仿真加载（并结束 / 停止）后按钮一直 disabled，无法取结果。
+
+**修复**
+
+| 文件 | 改动 |
+|---|---|
+| `pyqt_app/ui/sim_tabs/result_tab.py` | 「获取仿真结果」使能统一由 `_refresh_pager()` 维护：`setEnabled(bool(user_id and model_id) and not busy)`；`reset()` 中不再硬编码禁用，避免两处逻辑不一致。`_refresh_pager()` 由 `_refresh_view()` 调用，因此「加载模型 / 关闭模型 / 调用进行中 / 调用完成」所有路径都会刷新 |
+
+**验证记录（本机实测，按钮使能生命周期）**
+
+| 场景 | 期望 | 实测 |
+|---|---|---|
+| 未加载模型 | disabled | disabled ✓ |
+| 加载模型后 | enabled | enabled ✓（修复点） |
+| 仿真运行中 / 自然结束 / 人为停止 | enabled | enabled ✓ |
+| 点击后调用进行中（慢桩 0.8s） | disabled | `busy=True`、`enabled=False` ✓ |
+| 调用完成（`resultStatus=NOT_READY`） | enabled | enabled ✓ |
+| 关闭模型后 | disabled | disabled ✓ |
+| 再次加载新模型 | enabled | enabled ✓（你报告的场景） |
+
+- `python -m py_compile` + `MainWindow` 冒烟通过
 
 # 2. 移植接口封装类java->python
 
