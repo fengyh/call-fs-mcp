@@ -264,7 +264,14 @@ class ParameterTab(QWidget):
             self.dirty_cells.add(key)
         else:
             self.dirty_cells.discard(key)
-        self._apply_dirty_marks()
+        # 只刷新该单元格样式；期间屏蔽信号，避免 setBackground 再次触发本回调形成递归
+        prev_loading, self._loading = self._loading, True
+        blocked = self.table.blockSignals(True)
+        try:
+            self._style_cell(item, row, col)
+        finally:
+            self.table.blockSignals(blocked)
+            self._loading = prev_loading
         self._refresh_buttons()
 
     def rename_column(self, col):
@@ -292,7 +299,14 @@ class ParameterTab(QWidget):
             self.dirty_headers.add(key)
         else:
             self.dirty_headers.discard(key)
-        self._apply_dirty_marks()
+        prev_loading, self._loading = self._loading, True
+        blocked = self.table.blockSignals(True)
+        try:
+            if item is not None:
+                self._style_header(item, col)
+        finally:
+            self.table.blockSignals(blocked)
+            self._loading = prev_loading
         self._refresh_buttons()
         self._log("[参数] 列名已修改：%s → %s" % (current, text))
 
@@ -477,6 +491,7 @@ class ParameterTab(QWidget):
 
     def _fill_table(self):
         self._loading = True
+        blocked = self.table.blockSignals(True)     # 批量填充时不触发 itemChanged
         try:
             data = self.tables.get(self.active_table)
             if not data:
@@ -504,32 +519,50 @@ class ParameterTab(QWidget):
                     self.table.setItem(ri, ci, QTableWidgetItem(value))
             self.table.setVerticalHeaderLabels([str(i) for i in range(len(rows))])
         finally:
+            self.table.blockSignals(blocked)
             self._loading = False
         self._apply_dirty_marks()
 
     def _apply_dirty_marks(self):
-        default_bg, default_fg = QBrush(), QBrush()
-        for ri in range(self.table.rowCount()):
+        """重刷当前表的全部脏标记（填充/还原后调用）
+
+        期间屏蔽信号：`setBackground/setForeground` 会触发 `itemChanged`，
+        若不屏蔽会在 `_on_item_changed` 与 `_apply_dirty_marks` 之间递归，
+        递归深度等于单元格数量（实测 120×6 即导致栈溢出崩溃）。
+        """
+        prev_loading, self._loading = self._loading, True
+        blocked = self.table.blockSignals(True)
+        try:
+            for ri in range(self.table.rowCount()):
+                for ci in range(self.table.columnCount()):
+                    item = self.table.item(ri, ci)
+                    if item is not None:
+                        self._style_cell(item, ri, ci)
             for ci in range(self.table.columnCount()):
-                item = self.table.item(ri, ci)
-                if item is None:
-                    continue
-                if (self.active_table, ri, ci) in self.dirty_cells:
-                    item.setBackground(QBrush(QColor(DIRTY_BG)))
-                    item.setForeground(QBrush(QColor(DIRTY_FG)))
-                else:
-                    item.setBackground(default_bg)
-                    item.setForeground(default_fg)
-        for ci in range(self.table.columnCount()):
-            item = self.table.horizontalHeaderItem(ci)
-            if item is None:
-                continue
-            if (self.active_table, ci) in self.dirty_headers:
-                item.setBackground(QBrush(QColor(DIRTY_BG)))
-                item.setForeground(QBrush(QColor(DIRTY_FG)))
-            else:
-                item.setBackground(default_bg)
-                item.setForeground(default_fg)
+                item = self.table.horizontalHeaderItem(ci)
+                if item is not None:
+                    self._style_header(item, ci)
+        finally:
+            self.table.blockSignals(blocked)
+            self._loading = prev_loading
+
+    def _style_cell(self, item, row, col):
+        """按脏标记设置单元格样式（调用方需自行屏蔽信号）"""
+        if (self.active_table, row, col) in self.dirty_cells:
+            item.setBackground(QBrush(QColor(DIRTY_BG)))
+            item.setForeground(QBrush(QColor(DIRTY_FG)))
+        else:
+            item.setBackground(QBrush())
+            item.setForeground(QBrush())
+
+    def _style_header(self, item, col):
+        """按脏标记设置表头样式（调用方需自行屏蔽信号）"""
+        if (self.active_table, col) in self.dirty_headers:
+            item.setBackground(QBrush(QColor(DIRTY_BG)))
+            item.setForeground(QBrush(QColor(DIRTY_FG)))
+        else:
+            item.setBackground(QBrush())
+            item.setForeground(QBrush())
 
     # ==================== 工具 ====================
 

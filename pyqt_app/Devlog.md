@@ -433,6 +433,41 @@
 
 **待人工验证（含副作用：会写入模型并保存 .fs 文件）**：GUI 中编辑单元格 / 列名后点「保存到模型」，确认返回的 `updatedTableCount/updatedRowCount/modelSaved`，以及重新「取模型参数」后数值保持不变；仿真运行中保存应被拒绝并给出提示。
 
+#### 2026-08-23 需求 1.9 修复：参数表行数较多时程序闪退（递归栈溢出）
+
+**现象与复现**
+
+切换到行数较多的参数表（如 `.网格划分` 120 行 × 6 列）时进程直接退出：复现脚本退出码 `-1073740791`（`0xC0000409`，栈溢出），逐步定位到 `switch_table("网格划分")` → `_fill_table()` 内部。
+
+**根因**
+
+`_fill_table()` / `_apply_dirty_marks()` 对 item 调用 `setBackground()/setForeground()` 会**同步触发 `itemChanged`**，而 `_on_item_changed()` 末尾又调用 `_apply_dirty_marks()`，形成递归：
+
+```
+_apply_dirty_marks → setBackground → itemChanged → _on_item_changed → _apply_dirty_marks → …
+```
+
+递归深度 ≈ 单元格数量：`.初始化参数`（1×6 = 6 格）正常；`.网格划分`（120×6 = 720 格）、`.不规则网格`（239×8 = 1912 格）直接栈溢出崩溃。
+
+**修复**
+
+| 位置 | 改动 |
+|---|---|
+| `_apply_dirty_marks()` | 内部 `blockSignals(True)` + `_loading` 保护，重绘期间不再触发 `itemChanged` |
+| `_fill_table()` | 批量填充期间 `blockSignals(True)`（同时提升填充性能） |
+| `_on_item_changed()` / `rename_column()` | 不再全量调用 `_apply_dirty_marks()`，改为只刷新受影响单元格 / 表头样式（新增 `_style_cell` / `_style_header`），并屏蔽信号 |
+
+**验证记录（本机实测）**
+
+- 修复前：`switch_table("网格划分")` → 崩溃 `exit=-1073740791`；修复后同场景 `exit=0`。
+- 真实数据：取参数 0.23s（3 张表，过滤 `.结论`）；切换 `.网格划分`（120×6）0.22s、`.不规则网格`（239×8）0.23s，显示正常。
+- 压力测试：人工构造 5000 行 × 6 列表 → 填充 0.66s、编辑末行 0.21s、`↩还原` 0.64s，无崩溃。
+- 脏标记回归：`.网格划分` (0,0) 原值 `'10'` → 改为 `'99999'` 标记脏（浅黄 + 保存可用）→ 改回 `'10'` 后脏标记清除、保存禁用；跨表编辑各自保留；`↩还原` 后再切表内容正确（表头 `['中心点横坐标','中心点纵坐标','网格长度','网格宽度','网格回填需要的土方体积','']`、首行 `['10','2.1','20','4.2','184.8','']`）。
+- 保存回归（桩）：`bSaveModel=true`、反馈「已写入 1 张表 / 1 行」。
+- `python -m py_compile` + `MainWindow` 冒烟通过。
+
+**遗留建议**：当前使用 `QTableWidget` 逐单元格创建 item，5000 行约需 0.66s；若后续出现数万行的参数表，建议改为 `QTableView + QAbstractTableModel` 虚拟化（本次未做，避免大改动引入回归）。
+
 # 2. 移植接口封装类java->python
 
 ## 2.1 需求
