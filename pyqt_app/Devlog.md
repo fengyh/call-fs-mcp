@@ -477,6 +477,7 @@ _apply_dirty_marks → setBackground → itemChanged → _on_item_changed → _a
 - [x] 配置文件：通过pyqt_app/ui/sim_tabs/result_tab_map.json配置文件，控制哪些类别/子类的表显示，哪些类别/子类的表不显示。对标：snowy-admin-web/src/views/fscloud/simdata/TableTitleKeyMap.js
 - [x] 同样需要分页显示表
 - [x] 同样需要显示图
+- [x] 仿真参数中的参数表，remark为‘Out'（大小写不敏感）的，作为“自定义结果”的子类显示，不需要编辑功能
 
 ### 实施记录
 
@@ -520,6 +521,37 @@ _apply_dirty_marks → setBackground → itemChanged → _on_item_changed → _a
 **待人工验证（需真实结果数据）**：完成一次仿真（加载 → 开始 → 自然结束）后点「获取仿真结果」，确认各子类表格、分页与图表（折线 / 堆叠柱）显示正常。
 
 **本次范围**：仅当前仿真结果；不含横向对比与历史结果快照（依赖后端落库接口 `fsSaveResultSnapshot` / `fsListSnapshots`，需求未提）。
+
+#### 2026-08-23 需求 1.10 补充：「自定义结果」（remark=Out 的参数表）
+
+**需求**：仿真参数中被过滤掉的 `remark='Out'`（大小写不敏感）参数表，在仿真结果中作为「自定义结果」子类显示，只读、不提供编辑。
+
+**实现**
+
+| 文件 | 改动 |
+|---|---|
+| `pyqt_app/ui/sim_tabs/result_tab_map.json` | 新增 `custom` 组（空占位，子类运行时动态发现） |
+| `pyqt_app/ui/sim_tabs/result_tab.py` | 新增 `CUSTOM_GROUP`（组条标签「自定义结果」）、`_load_custom`（懒加载）、`_handle_custom_tables`（解析清单 + 快照并过滤 `remark.lower()=='out'`）、`_normalize`、`_kind_of`；抽出 `_load_local` 本地分页（结果总览与自定义结果共用）；`ResultTableModel` 增加非字典行防御 |
+
+**关键点**
+
+- **行结构差异（本次调试发现的崩溃点）**：参数表的 `rows` 是**二维数组**，而结果页模型/图表按**字典行**取值 → 登记时把数组行按列名转成行字典。否则数组行进入 Qt 虚函数 `data()` 会抛 `AttributeError`，PyQt 无法把异常交回事件循环 → **进程直接 abort（`0xC0000409`）**；已在 `ResultTableModel.set_data/data` 增加非字典行防御，避免同类问题再次导致崩溃。
+- 列定义动态生成：列名作为标题、`unit` 为空、类型由参数表列类型映射（`int/integer/long…` → `i`；`double/float/decimal…` → `f`；其余 → `s`）；`f` 列未配置小数位时**保留原始文本**（避免丢精度）。
+- 表名归一化（清单给 `.结论`、快照给 `结论`）与参数页一致；`remark` 缺失时回退快照的 `mcpRows`。
+- 懒加载：切到「自定义结果」组时才调用 `listParameterTables` + `getParameterSnapshot`（不影响「获取仿真结果」的单次调用）；拉取失败会复位以便重试；无 Out 表时提示「未发现 remark=Out 的参数表」。
+- 只读：表格 `NoEditTriggers`，且无 `chart` 配置 → 不显示「表格 / 图表」切换。
+
+**验证记录（本机实测）**
+
+- 组条：`['结果总览','基础结果','精益结果','能耗结果','自定义结果']`
+- 切「自定义结果」→ 懒加载（`list` + `snap`）→ 子类 `['结论','OUT表2']`（`Out` / `OUT` 均识别，`初始化参数` / `忽略` 不出现）
+- 表格：表头 `['指标','数值']`、数据 `[['产量','1234.5'],['效率','88.25'],['备注','-']]`（空值 → `-`，`f` 列保留原文）、只读 ✓
+- 分页：120 行 → `1 / 3`、本页 50 行、下一页 → `2 / 3`、首行 `['50','行50']`；行号表头（Vertical）`['1','2']` ✓
+- 无 Out 表 → 子类为空 + 状态「未发现 remark=Out 的参数表（自定义结果为空）」
+- 状态文案：`自定义结果 1 张表（remark=Out）：结论`
+- `python -m py_compile` + `MainWindow` 冒烟（4 个子页签切换）通过
+
+**待人工验证**：加载带 `remark=Out` 表的模型（如 `道路回填【5V5】.fs` 的 `.结论`），跑完仿真后切「自定义结果」确认数值；注意 `.结论` 当前为 0 列 0 行（模型未写入结论时为空表）。
 
 # 2. 移植接口封装类java->python
 

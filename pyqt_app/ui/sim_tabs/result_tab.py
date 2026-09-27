@@ -22,9 +22,10 @@ from mcp_client.mcp_runner import McpCallRunner
 from ui.sim_tabs.result_chart import ResultChart, fmt_timestamp
 
 MAP_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "result_tab_map.json")
-GROUP_ORDER = ("overview", "basic", "lean", "energy")
+GROUP_ORDER = ("overview", "basic", "lean", "energy", "custom")
 GROUP_LABELS = {"overview": "结果总览", "basic": "基础结果",
-                "lean": "精益结果", "energy": "能耗结果"}
+                "lean": "精益结果", "energy": "能耗结果", "custom": "自定义结果"}
+CUSTOM_GROUP = "custom"     # 运行时发现的“自定义结果”（参数表中 remark=Out 的输出表）
 OVERVIEW_SUMMARY_DATASETS = ("leanMetrics", "energyAnalysis")   # 需要特殊摘要展示的子类
 PAGE_SIZES = (25, 50, 100, 200)
 MAX_LIMIT = 1000            # MCP 约束：1 <= limit <= 1000
@@ -44,8 +45,11 @@ def format_cell(value, meta):
         except (TypeError, ValueError):
             return str(value)
     if kind == "f":
+        decimals = meta.get("decimals")
+        if decimals is None:
+            return str(value)      # 未配置小数位（如参数表动态列）时保留原始值
         try:
-            decimals = int(meta.get("decimals") or 0)
+            decimals = int(decimals)
         except (TypeError, ValueError):
             decimals = 0
         try:
@@ -79,6 +83,8 @@ class ResultTableModel(QAbstractTableModel):
         columns_meta = columns_meta or {}
         keys = [k for k in columns_meta if not str(k).startswith("_")]
         for row in self._rows[:1]:
+            if not isinstance(row, dict):
+                continue
             for key in row:
                 if not str(key).startswith("_") and key not in keys:
                     keys.append(key)
@@ -108,6 +114,9 @@ class ResultTableModel(QAbstractTableModel):
             return None
         row = self._rows[index.row()]
         key, meta = self._cols[index.column()]
+        if not isinstance(row, dict):
+            # 防御：Qt 虚函数里抛异常会让进程直接 abort，这里对非字典行返回空串
+            return ""
         return format_cell(row.get(key), meta)
 
 
@@ -133,6 +142,9 @@ class ResultTab(QWidget):
         self.page_size = PAGE_SIZES[1]
         self.total = 0
         self.rows = []
+        self.custom_tables = {}      # 自定义结果：{tableName: {"columns":…, "rows":…}}
+        self.custom_metas = {}       # 自定义结果：动态生成的展示元信息
+        self.custom_loaded = False
         self._busy = False
         self._runner = None
 
@@ -153,6 +165,8 @@ class ResultTab(QWidget):
             return {}
 
     def _group_visible(self, group):
+        if group == CUSTOM_GROUP:
+            return True           # 「自定义结果」始终可选，进入时懒加载
         return any(self._dataset_visible(group, ds) for ds in (self.tab_map.get(group) or {}))
 
     def _dataset_visible(self, group, dataset):
@@ -160,9 +174,13 @@ class ResultTab(QWidget):
         return meta.get("show") is not False
 
     def _datasets(self, group):
+        if group == CUSTOM_GROUP:
+            return list(self.custom_tables.keys())
         return [ds for ds in (self.tab_map.get(group) or {}) if self._dataset_visible(group, ds)]
 
     def _meta(self, group, dataset):
+        if group == CUSTOM_GROUP:
+            return self.custom_metas.get(dataset) or {}
         return ((self.tab_map.get(group) or {}).get(dataset) or {})
 
     def _chart_cfg(self, group, dataset):
@@ -280,6 +298,7 @@ class ResultTab(QWidget):
         self.user_id = user_id or ""
         self.model_id = model_id or ""
         self.result = None
+        self.custom_tables, self.custom_metas, self.custom_loaded = {}, {}, False
         self._set_status("已登记模型；仿真结束后点「获取仿真结果」")
         self._refresh_view()
 
@@ -290,6 +309,7 @@ class ResultTab(QWidget):
         self.rows = []
         self.total = 0
         self.page = 1
+        self.custom_tables, self.custom_metas, self.custom_loaded = {}, {}, False
         self._set_status("")
         self._refresh_view()
 
@@ -323,6 +343,7 @@ class ResultTab(QWidget):
             return
 
         self.result = data
+        self.custom_tables, self.custom_metas, self.custom_loaded = {}, {}, False
         self._log("[结果] 就绪：runId=%s simTime=%s totalOutput=%s datasets=%d"
                   % (data.get("runId"), data.get("simTime"), data.get("totalOutput"),
                      len(data.get("datasets") or [])))
@@ -385,12 +406,18 @@ class ResultTab(QWidget):
         self._load_current()
 
     def _load_current(self):
-        """按当前组 / 子类加载：overview 取摘要（本地分页），其余走数据集分页接口"""
-        if self.result is None or not self.active_dataset:
+        """按当前组 / 子类加载：总览与自定义结果本地分页，其余走数据集分页接口"""
+        if self.active_group == CUSTOM_GROUP:
+            self._load_custom()          # 尚未拉取时触发懒加载（此时可能还没有子类）
+            return
+        if not self.active_dataset:
             self._show_rows({}, [], 0, 0)
             return
         if self.active_group == "overview":
             self._load_overview()
+            return
+        if self.result is None:
+            self._show_rows({}, [], 0, 0)
             return
         if self._busy:
             return
@@ -404,16 +431,127 @@ class ResultTab(QWidget):
                     lambda: self.mcp.getResultDatasetPage(user_id, model_id, run_id, dataset,
                                                           limit, offset))
 
+    def _load_local(self, columns, rows):
+        """本地分页显示（结果总览摘要 / 自定义结果）"""
+        total = len(rows)
+        offset = (self.page - 1) * self.page_size
+        self._show_rows(columns, rows[offset:offset + self.page_size], offset, total)
+
     def _load_overview(self):
         """结果总览：taktTime/uph/utilRate 用 summaryResults 的行；leanMetrics/energyAnalysis 用摘要"""
+        if self.result is None:
+            self._show_rows({}, [], 0, 0)
+            return
         dataset = self.active_dataset
         if dataset in OVERVIEW_SUMMARY_DATASETS:
             columns, rows = self._summary_rows(dataset)
-            self._show_rows(columns, rows, 0, len(rows))
+            self._load_local(columns, rows)
             return
         block = ((self.result or {}).get("summaryResults") or {}).get(dataset) or {}
-        rows = block.get("rows") or []
-        self._show_rows(self._meta("overview", dataset).get("columns") or {}, rows, 0, len(rows))
+        self._load_local(self._meta("overview", dataset).get("columns") or {},
+                         block.get("rows") or [])
+
+    def _load_custom(self):
+        """自定义结果：按需拉取参数表快照中 remark=Out 的输出表（只读展示）"""
+        if not self.custom_loaded:
+            if not (self.mcp and self.user_id and self.model_id):
+                self._set_status("尚无已加载模型")
+                self._show_rows({}, [], 0, 0)
+                return
+            if self._busy:
+                return
+            self.custom_loaded = True       # 先占位，失败时复位以便重试
+            self._set_status("正在读取自定义结果（参数表中 remark=Out 的输出表）…")
+            user_id, model_id = self.user_id, self.model_id
+            self._start("param_snapshot",
+                        lambda: {"list": self.mcp.listParameterTables(user_id, model_id),
+                                 "snapshot": self.mcp.getParameterSnapshot(user_id, model_id, "")})
+            return
+        meta = self.custom_metas.get(self.active_dataset) or {}
+        rows = (self.custom_tables.get(self.active_dataset) or {}).get("rows") or []
+        self._load_local(meta.get("columns") or {}, rows)
+
+    def _handle_custom_tables(self, result):
+        """解析参数表清单 + 快照，把 remark=Out 的表登记为「自定义结果」子类"""
+        listing = result.get("list") or {}
+        snapshot = result.get("snapshot") or {}
+        if not listing.get("success", False):
+            self.custom_loaded = False
+            self._set_status("读取自定义结果失败：%s" % listing.get("code", "?"))
+            return
+        list_data = listing.get("data") or {}
+        if not list_data.get("mcpTableFound"):
+            self.custom_tables, self.custom_metas = {}, {}
+            self.custom_loaded = True
+            self._refresh_datasets()
+            self._show_rows({}, [], 0, 0)
+            self._set_status("模型中未配置 MCP 表，无自定义结果")
+            return
+
+        remarks = {}
+        for row in (list_data.get("parameterTables") or []):
+            remarks[self._normalize(row.get("tableName"))] = (row.get("remark") or "").strip()
+        snap = snapshot.get("data") or {}
+        for row in (snap.get("mcpRows") or []):        # 兜底：清单缺 remark
+            key = self._normalize(row.get("tableName"))
+            if key not in remarks:
+                remarks[key] = (row.get("remark") or "").strip()
+
+        tables, metas = {}, {}
+        for table in (snap.get("tables") or []):
+            name = table.get("tableName") or ""
+            if not name or remarks.get(self._normalize(name), "").lower() != "out":
+                continue
+            columns = {}
+            for col in (table.get("columns") or []):
+                col_name = col.get("name") or ""
+                if not col_name:
+                    continue
+                columns[col_name] = {"title": col_name, "unit": "",
+                                     "type": self._kind_of(col.get("type")), "decimals": None}
+            col_names = [col.get("name") for col in (table.get("columns") or [])
+                         if col.get("name")]
+            row_dicts = []
+            for raw in (table.get("rows") or []):
+                # 参数表的行是二维数组，这里转成"列名 → 值"的行字典（结果页模型按字典行取值）
+                values = list(raw) if isinstance(raw, (list, tuple)) else [raw]
+                row_dicts.append({col_names[i]: (values[i] if i < len(values) else "")
+                                  for i in range(len(col_names))})
+            tables[name] = {"columns": columns, "rows": row_dicts}
+            metas[name] = {"show": True, "tabTitle": name, "tabBrief": name, "columns": columns}
+
+        self.custom_tables, self.custom_metas = tables, metas
+        self.custom_loaded = True
+        self._log("[结果] 自定义结果（remark=Out）：%s" % ("、".join(tables) if tables else "无"))
+        self._refresh_datasets()
+        datasets = self._datasets(CUSTOM_GROUP)
+        self.active_dataset = datasets[0] if datasets else ""
+        if not datasets:
+            self._set_status("未发现 remark=Out 的参数表（自定义结果为空）")
+            self._show_rows({}, [], 0, 0)
+            return
+        self._set_status("自定义结果 %d 张表（remark=Out）：%s"
+                         % (len(datasets), "、".join(datasets)))
+        self.page = 1
+        self._load_current()
+
+    @staticmethod
+    def _normalize(name):
+        """表名归一化（清单给 `.结论`、快照给 `结论`）"""
+        name = (name or "").strip().lstrip(".")
+        if name.lower().startswith("param_"):
+            name = name[6:]
+        return name
+
+    @staticmethod
+    def _kind_of(raw_type):
+        """参数表列类型（int/double/String…）→ 映射表类型码（i/f/s）"""
+        kind = str(raw_type or "").lower()
+        if kind in ("int", "integer", "long", "short", "byte", "i"):
+            return "i"
+        if kind in ("double", "float", "number", "decimal", "f"):
+            return "f"
+        return "s"
 
     def _summary_rows(self, dataset):
         """把 leanMetrics / energyAnalysis 的 summary 摊平成「项目 / 数值」两列"""
@@ -556,6 +694,8 @@ class ResultTab(QWidget):
                 self._handle_result(result)
             elif label == "result_page":
                 self._handle_dataset_page(result)
+            elif label == "param_snapshot":
+                self._handle_custom_tables(result)
         finally:
             self.load_btn.setEnabled(bool(self.user_id and self.model_id))
             self.overview_label.setText(self._overview_text())
@@ -564,6 +704,8 @@ class ResultTab(QWidget):
 
     def _on_failed(self, label, message):
         self._busy = False
+        if label == "param_snapshot":
+            self.custom_loaded = False      # 允许重新拉取
         self._log("[结果] 调用失败 → %s" % message)
         self._set_status("MCP 调用失败：%s" % message)
         self.load_btn.setEnabled(bool(self.user_id and self.model_id))
