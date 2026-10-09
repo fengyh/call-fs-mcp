@@ -4,8 +4,8 @@
     "api_key": "7sK9p2G@2026",
     "user_id": "pyqt-local",
     "load_in_ui": true,
-    "show_animation": false,
-    "accelerate_factor": 1000
+    "show_animation": true,
+    "accelerate_factor": 869
   },
   "mqtt": {
     "broker_host": "127.0.0.1",

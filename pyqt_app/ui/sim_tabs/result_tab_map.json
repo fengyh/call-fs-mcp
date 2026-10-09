@@ -1,7 +1,7 @@
 {
   "overview": {
     "taktTime": {
-      "show": true,
+      "show": false,
       "compareKey": "objectName",
       "tabTitle": "节拍时间",
       "tabBrief": "节拍",
@@ -71,7 +71,7 @@
       }
     },
     "uph": {
-      "show": true,
+      "show": false,
       "compareKey": "objectName",
       "tabTitle": "小时产出量(UPH)",
       "tabBrief": "产量/小时",
@@ -129,7 +129,7 @@
       }
     },
     "utilRate": {
-      "show": true,
+      "show": false,
       "compareKey": "objectName",
       "tabTitle": "设备利用率",
       "tabBrief": "设备利用率",
@@ -245,14 +245,14 @@
       }
     },
     "leanMetrics": {
-      "show": true,
+      "show": false,
       "compareKey": "",
       "tabTitle": "精益指标",
       "tabBrief": "精益指标",
       "columns": {}
     },
     "energyAnalysis": {
-      "show": true,
+      "show": false,
       "compareKey": "",
       "tabTitle": "能耗分析",
       "tabBrief": "能耗分析",
