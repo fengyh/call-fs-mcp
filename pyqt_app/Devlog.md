@@ -1,0 +1,687 @@
+# 1. Python与FS集成最小验证系统构建
+
+## 1.1 加载和关闭需求
+
+- [x] 在pyqt_app/ui/mcp_module.py中，先验证通过MCP加载和关闭FS模型
+  - 已在该程序中实现了磁盘文件的打开和关闭（只是文件名的获取）
+  - 还需要调用后文的封装的MCP接口实现在FS中打开和关闭模型
+## 1.2 仿真控制需求 
+在pyqt_app/ui/mcp_module.py中添加以下ui和相应处理:
+- [x] 开始、暂停、继续共用button1，根据text()，点击时调用相应的MCP接口
+- [x] 停止button2, 点击时调用相应的MCP接口, 停止仿真
+- [x] 重置button3, 点击时调用相应的MCP接口, 重置仿真
+- [x] 加速因子slide-bar，1-1000取值, 滑动结束（鼠标放开）时，调用相应的MCP接口设置加速因子
+- [x] button1、button2、button3的enable和disable状态，参考 snowy-admin-web/src/views/fscloud/simcontrol/index.vue 的 btn1Text、btn2Text、btn3Text的处理
+- [x] 需订阅MQTT（对应于vue版前端的websocket）的仿真状态、仿真进度、仿真控制台，并在相应的位置显示
+### 备注
+- 暂时不实现参数快照、动画订阅、结果快照
+- 如果方便，需要遵循模块化设计，在其它class中处理仿真相关的数据管理
+### 实施记录
+
+#### 2026-08-23 需求 1.2 仿真控制（已实现并验证）
+
+**变更文件**
+
+| 文件 | 变更 | 说明 |
+|---|---|---|
+| `pyqt_app/mcp_client/mqtt_client.py` | 新增 | `MqttSubscriber(QObject)`：paho-mqtt 订阅 `factory/sim/{userId}/{modelId}/+`，信号 `connected`/`disconnected`/`failed`/`status_received`/`progress_received`/`console_received` |
+| `pyqt_app/mcp_client/sim_state.py` | 新增 | `SimulationState(QObject)`：MCP↔SIM_STATUS 映射、状态机、进度、控制台环形缓冲、按钮文案/使能派生量（不依赖 Widget） |
+| `pyqt_app/ui/mcp_module.py` | 改造 | 右侧新增仿真控制行（button1/2/3 + 开动画 + 加速因子 slider）、实时状态行、FS 控制台日志区；MCP 调用日志移入左下卡片（小高度只读区） |
+| `pyqt_app/ui/main_window.py` | 修改 | 新增 `closeEvent` → `module_mcp.shutdown()`（断开 MQTT、等待后台线程） |
+| `pyqt_app/app_config.py` / `app_config.json` | 修改 | `mcp` 段新增 `show_animation`、`accelerate_factor`；新增 `mqtt` 段（`broker_host`/`broker_port`/`client_id_prefix`/`topic_prefix`/`keepalive`）与 `mqtt_settings()` |
+
+依赖：新增第三方库 `paho-mqtt 2.1.0`（`pip install --user paho-mqtt`）。缺失时 `mqtt_client.py` 仍可导入，仅 MQTT 功能不可用并给出提示。
+
+**需求逐条对应**
+
+| 需求 | 实现 |
+|---|---|
+| 开始/暂停/继续 共用 button1 | `run_btn`，点击 → `_on_run_clicked()` 按 `SimulationState.btn1_action`（与按钮文本同源）分派：`start`→`startSimulation(userId, modelId, showAnimation)`、`pause`→`pauseSimulation`、`resume`→`resumeSimulation` |
+| 停止 button2 | `stop_btn` → `stopSimulation(userId, modelId)` |
+| 重置 button3 | `reset_btn` → `resetSimulation(userId, modelId)` |
+| 加速因子 slider（1-1000，松开下发） | `QSlider(1..1000)` + 数值标签；`valueChanged` 只更新标签，`sliderReleased` 才调用 `setAccelerateFactor`，并写入 `app_config.json` 的 `mcp.accelerate_factor` |
+| 按钮 enable/disable 参照 `simcontrol/index.vue` | `SimulationState.btn1_enabled/btn2_enabled/btn3_enabled`，规则见下表 |
+| 订阅 MQTT 并显示状态/进度/控制台 | 加载成功自动订阅，卸载/关闭停止订阅；状态、进度（`x% (步/总步)`）、最近消息时间、MQTT 连接状态显示在状态卡片；`console` 消息进入「FS 控制台日志」区（带条数统计与清除按钮） |
+
+**按钮规则（照搬 `simcontrol/index.vue` 第 280-311 行，输入为 MQTT/接口返回的 MCP 状态）**
+
+| MCP 状态 | 本地状态 | button1 | button2(停止) | button3(重置) |
+|---|---|---|---|---|
+| 无 modelId | —（≈NOTYET） | 禁用 | 禁用 | 禁用 |
+| `LOADED` / `RESET` | WAITING | 「▶ 开始」可用 | 禁用 | 可用 |
+| `RUNNING` | GOING | 「⏸ 暂停」可用 | 可用 | 禁用 |
+| `PAUSED` | PAUSED | 「⏵ 继续」可用 | 可用 | 禁用 |
+| `FINISHED`/`STOPPED`/`FAILED` | FINISHED | 「▶ 开始」可用 | 禁用 | 可用 |
+
+另有统一约束：MCP 调用进行中（`_busy`）时上述按钮全部禁用。
+
+**MQTT 设计**
+
+- Broker 与协议：`tcp://127.0.0.1:1883`（Python 用 TCP；浏览器走 `ws://...:8083/mqtt`，即前端 `mqttClient.js` 的 MQTT over WebSocket），MQTT 3.1.1、QoS 0、clean session、keepalive 30、`reconnect_delay_set(1, 10)` 自动重连，clientId = `pyqt-fs-{userId}-{毫秒}`。
+- 订阅主题：`factory/sim/{userId}/{modelId}/+`（与前端订阅一致；Java 后端为 `factory/sim/+/+/+`，这里按用户/模型收窄）。
+- payload（以 `docs/MqttClientTest.log.md` 与 Java `MqttClientService.handleMessage` 为准）：
+  - `status` → `{"username","modelId","state":"running|paused|finished|loaded|stopped|reset|failed","timestamp"}`
+  - `progress` → `{"username","modelId","progress":12.5,"simTimeStep":250,"totalStep":2000,"timestamp"}`
+  - `console` → `{"username","modelId","level","content","timestamp"}`
+- 字段兼容：前端两处字段假设不一致（`simcontrol` 读 `data.status`/`data.simTime`，`modelfile` 与 Java 后端读 `state`/`progress`/`simTimeStep`），Python 侧以 Java 后端为准并同时兼容另一套命名。
+- 数据流：`FS → MQTT → MqttSubscriber（paho 网络线程）→ pyqtSignal → SimulationState（UI 线程）→ 界面刷新`；MCP 接口返回的 `status` 走同一状态机，MQTT 消息随后校正。
+
+**验证记录（本机实测）**
+
+- `python -m py_compile` 全部新增/修改文件通过；`from ui.mcp_module import MCPModule` 等导入检查通过。
+- MQTT 连通性与全链路（真实连接 `127.0.0.1:1883`，用 `verify-publisher` 向**本用户自己的 topic** 发布模拟消息）：订阅 `factory/sim/pyqt-local/MID-1/+` 成功；`status: running` → 按钮变「⏸ 暂停」（停止可用、重置禁用）；`progress` → `25.0% (500/2000 步)`；两条 `console` 正确入库（界面计数 2 条、时间戳格式化）；`paused` → 「⏵ 继续」；`finished` → 「▶ 开始」且重置可用；兼容 `{timestamp, simTime}` 命名 → `37.5% (750/2000 步)`；单条 14 行日志被截断为 10 行 + `{...以下省略...}`；卸载后订阅自动停止（`MQTT: 未连接`）。
+- 按钮分派与状态机（offscreen，替换 `_run` 与 `_save_pref` 避免真实调用）：禁用状态下点击无任何调用；LOADED→`start`/`reset`、RUNNING→`pause`/`stop`、PAUSED→`resume`/`stop`、FINISHED→`start`/`reset` 分派正确；拖动 slider 仅更新标签、松开才产生 `setAccelerateFactor` 调用与偏好写入；`开动画`/`loadInUI` 复选框切换即持久化。
+- 接口返回注入：`start` 成功 → `RUNNING` + `runId` 记录 + 按钮切换；`pause` 失败（`INVALID_STATE`）、`load` 失败（`MODEL_FILE_NOT_FOUND`）、调用异常（`MCP 错误 -1`）均正确写入 MCP 调用日志与状态栏；`MainWindow` 构造冒烟通过，`closeEvent` 后 MQTT 已断开。
+- 待人工验证：真实模型「加载 → 开始/暂停/继续 → 停止 → 重置 → 关闭」全流程与 FS 引擎实际表现、MQTT 真实推送。
+
+**实施中的默认决定（与需求文本的差异说明）**
+
+1. button1 分派使用 `SimulationState.btn1_action`（`start`/`pause`/`resume`）而非比较中文按钮文本；该属性与 `btn1_text` 同源，等价于「根据 text() 分派」且避免文本含图标时比较出错。
+2. `开动画` 复选框：需求表未列，但 `startRemoteSimulation` 必须传 `showAnimation`，故补一个复选框（默认 `false`，即不启动动画推流），值持久化到 `app_config.json`。
+3. `RESET` 状态映射：前端 `myModel.updateStatus` 的映射表缺 `RESET`（会导致重置后按钮全灰），这里按「重置后回到待仿真（WAITING）」处理。
+4. MCP 调用进行中若再次触发调用（如快速连续拖动加速因子），本次调用被忽略并在日志中提示，避免并发覆盖后台线程。
+
+**遗留（按需求备注暂不实现）**：参数快照、动画订阅（`animation/*` JPEG/对象帧）、结果快照、MU 事件（`events`）；后续按需接入。
+
+## 1.3 仿真控制debug
+### bug to fix
+- [x] 仿真进度不是计算百分数，而是直接显示 simTime 的值 (毫秒)，显示时转换为 x天 hh:MM:ss.sss 的格式
+### 实施记录
+
+#### 2026-08-23 需求 1.3 仿真进度显示修复
+
+**问题定位**
+
+真实 `progress` 消息（证据：`docs/McpClientTest.mqttx.export.json`，MQTTX 对 `factory/sim/+/+/+` 的真实抓包）为：
+
+```json
+{"username":"demo-1786607903143","recordId":"record-1786607903133","modelId":"a10eddf6cc80",
+ "runId":"11070f5c-94fc-4986-950d-3e57d3f7ceb7","uiLoaded":false,"event":"simulationProgress",
+ "timestamp":1786607904822,"status":"RUNNING","simTime":99159500,"msgType":"progress"}
+```
+
+- `simTime` 为**仿真毫秒**（依据：`latex-doc/public-sections/interface.tex:23`）。
+- 真实消息**不含** `progress`/`simTimeStep`/`totalStep`；这三个字段只存在于 `docs/MqttClientTest.log.md` 的测试客户端伪造消息里。
+- 1.2 的实现按伪造字段做百分数换算（`totalStep` 缺失 → `progress=0`），导致真实运行时「仿真进度」恒显示 `-`。
+
+**修复内容**
+
+| 文件 | 改动 |
+|---|---|
+| `pyqt_app/mcp_client/sim_state.py` | 新增 `format_sim_time(ms)`；状态字段 `progress`/`sim_time_step`/`total_step` → `sim_time`（仿真毫秒）；`update_from_mqtt_progress` 只取 `simTime`（不使用 `status` 等其它字段）；派生量 `progress_text` → `sim_time_text`；`reset_runtime` 复位 `sim_time` |
+| `pyqt_app/ui/mcp_module.py` | 状态行「仿真进度」改用 `state.sim_time_text`（标签文案不变） |
+
+**时间格式规则**：从最高非零单位开始显示，前面为 0 的单位不显示；毫秒固定 3 位、时/分/秒各 2 位；天数非零时带「天」字。
+
+| `simTime`(ms) | 显示 |
+|---|---|
+| `0` / `250` | `00.000` / `00.250` |
+| `20000` | `20.000` |
+| `72750` | `01:12.750` |
+| `60000` / `600000` | `01:00.000` / `10:00.000` |
+| `3600000` | `01:00:00.000` |
+| `86400000` | `1天 00:00:00.000` |
+| `99159500` | `1天 03:32:39.500` |
+| `None` / 负数 / 非数字 | `00.000` |
+
+未加载模型（无 `modelId`）时显示 `-`。
+
+**验证记录（本机实测）**
+
+- `format_sim_time` 逐例校验 14 例（上表全部取值 + `None`、负数、浮点 `72750.7`、字符串 `"x"`）全部通过。
+- 离线回放真实抓包的 `status`（`LOADED`/`RUNNING`）与 `progress`（`simTime` 为 `0`、`99159500`）消息：状态机与按钮使能正确，进度显示 `00.000` → `1天 03:32:39.500`；用户提供的实例（`simTime=72750`、`status=STOPPED`）→ `01:12.750`，且 `status` 未被用于状态更新（符合「不要使用其它字段」）。
+- 真实 MQTT 端到端（连 `127.0.0.1:1883`，用隔离的 userId/modelId 自发布）：界面「仿真进度」连续刷新 `00.250 → 20.000 → 01:12.750 → 1天 03:32:39.500`；`RUNNING`/`PAUSED`/`STOPPED` 的状态文案与按钮使能正确；停止后进度保留。
+- 交叉验证：验证期间订阅到本机真实运行的 `factory/sim/pyqt-local/223fb9269181` 的 `status: STOPPED` 消息，界面随之显示「仿真结束」，说明真实 FS 消息格式与我们的解析完全兼容。
+- `python -m py_compile` 与导入检查通过；offscreen `MainWindow` 冒烟：进度 `-` → `00.000` → `1天 03:32:39.500`。
+
+**与 1.2 记录的差异更正**：1.2 记录中「进度（`x% (步/总步)`）」「兼容 `{timestamp, simTime}` 命名」等描述基于测试客户端的伪造字段，按本节结论作废。
+
+## 1.4 重置、开关动画debug
+### 问题
+- 重置应该没有正确调用MCP工具，因为在FS中没有看到重置的结果显示
+- “开动画开关”不但要在仿真启动时先设置，而且在任何时候改变其开关状态，都需要调用相应的MCP工具。目前没有看到FS中的动画被控制的迹象
+### to fix
+- [x] 动画开关状态改变时，调用相应的MCP工具，可参照"snowy-admin-web/src/views/fscloud/simcontrol/index.vue 565~573"
+- [x] 重置button按下，调用相应的MCP工具，可参照“snowy-admin-web/src/views/fscloud/simcontrol/index.vue doReset函数”
+### 实施记录
+
+#### 2026-08-23 需求 1.4 重置与动画开关修复
+
+**问题诊断**
+
+1. 「开动画」开关：`pyqt_app/ui/mcp_module.py` 中该复选框此前只写本地偏好（`_save_pref`），**不调用任何 MCP 工具**，所以取消勾选后 FS 侧动画仍保持开启（实测 FS 返回 `animationEnabled=true`）。
+2. 「重置」：调用链本身与前端一致（`resetRemoteSimulation(userId, modelId)`），只读实测 `listRemoteSimulationModels` 返回 `status="LOADED"`、`runId=null`、`simTime=0`、`message="Simulation reset."`，说明此前已成功执行过。用户“看不到重置结果”的成因是：
+   - RUNNING/PAUSED 时按钮按前端规则（`btn3Disabled`）禁用，点击完全静默、没有任何提示；
+   - `start/pause/resume/stop/reset` 点击时没有请求日志，无法从日志判断是否发出过调用；
+   - 重置成功后本地「仿真进度」不会归零（1.3 起进度只由 MQTT `progress.simTime` 驱动）。
+
+**修改内容**
+
+| 文件 | 改动 |
+|---|---|
+| `pyqt_app/ui/mcp_module.py` | ① 「开动画」勾选变化 → 新增 `_on_animation_toggled`：保存偏好 + 已加载模型时调用 `setRemoteSimulationAnimationEnabled`；未加载时与前端一致直接返回（只记本地日志）。② 加载模型成功、`↻刷新已加载` 时经 `_sync_animation_from` **回读** FS 的 `animationEnabled` 同步界面勾选（`loadModel` 未返回该字段时补一次 `getStatus`，label=`sync`）。③ `start/pause/resume/stop/reset` 增加请求日志；新增 `_require_loaded()` 前置检查，未加载/调用进行中时给出日志与状态栏提示（不再静默）。④ 控制按钮动态 tooltip 说明禁用原因。⑤ 重置成功后调用 `state.reset_sim_time()`。⑥ 构造期 `setChecked` 用 `blockSignals` 屏蔽，避免初始化即下发调用。 |
+| `pyqt_app/mcp_client/sim_state.py` | 新增 `reset_sim_time()`：只把仿真进度归零（保留最近消息时间），供重置成功后调用 |
+
+**与需求文本的对应**
+
+| 需求 | 实现 |
+|---|---|
+| 动画开关状态改变时调用相应 MCP 工具（参照 `simcontrol/index.vue:565-573`） | `animate_chk.toggled` → `_on_animation_toggled`：已加载时调 `setRemoteSimulationAnimationEnabled(userId, modelId, enabled)`；未加载时不调用（同前端 `if (!myModel.isLoaded || !myModel.modelId) return`）；启动仿真仍用同一勾选值作为 `showAnimation` |
+| 重置 button 按下调用相应 MCP 工具（参照 `doReset`） | `reset_btn` → `_reset_simulation` → `resetRemoteSimulation(userId, modelId)`，与前端 `fsSimResetModel` 同一工具、同一参数 |
+
+**本节的决策（已确认）**：动画开关采用“勾选变化时调用 + 加载/刷新时从 FS 回读”；重置保持前端规则（RUNNING/PAUSED 禁用，只补 tooltip 与提示，不自动 `stop`）；重置成功后本地进度立即归零。
+
+**验证记录（本机实测：offscreen 注入 + 真实只读查询）**
+
+- 构造期不触发 MCP 调用（`blockSignals` 生效）；未加载时切换勾选只写偏好、无调用；已加载时切换产生 `anim` 调用。
+- `anim` 成功响应 → 状态栏“动画已开启”；`_sync_animation_from` 在界面与 FS 不一致时更新勾选，且**不再下发** MCP 调用（无回环）。
+- `loadModel` 返回含 `animationEnabled` 时不补调用；不含时补一次 `getStatus`（label=`sync`）；`↻刷新已加载` 从 `listRemoteSimulationModels` 回读并同步勾选。
+- 重置成功注入 → 「仿真进度」`01:12.750` → `00.000`，状态回到「待仿真」，日志 `[重置仿真] 成功 → status=LOADED message=Simulation reset.`。
+- 未加载模型时调用停止/重置 → 日志 `[停止仿真]/[重置仿真] 未加载模型，已忽略` + 状态栏“请先「加载到 FS」再执行…”。
+- 动态 tooltip：LOADED/FINISHED 为空；RUNNING 时为“仅待仿真/仿真结束时可重置；仿真中/已暂停请先「停止」”，且按钮禁用。
+- 真实只读 `getStatus("pyqt-local","223fb9269181")` → FS `animationEnabled=true`，回读后界面勾选同步为 True 并记日志。
+- `python -m py_compile` 通过；`MainWindow` 冒烟通过（勾选 `True`、加速因子 `1000`，与 `app_config.json` 一致）。
+
+**待人工验证（含副作用，按惯例在 GUI 手动进行）**：勾选/取消「开动画」时 FS 桌面工具栏复选框是否跟随（`loadInUI=true` 时会同步）；RUNNING 状态下悬停重置按钮应看到禁用原因；停止后点重置，`getStatus` 应返回 `status=LOADED`、`simTime=0`、`message="Simulation reset."`，界面进度随之归零。
+
+## 1.5 同步动画、加速因子
+
+### 需求
+
+- [x] 点击"开始"按钮时，先按动画是否打勾、加速因子的位置先调用相应的MCP工具设置了FS的动画和加速因子之后再启动仿真。
+
+### 实施记录
+
+#### 2026-08-23 需求 1.5 启动前同步动画与加速因子
+
+**实现**
+
+| 文件 | 改动 |
+|---|---|
+| `pyqt_app/ui/mcp_module.py` | ① `_on_run_clicked` 的「启动」分支改为调用 `_start_sequence`（「暂停/继续」分支不变）；② 新增 `_start_sequence(user_id, model_id, show_animation, factor)`：在同一个后台任务内串行 `setRemoteSimulationAnimationEnabled` → `setRemoteSimulationAccelerateFactor` → `startRemoteSimulation`；③ 新增 `_handle_start_sequence` / `_log_start_step`：逐条打印前置结果，第三步复用既有 `_handle_sim_control("start", …)`；④ `_on_done` 中 `start` 单独走新分支 |
+
+**关键取舍（已确认）**
+
+1. 前置两步（动画/加速因子）设置失败 → **忽略并继续启动**，日志标注「（忽略，继续启动）」。
+2. 每次点「开始」都**无条件**设置两项（不做“值变化才下发”的缓存判断）。
+3. 仅「启动」分支做前置同步；「暂停/继续」不额外调用。
+4. 三步串行放在**同一个** `McpCallRunner` 任务内：`_busy` 机制下无法连续发起三次 `_run`，且这样能保证先后顺序；连接层异常（`McpServiceException`）会中断序列，业务失败（`success=false`）不会。
+5. 参数取界面值：动画取「开动画」勾选，加速因子取滑块当前值；`startRemoteSimulation` 的 `showAnimation` 仍为同一勾选值。
+
+**验证记录（本机实测：将 `mcp.setAnimationEnabled/setAccelerateFactor/startSimulation` 替换为桩，未对 FS 发出真实调用）**
+
+- 正常序列：调用顺序 `anim:MID-1:True → accel:MID-1:1000 → start:MID-1:True`；日志 4 条（请求行 + ①动画成功 + ②加速因子成功 + 启动成功）；状态变「仿真中」、button1 变「⏸ 暂停」、停止按钮可用。
+- 参数跟随界面：取消勾选 + 滑块置 37 → `anim:…:False → accel:…:37 → start:…:False`。
+- 前置失败：动画返回 `INVALID_STATE` → 仍继续加速因子与启动，日志 `[启动] 前置①动画 → 失败 INVALID_STATE: not allowed now（忽略，继续启动）`。
+- 异常中断：动画调用抛 `McpServiceException` → 序列中断（仅发出 `anim`），`McpCallRunner.failed` 上报，状态栏「MCP 调用失败」。
+- 分支隔离：RUNNING 时点击 → 仅 `pause`；PAUSED 时点击 → 仅 `resume`。
+- `python -m py_compile` + `MainWindow` 冒烟通过。
+- 旁证（真实环境，由使用者在 GUI 操作产生）：FS 只读 `listRemoteSimulationModels` 返回 `message="Simulation animation enabled."`、`animationEnabled=true`、`status="FINISHED"`，说明 1.4 的动画开关在真实 FS 上已生效。
+
+**待人工验证（含副作用）**：在 GUI 中改变「开动画」勾选与加速因子滑块后点「开始」，对照日志的三步顺序，并观察 FS 桌面工具栏的动画复选框与速度滑块是否与界面一致。
+
+## 1.6 右下添加其它内容的tab
+
+在右下“FS 控制台日志”的位置，改为4个tab："控制台日志"、"仿真动画"、"仿真参数"、"仿真结果"。
+
+### 需求
+
+- [x] 将现在的”FS 控制台日志“的内容，包括”xx 条“、"清除"按钮，移到”控制台日志“tab
+- [x] 如果可能，将这4个tab的内容用另外的.py文件封装成模块，因为"仿真动画"、"仿真参数"、"仿真结果"的内容比较复杂
+- [x] "仿真动画"、"仿真参数"、"仿真结果"的具体功能实现放在后面的需求
+
+### 实施记录
+
+#### 2026-08-23 需求 1.6 右下四页签（控制台日志 / 仿真动画 / 仿真参数 / 仿真结果）
+
+**变更文件**
+
+| 文件 | 变更 | 说明 |
+|---|---|---|
+| `pyqt_app/ui/sim_tabs/__init__.py` | 新增 | 导出 `ConsoleLogTab` / `AnimationTab` / `ParameterTab` / `ResultTab` 与 `TAB_TITLES`（顺序即页签顺序） |
+| `pyqt_app/ui/sim_tabs/console_log_tab.py` | 新增 | `ConsoleLogTab`：顶部「xx 条」+「清除」+ 只读日志区，自包含处理 MQTT console |
+| `pyqt_app/ui/sim_tabs/animation_tab.py` | 新增 | `AnimationTab`：占位 |
+| `pyqt_app/ui/sim_tabs/parameter_tab.py` | 新增 | `ParameterTab`：占位 |
+| `pyqt_app/ui/sim_tabs/result_tab.py` | 新增 | `ResultTab`：占位 |
+| `pyqt_app/ui/mcp_module.py` | 修改 | 右下改为 `QTabWidget`；删除原「FS 控制台日志」标题行与 `console_log`/`console_count` 控件、`_append_console`；控制台相关信号连线移入 tab |
+
+**实现要点**
+
+1. `ConsoleLogTab` **自包含**：内部连接 `SimulationState.console_appended`（追加一行）、`console_cleared`（清空显示）、`changed`（刷新「xx 条」）；「清除」按钮调 `state.clear_console()`，同时清空显示与 `state.console_logs`（与改造前行为一致）。
+2. 另外三个 tab 为**纯占位**：居中提示「仿真动画 / 仿真参数 / 仿真结果：待后续需求实现」，仅保留 `main` / `state` 引用，不预留额外接口。
+3. `mcp_module.py` 只负责构造与挂载：`self.sim_tabs = QTabWidget()`，按 `TAB_TITLES` / `TAB_CLASSES` 循环 `addTab`；另暴露 `self.tabs`（列表）与 `self.console_tab` 便于后续按索引访问。
+4. 样式复用 `ui/main_window.py` 已有的 `QTabWidget::pane` / `QTabBar::tab` 暗色规则，未新增样式。
+5. 未改动：左侧「MCP 调用日志」、右上控制行与状态卡、MCP/MQTT 逻辑。
+
+**验证记录（本机实测）**
+
+- tab 结构：`count()==4`，标题依次为「控制台日志 / 仿真动画 / 仿真参数 / 仿真结果」；依次 `setCurrentIndex` 后 `currentWidget()` 类型为 `ConsoleLogTab / AnimationTab / ParameterTab / ResultTab`。
+- 控制台追加：注入 2 条（INFO/WARN）→ 第 1 tab 显示 `[22:50:59] [INFO] Simulation initialized`、`[22:51:00] [WARN] AGV002 battery low`，条数 `2 条`。
+- 清除按钮：点击后文本为空、条数归 `0 条`、`state.console_logs` 清空。
+- 真实 MQTT 端到端（隔离 userId/modelId，订阅 `factory/sim/pyqt-verify/tabs-…/+`）：自发布 3 条 console（INFO/WARN/ERROR）→ 第 1 tab 实时显示 3 条，条数 `3 条`。
+- `python -m py_compile` 全部新增/修改文件通过；导入检查与 `MainWindow` 冒烟通过。
+
+**遗留**：「仿真动画」「仿真参数」「仿真结果」的具体功能（含各自 MCP/MQTT 数据接入）留待后续需求。
+
+## 1.7 仿真动画
+
+### 需求
+
+- [x] 在 pyqt_app/ui/sim_tabs/animation_tab.py 中实现动画
+- [x] 仿真启动后（pyqt_app/ui/mcp_module.py中点击”开始“按钮），通过MQTT订阅动画流数据，并在animation_tab.py中显示
+- [x] 可按不同层级（.fs多层次建模）切换，默认root层。这些多层级的名称，在一行内排列。
+- [x] 动画单击可全屏（在程序范围即可，不用PC的屏幕全屏），Esc键恢复布局
+- [x] 动画显示 - 高清svg静态图片显示可通过 checkbox 切换
+- [x] 具体操作逻辑，请参照 snowy-admin-web/src/views/fscloud/simcontrol/index.vue
+
+### 实施记录
+
+#### 2026-08-23 需求 1.7 仿真动画（MQTT 帧 + 层级切换 + 高清 SVG + 程序内全屏）
+
+**变更文件**
+
+| 文件 | 变更 | 说明 |
+|---|---|---|
+| `pyqt_app/ui/sim_tabs/animation_tab.py` | 重写 | `AnimationTab`：工具行（直播标签 / 高清勾选 / 全屏按钮）+ 层级条 + 视口编排，自包含处理 MQTT 动画信号与 MCP 调用 |
+| `pyqt_app/ui/sim_tabs/animation_view.py` | 新增 | `AnimationView`：JPEG / SVG 渲染、单击全屏、滚轮缩放、左键拖动 |
+| `pyqt_app/mcp_client/mqtt_client.py` | 修改 | 新增 `animation/#` 订阅与 `animation_frame(bytes, layerId)` / `animation_state(dict)` / `animation_layers(dict)` 信号；`_on_message` 增加动画分支（`frame` 为二进制，不做 JSON 解析） |
+| `pyqt_app/ui/mcp_module.py` | 修改 | `McpClient` / `MqttSubscriber` 创建提前到 `_build_ui()` 之前并注入 `AnimationTab`；启动成功 → `on_simulation_started()`；卸载成功 → `reset()` |
+| `pyqt_app/ui/sim_tabs/__init__.py` | 修改 | 注释说明 `AnimationTab` 需额外注入 mcp / mqtt |
+
+**与需求逐条对应**
+
+| 需求 | 实现 |
+|---|---|
+| 在 `animation_tab.py` 中实现动画 | `AnimationTab` 完整实现；视口渲染与全屏拆到 `animation_view.py`（已确认） |
+| 启动后经 MQTT 订阅动画流并显示 | 「开始」成功 → `on_simulation_started(userId, modelId)` → `listRemoteSimulationAnimationLayers` 取层目录；MQTT 随连接订阅 `factory/sim/{userId}/{modelId}/animation/#`，收帧即显示（`animation/{layerId}/frame` 二进制 JPEG → `QPixmap.loadFromData`） |
+| 层级切换（默认 root、名称一行排列） | 层级按钮一行排列（`root` 显示「主模型」、其余用 `displayName`，`root` 排最前），超出横向滚动；点击 → `selectRemoteSimulationAnimationLayer(userId, modelId, layerId, 5)` |
+| 单击全屏（程序内）+ Esc 恢复 | `AnimationView` 未全屏时单击 → reparent 到主窗口并铺满；`QShortcut(Esc)` 恢复原父子关系与布局位置；全屏时跟随窗口 resize |
+| 高清 SVG checkbox 切换 | 「显示高清静态图」勾选 → 先继续显示 JPEG，异步 `getSvgPicture` 取到后用 `QSvgRenderer` 渲染显示（底色 `#E8E8E8`）；取消 → 回最近一帧 JPEG；切层且高清开启时自动重取 |
+| 参照 `simcontrol/index.vue` | 层排序与「主模型」文案、`frameRate=5`、高清切换顺序（先 JPEG 后 SVG）、全屏态滚轮缩放（0.2x~5x，以鼠标为中心）与左键拖动、全屏态单击不重置视图 |
+
+**实现要点**
+
+- 非活动层帧直接丢弃（避免切层瞬间串层）；切换层时保留旧帧直到新层帧到达（同前端）。
+- MCP 调用（取层目录 / 切层 / 取 SVG）经 `McpCallRunner` 在后台线程执行，各类运行器忙时忽略重复请求；SVG 结果用 `layerId` 校验，防止切层期间的过期结果覆盖画面。
+- 动画状态（层目录、当前层、推流标签）由 tab 自包含管理，与 1.6 的 `ConsoleLogTab` 风格一致。
+- 本次范围外：结构化对象帧（`animation/{layerId}/objects`）、`frameMeta`、`events`。
+
+**验证记录（本机实测）**
+
+- offscreen 桩验证：`listLayers` → 层条 `[主模型(选中), 车间A, 车间B]`；`root` 帧显示 128×96，非活动层 `g2` 帧被丢弃；`animation_state` → 「● 直播 7 fps」/「未推流（7 fps）」；`switch_layer("g1")` → `selectLayer(g1, 5)` + 层条高亮切换 + g1 帧被接受；高清 → `getSvg(g1)` + SVG 渲染 640×360 + 底色 `#E8E8E8`，取消 → 回 JPEG（底色 `#000000`）；高清开启时切层 → `selectLayer(g2, 5)` + `getSvg(g2)`；全屏 → 视口 reparent 到窗口且 `geometry == window.rect`、按钮变「🗕 恢复」、Esc 快捷键启用；Esc → 父子关系与按钮恢复、快捷键禁用；`reset()` → 层条 / 画面 / 标签全部清空。
+- 真实 MQTT 端到端（隔离 userId/modelId，向 `animation/*` 发布会话内构造的数据）：订阅 `.../+` 与 `.../animation/#` 成功；`animation/layers` → 层条「主模型 / 子模型一」；`animation/state` → 「● 直播 5 fps」；`animation/root/frame`（二进制 JPEG）→ 视口显示 160×120；非活动层 `sub1/frame` 被丢弃；切到 `sub1` 后同帧被接受（80×60）。
+- `python -m py_compile` 全部新增 / 修改文件通过；导入检查与 `MainWindow` 冒烟通过。
+
+**待人工验证（含副作用）**：真实 FS 上「加载 → 开始」后观察 JPEG 动画是否连续、层条切层、勾选高清显示 SVG、单击全屏与 Esc 恢复、全屏态滚轮缩放与拖动。
+
+## 1.8 仿真动画debug
+
+### bug to fix
+
+- [x] svg高清整体图，现在显示的不是高清，请调用MCP工具取svg高清图片再显示
+- [x] 动画tab中的”全屏“checkbox和”主模型“文字显示不全
+- [x] “全屏”时，需保留层级选择、“动画”——“svg图片”切换
+
+### 实施记录
+
+#### 2026-08-23 需求 1.8 高清 SVG（矢量渲染）与控件文字修复
+
+**问题 1：高清 SVG「不是高清」**
+
+诊断（本机实测）：
+
+- 真实 `getSvgPicture("pyqt-local", "e6b11ac3b5cc", "root")` 返回 `success=true`、`1280×580`、`105270` 字节，`QSvgRenderer` 解析正常 → **MCP 取图与显示链路本身是通的**（日志 `[动画] 已显示高清静态图（层=root, 1280x580）`）。
+- 真正原因在渲染方式：`animation_tab._render_svg()` 把 SVG 光栅化成**固定分辨率** `QPixmap(1280×580)` 再由视口缩放显示 —— 全屏/滚轮放大时等同于位图放大，自然不清晰。
+- 另外触发面偏窄：`user_id/model_id` 只在「开始」成功后登记，加载模型后未启动时勾选高清既不取图、也无任何提示。
+
+修复：
+
+| 文件 | 改动 |
+|---|---|
+| `animation_view.py` | 新增矢量模式 `set_svg()` / `has_content()` / `_content_size()`；`paintEvent` 对 SVG 用 `QSvgRenderer.render(painter, 目标矩形)` **按目标尺寸实时矢量绘制**（缩放/全屏始终清晰）；`set_pixmap()` 切回位图模式；`clear()` 底色复位为黑底 |
+| `animation_tab.py` | `_on_svg_loaded()` 改走 `view.set_svg()`（不再生成固定分辨率位图）；`_svg_pixmap` → `_has_svg` 标志；新增 `on_model_loaded()`（加载模型后即可查看高清图）；`load_svg()` 缺少模型时输出提示；删除 `_render_svg()` |
+| `mcp_module.py` | `_handle_load` 成功分支调用 `animation_tab.on_model_loaded(...)` |
+
+**问题 2：「全屏」按钮与「主模型」文字显示不全**
+
+诊断（offscreen 实测）：按钮 `setFixedHeight(24)` 小于 `sizeHint` 高度 `25`，而全局 QSS 为 `QPushButton{padding:6px 16px; font-size:13px}`（需要约 28px），emoji「🗖」更高；层条容器固定 36px 还要容纳 14px 横向滚动条，进一步压缩。
+
+修复：全屏按钮与层按钮高度 24 → **30**（层按钮另加 `setMinimumWidth(60)`）；层条容器 36 → **46**（30 + 14 滚动条 + 边距）。未改全局 QSS。
+
+**验证记录（本机实测）**
+
+- 矢量清晰度：把同一张真实 SVG（105 KB）分别「矢量直接渲染到 1200×800」与「400×300 渲染后放大到 1200×800」，边缘梯度中位数/峰值 = **129/232** vs **42/77** → 矢量渲染明显更锐利。
+- 高清链路（真实 `getSvgPicture`，只读）：`on_model_loaded` → 勾选高清 → `_has_svg=True`、视口进入矢量模式、底色 `#E8E8E8`、日志 `[动画] 已显示高清静态图（矢量，层=root，1280x580，105270 字节）`；高清期间到达的 JPEG 帧不再覆盖画面；取消高清 → 回最近一帧 JPEG（黑底）；缺少 `model_id` 时提示「尚无已加载模型，无法取高清静态图」。
+- `clear()` 底色复位：`#E8E8E8` → `#000000`。
+- 控件尺寸：全屏按钮 `84×30`（sizeHint `84×25`）、层按钮高 `30`、`layer_scroll` 高 `46`；`QFontMetrics` 校验「文本宽 + 32px padding ≤ 按钮宽」全部满足。
+- 回归冒烟：`on_model_loaded` → 启动取层目录（层条「主模型 / 装配车间」）→ root 帧位图显示 → 高清切矢量 → 取消回位图 → 切层（高亮切换、新层帧被接受）→ 全屏 / Esc → `reset()` 全部符合预期。
+- `python -m py_compile` 全部修改文件通过；导入检查与 `MainWindow` 冒烟通过。
+
+**待人工验证**：GUI 中勾选高清后全屏/放大，确认画面依旧锐利（矢量重绘）；「🗖 全屏」与层条文字完整显示。
+
+#### 2026-08-23 需求 1.8 补充：全屏时保留层级选择与高清切换
+
+**问题**：原实现只把**视口** reparent 到主窗口铺满，`AnimationTab` 的工具行（高清切换 / 全屏按钮 / 直播标签）与层级条仍留在 tab 内、被整片覆盖 → 全屏时既看不到层名，也无法切换层级与「动画 / svg图片」。
+
+**修复（对齐前端 `.anim-fullscreen` 作用于整张动画卡片）**
+
+| 文件 | 改动 |
+|---|---|
+| `animation_tab.py` | 全屏改为**整个 tab 铺满主窗口**：`_fullscreen_host()` 定位所在 QTabWidget 并记录标题 → `removeTab(index)` 移出页面 → `setParent(window)` + `setGeometry(window.rect())` 铺满，样式用对象名限定（`#animTabFullscreen { background:#000000; }`，不级联到子控件）；退出时 `insertTab(index, self, title)` + `setCurrentWidget(self)` 复原页签位置与标题；`eventFilter` 跟随窗口 resize；保留「🗕 恢复」按钮与 Esc |
+| `animation_view.py` | 移除视口自身的 reparent 与 `fullscreen_changed` 信号，改为 `set_fullscreen(bool)` 标记：仅控制单击（未全屏时才请求全屏）、滚轮缩放、拖动与光标；面板铺满交由 tab 负责 |
+
+**踩坑记录**：最初用 QTabWidget 内部 `QStackedWidget.insertWidget()` 复原页面 —— 位置虽对，但 **tab bar 标签不会重建**（退出后标题少一个「仿真动画」，`count()` 停在 3）。改用 QTabWidget 的 `removeTab(index)` / `insertTab(index, widget, label)` 才完整复原；注意 `removeWidget()` 是 QStackedWidget 的方法，QTabWidget 上并不存在。
+
+**验证记录（offscreen 实测）**
+
+- 进入全屏（单击视口）：`AnimationTab.parentWidget()` 为主窗口、`geometry == window.rect()`、`view._fullscreen=True`、按钮变「🗕 恢复」；全屏中 `tab / 层条 / 高清勾选 / 恢复按钮` 的 `isVisible()` 均为真，层级按钮 2 个完整可见。
+- 全屏态操作：点击层级按钮 → `selectAnimationLayer("s1", 5)` 且高亮切换；勾选高清 → `getSvgPicture("s1")` 并转矢量显示（底色 `#E8E8E8`）；取消勾选 → 回 JPEG（底色 `#000000`）。
+- Esc 与「🗕 恢复」退出：`sim_tabs.count()` 由 3 恢复为 4、标题恢复「控制台日志 / 仿真动画 / 仿真参数 / 仿真结果」、`indexOf(tab)=1`、`currentWidget() is tab` 为真、样式清空、`view._fullscreen=False`、Esc 快捷键禁用；连续进出两次结果一致。
+- `reset()` 在全屏状态下自动退出并复原页签。
+- 回归：非全屏时滚轮/拖动无效（`zoom=1.0, pos=(0,0)`），全屏时生效（`zoom=0.9`、`pos=(-35,-16)`）；JPEG 帧显示与层级条正常。
+- `python -m py_compile` 全部修改文件通过；`MainWindow` 冒烟通过。
+
+**待人工验证**：GUI 上进入全屏后，确认层级条与「显示高清静态图」勾选仍可见可操作，Esc / 「🗕 恢复」都能回到原页签位置且标题不变。
+
+## 1.9 仿真参数
+
+### 需求
+
+本需求可对标vue版本：snowy-admin-web/src/views/fscloud/simparam/index.vue
+
+- [x] 在pyqt_app/ui/sim_tabs/parameter_tab.py实现参数的管理
+- [x] 不需要落库，但需要回写模型
+- [x] 需要编辑table
+- [x] remark为‘Out’的table不显示为参数表（将在仿真结果中处理）
+
+### 实施记录
+
+#### 2026-08-23 需求 1.9 仿真参数（参数表读取 / 编辑 / 回写模型）
+
+**实现**
+
+| 文件 | 改动 |
+|---|---|
+| `pyqt_app/ui/sim_tabs/parameter_tab.py` | 重写：工具栏（`⟳取模型参数` / `💾保存到模型` / `↩还原` + 脏标记 + 概览/反馈标签）+ 参数表选择条 + 可编辑 `QTableWidget`；自包含处理 MCP 调用（`McpCallRunner` 后台线程） |
+| `pyqt_app/ui/mcp_module.py` | `ParameterTab` 注入 `mcp`；加载模型成功 → `on_model_loaded()`；卸载前 `confirm_discard("关闭模型")`；卸载成功 → `reset()` |
+
+**需求逐条对应**
+
+| 需求 | 实现 |
+|---|---|
+| 在 `parameter_tab.py` 实现参数管理 | 取参数 / 编辑 / 保存 / 还原全部在该文件内实现 |
+| 不需要落库，但需要回写模型 | 不实现「快照写库」；回写走 `batchUpdateRemoteSimulationParameterTable(userId, modelId, tablesJson, bSaveModel=true)` —— 回写内存模型并保存 `.fs` 文件 |
+| 需要编辑 table | 单元格可编辑（脏单元格浅黄高亮）+ 表头列名双击修改（`QInputDialog`）；「保存到模型」前有确认框，成功后自动重取 |
+| `remark='Out'` 的表不显示 | 用 `listRemoteSimulationParameterTables`（缺 remark 时回退快照 `mcpRows`）构建 remark 映射，按**归一化表名**（去前导 `.` 与 `Param_` 前缀）过滤 `remark.lower() == "out"`；实测当前模型的 `.结论` 被正确过滤 |
+
+**关键技术点（实测得出）**
+
+- 表名格式不一致：清单给 `.初始化参数`，快照给 `初始化参数` → 过滤按归一化表名匹配，回写使用快照里的原表名。
+- 快照 `tables[]` 不含 `remark` → remark 只能从参数表清单或 `mcpRows` 获取。
+- `QTableWidget` 表头**不支持原地编辑**，列名改为「双击表头 + 输入框」（`horizontalHeader().sectionDoubleClicked`）。
+- 参数表概览与操作反馈拆成两个标签，避免 `_refresh_buttons()` 每次刷新覆盖掉「写入成功 / 失败」提示。
+- 运行中（`RUNNING/PAUSED`）禁用「保存到模型」（MCP 会返回 `INVALID_STATE`），失败时把该错误码转成中文提示。
+- 只提交界面上显示的表（排除 `remark='Out'` 的输出表），避免触碰输出表。
+
+**已确认的取舍**：`bSaveModel=true`；编辑能力 = 单元格 + 列名 + 脏标记 + 一键还原（不做增删行列 —— 04 文档明确 `columns/columnCount` 仅用于校验、不会修改模型表结构）；未保存保护 = 「取参数 / 还原 / 关闭模型」前确认；**切换参数表不弹确认**（编辑实时保存在内存，切换不丢内容，已用按钮 tooltip 说明）。
+
+**验证记录（本机实测）**
+
+- 真实只读（模型 `ef2629a66bf0`）：显示表 `['初始化参数']`、过滤 `['结论']`、表格 `1×6`、表头 `['回填长度','回填宽度','回填深度','土方单次运输体积','装载机数','推土机数']`、行 `['50','200','2','3','5','5']`。
+- offscreen 桩验证：`Out`/`out` 均被过滤；单元格编辑 → 脏标记 + 浅黄底 + 保存/还原使能；改回原值 → 脏标记消失；列名双击修改 → 记录并同步到待提交数据；`↩还原` → 回到上次内容；保存 → 捕获 `bSaveModel=true`、仅提交非 Out 表（`columnCount` 与 columns 一致）、反馈「已写入 1 张表 / 2 行」；`INVALID_STATE` → 中文提示；运行中保存按钮禁用、停止后恢复；卸载前选「取消」不会调用卸载、选「继续」才调用；`reset()` 清空。
+- `python -m py_compile` 全部修改文件通过；`MainWindow` 冒烟通过。
+
+**待人工验证（含副作用：会写入模型并保存 .fs 文件）**：GUI 中编辑单元格 / 列名后点「保存到模型」，确认返回的 `updatedTableCount/updatedRowCount/modelSaved`，以及重新「取模型参数」后数值保持不变；仿真运行中保存应被拒绝并给出提示。
+
+#### 2026-08-23 需求 1.9 修复：参数表行数较多时程序闪退（递归栈溢出）
+
+**现象与复现**
+
+切换到行数较多的参数表（如 `.网格划分` 120 行 × 6 列）时进程直接退出：复现脚本退出码 `-1073740791`（`0xC0000409`，栈溢出），逐步定位到 `switch_table("网格划分")` → `_fill_table()` 内部。
+
+**根因**
+
+`_fill_table()` / `_apply_dirty_marks()` 对 item 调用 `setBackground()/setForeground()` 会**同步触发 `itemChanged`**，而 `_on_item_changed()` 末尾又调用 `_apply_dirty_marks()`，形成递归：
+
+```
+_apply_dirty_marks → setBackground → itemChanged → _on_item_changed → _apply_dirty_marks → …
+```
+
+递归深度 ≈ 单元格数量：`.初始化参数`（1×6 = 6 格）正常；`.网格划分`（120×6 = 720 格）、`.不规则网格`（239×8 = 1912 格）直接栈溢出崩溃。
+
+**修复**
+
+| 位置 | 改动 |
+|---|---|
+| `_apply_dirty_marks()` | 内部 `blockSignals(True)` + `_loading` 保护，重绘期间不再触发 `itemChanged` |
+| `_fill_table()` | 批量填充期间 `blockSignals(True)`（同时提升填充性能） |
+| `_on_item_changed()` / `rename_column()` | 不再全量调用 `_apply_dirty_marks()`，改为只刷新受影响单元格 / 表头样式（新增 `_style_cell` / `_style_header`），并屏蔽信号 |
+
+**验证记录（本机实测）**
+
+- 修复前：`switch_table("网格划分")` → 崩溃 `exit=-1073740791`；修复后同场景 `exit=0`。
+- 真实数据：取参数 0.23s（3 张表，过滤 `.结论`）；切换 `.网格划分`（120×6）0.22s、`.不规则网格`（239×8）0.23s，显示正常。
+- 压力测试：人工构造 5000 行 × 6 列表 → 填充 0.66s、编辑末行 0.21s、`↩还原` 0.64s，无崩溃。
+- 脏标记回归：`.网格划分` (0,0) 原值 `'10'` → 改为 `'99999'` 标记脏（浅黄 + 保存可用）→ 改回 `'10'` 后脏标记清除、保存禁用；跨表编辑各自保留；`↩还原` 后再切表内容正确（表头 `['中心点横坐标','中心点纵坐标','网格长度','网格宽度','网格回填需要的土方体积','']`、首行 `['10','2.1','20','4.2','184.8','']`）。
+- 保存回归（桩）：`bSaveModel=true`、反馈「已写入 1 张表 / 1 行」。
+- `python -m py_compile` + `MainWindow` 冒烟通过。
+
+**遗留建议**：当前使用 `QTableWidget` 逐单元格创建 item，5000 行约需 0.66s；若后续出现数万行的参数表，建议改为 `QTableView + QAbstractTableModel` 虚拟化（本次未做，避免大改动引入回归）。
+
+## 1.10 仿真结果
+
+### 需求
+
+本需求可对标vue版本：snowy-admin-web/src/views/fscloud/simdata/index.vue
+
+- [x] 配置文件：通过pyqt_app/ui/sim_tabs/result_tab_map.json配置文件，控制哪些类别/子类的表显示，哪些类别/子类的表不显示。对标：snowy-admin-web/src/views/fscloud/simdata/TableTitleKeyMap.js
+- [x] 同样需要分页显示表
+- [x] 同样需要显示图
+- [x] 仿真参数中的参数表，remark为‘Out'（大小写不敏感）的，作为“自定义结果”的子类显示，不需要编辑功能
+
+### 实施记录
+
+#### 2026-08-23 需求 1.10 仿真结果（配置驱动的分页表格 + 图表）
+
+**实现**
+
+| 文件 | 改动 |
+|---|---|
+| `pyqt_app/ui/sim_tabs/result_tab_map.json` | 新增：类别 / 子类显示与图表配置（对标 `TableTitleKeyMap.js`），4 组 29 子类，其中 15 个子类带 `chart` |
+| `pyqt_app/ui/sim_tabs/result_chart.py` | 新增：matplotlib 图表组件（柱状 / 折线、堆叠、分组多系列、时间轴格式化、深色主题 + 中文字体） |
+| `pyqt_app/ui/sim_tabs/result_tab.py` | 重写：工具栏 + 类别条 + 子类条 +「表格 / 图表」切换 + 分页条；`ResultTableModel` 只读表模型；结果总览摘要（含 `leanMetrics` / `energyAnalysis` 摊平） |
+| `pyqt_app/ui/mcp_module.py` | `ResultTab` 注入 `mcp`；`log_line` 接日志；加载 / 卸载联动 |
+
+**需求逐条对应**
+
+| 需求 | 实现 |
+|---|---|
+| 配置文件控制类别 / 子类显示 | `result_tab_map.json` 的 `show` 字段；`show=false` 的组 / 子类不出现（已实测：把 `basic.rbData` 置 false 后从子类条消失） |
+| 分页显示表 | `getRemoteSimulationResultDatasetPage(dataset, limit, offset)`；页码条（共 N 条 / 第 x/y 页 / 上一页·下一页 / 每页 25·50·100·200，`limit ≤ 1000`）；结果总览组用 `summaryResults` 的 `rows` 本地分页（对齐前端 `local-paging`） |
+| 显示图 | 由 `chart` 字段驱动：3 个 `timeSeries` 折线（`wip.timeline`、`lean.wipTimeline`、`energy.powerCurve`）+ 12 个统计类柱状（含 `utilRate`、`lean.oee` 的堆叠构成）；有图表的子类出现「表格 / 图表」切换 |
+
+**关键技术点**
+
+- 配置文件由 Node 直接从 `TableTitleKeyMap.js` 导出（`import` + `JSON.stringify`），避免手抄中文标题 / 单位 / `type` / `decimals`；随后注入 `chart` 配置并校验 x / y 列是否真实存在
+- 单元格格式化对齐前端 `ResultTable.vue` 的 `formatValue` / `fmtTimestamp`：`s/i/f/t`（`t`：天>0 → `X天 hh:mm:ss`、时>0 → `hh:mm:ss`、分>0 → `mm:ss`、秒>0 → `s`、否则 `0`）
+- 表格使用 **`QTableView` + 只读 `QAbstractTableModel`**（虚拟化，避免参数表那种逐格创建 item 的开销与递归风险），行号按分页偏移显示
+- 图表用 matplotlib `FigureCanvasQTAgg` 嵌入；折线支持 `groupBy` 多系列，柱状支持 `stacked`
+- `resultStatus != READY` 时给出明确提示；`RESULT_NOT_READY` 也转成中文提示
+
+**验证记录（本机实测）**
+
+- 配置：4 组 29 子类、15 个 `chart`；`show=false` 过滤生效；各子类的 x / y 列均存在
+- 就绪流程（桩 `getResultSnapshot`）：状态「结果就绪（runId=run-1）」；组条「结果总览 / 基础结果 / 精益结果 / 能耗结果」、子类条按 `tabBrief` 生成（节拍 / 产量/小时 / 设备利用率 / 精益指标 / 能耗分析）
+- 表格：`overview.taktTime` 表头 `['对象名','类型','单元','首件时间(h:m:s)','末件时间(h:m:s)','有效时间(h:m:s)','加工数(件)','节拍(h:m:s)','UPH(件/时)']`、首行 `['S1','Station','u','1','5','4','10','0','9.00']`（时间串与 2 位小数符合前端规则）
+- 分页：`basic/wip.timeline` → 调用 `('page','wip.timeline',50,0)`、共 123 条、1/3 页；「下一页」→ `offset=50`；每页改 100 → 调用 `('page','partCycleTime',100,0)`、1/2 页
+- 图表：`wip.timeline` → 折线 1 条 / 50 个数据点 / 标题「WIP 趋势」；`utilRate` → 堆叠柱 4 个系列 / 标题「设备利用率构成」；无 `chart` 的子类（如 `partCycleTime`）「表格 / 图表」按钮隐藏、默认表格
+- 未就绪：真实只读（模型 `c57dc6fc17ff`、`resultStatus=NOT_READY`）→「结果未就绪（resultStatus=NOT_READY）：请在仿真结束后再获取」
+- `python -m py_compile` + `MainWindow` 冒烟（4 个子页签切换）通过
+
+**待人工验证（需真实结果数据）**：完成一次仿真（加载 → 开始 → 自然结束）后点「获取仿真结果」，确认各子类表格、分页与图表（折线 / 堆叠柱）显示正常。
+
+**本次范围**：仅当前仿真结果；不含横向对比与历史结果快照（依赖后端落库接口 `fsSaveResultSnapshot` / `fsListSnapshots`，需求未提）。
+
+## 1.11 关闭模型后的清理工作
+
+### 需求
+
+- [x] 关闭FS模型后，仿真参数、仿真结果中的数据需要清空，显示也需刷新（刷新后无数据显示）
+- [x] sim_state.py中的数据（例如runId等）清空
+- [x] 获取仿真结果按钮变为disabled
+
+### 实施记录
+
+#### 2026-08-23 需求 1.11 关闭模型后的清理
+
+**实现**
+
+| 文件 | 改动 |
+|---|---|
+| `pyqt_app/mcp_client/sim_state.py` | `clear_model()` 除原有的 `model_id` / `record_id` / `run_id` / `mcp_status` / `sim_status` 与 `reset_runtime()`（`sim_time`、`last_message_at`）外，新增清空 `console_logs` 并发出 `console_cleared`，使控制台页签同步清空显示 |
+| `pyqt_app/ui/sim_tabs/result_tab.py` | `reset()` 补齐：复位 `active_group` / `active_dataset` / `view_mode`；清空表格模型（`set_data({}, [], 0)`）与图表；**禁用「获取仿真结果」**；清空操作反馈；`_refresh_view()` 中同步刷新概览标签；`_refresh_datasets()` 在无结果（且非「自定义结果」组）时不再显示子类条 |
+| `pyqt_app/ui/sim_tabs/parameter_tab.py` | `_clear_data()` 增加清空 `mcp_table_name`；`reset()` 增加清空操作反馈文案 |
+
+既有链路复核（1.9 / 1.10 已实现）：`mcp_module._handle_unload()` 在卸载成功后依次调用 `state.clear_model()`、`animation_tab.reset()`、`parameter_tab.reset()`、`result_tab.reset()`，随后 `_sync_mqtt_subscription()` 停止 MQTT、`_refresh_buttons()` 禁用「关闭 FS 模型」等按钮。
+
+**验证记录（本机实测：模拟 `_handle_unload` 后逐项断言，17 项全部通过）**
+
+- 参数页：`tables` / `table_names` 清空、表格 0 行 0 列、三个按钮禁用、概览「未加载模型」、反馈为空、`mcp_table_name` 清空
+- 结果页：`result` 清空、`active_group` / `active_dataset` 复位、子类条隐藏、表格 0 行 0 列、分页「共 0 条 | 0 / 0」、**「获取仿真结果」按钮 disabled**、概览「未加载模型」、图表无数据
+- `sim_state`：`model_id` / `record_id` / `run_id` / `mcp_status` / `sim_status` 全空、`sim_time = 0`、`console_logs` 为空
+- 控制台页签：显示文本清空、计数「0 条」
+- 动画页：层条清空并隐藏、画面回到占位、标签「未开始」
+- 其它：「关闭 FS 模型」与仿真控制按钮禁用、MQTT 订阅已停止（`running=False`、`mqtt_connected=False`）
+- `python -m py_compile` + `MainWindow` 冒烟通过
+
+**待人工验证**：真实「加载 → 仿真 → 关闭模型」后确认三个子页签均为空、按钮置灰。
+
+#### 2026-08-23 需求 1.11 修复：重新加载模型后「获取仿真结果」仍为 disabled
+
+**问题**：1.11 让 `reset()`（关闭模型）把「获取仿真结果」置灰后，**重新加载模型**时该按钮没有恢复 —— `on_model_loaded()` 只登记 user/model 并刷新视图，而按钮使能此前只在 MCP 调用结束（`_on_done` / `_on_failed`）时更新过，于是新一次仿真加载（并结束 / 停止）后按钮一直 disabled，无法取结果。
+
+**修复**
+
+| 文件 | 改动 |
+|---|---|
+| `pyqt_app/ui/sim_tabs/result_tab.py` | 「获取仿真结果」使能统一由 `_refresh_pager()` 维护：`setEnabled(bool(user_id and model_id) and not busy)`；`reset()` 中不再硬编码禁用，避免两处逻辑不一致。`_refresh_pager()` 由 `_refresh_view()` 调用，因此「加载模型 / 关闭模型 / 调用进行中 / 调用完成」所有路径都会刷新 |
+
+**验证记录（本机实测，按钮使能生命周期）**
+
+| 场景 | 期望 | 实测 |
+|---|---|---|
+| 未加载模型 | disabled | disabled ✓ |
+| 加载模型后 | enabled | enabled ✓（修复点） |
+| 仿真运行中 / 自然结束 / 人为停止 | enabled | enabled ✓ |
+| 点击后调用进行中（慢桩 0.8s） | disabled | `busy=True`、`enabled=False` ✓ |
+| 调用完成（`resultStatus=NOT_READY`） | enabled | enabled ✓ |
+| 关闭模型后 | disabled | disabled ✓ |
+| 再次加载新模型 | enabled | enabled ✓（你报告的场景） |
+
+- `python -m py_compile` + `MainWindow` 冒烟通过
+
+# 2. 移植接口封装类java->python
+
+## 2.1 需求
+
+- 原封装：java springboot的service: snowy-plugin/snowy-plugin-fscloud/src/main/java/vip/xiaonuo/fscloud/modular/simulation/service/McpClientService.java
+- 新封装：pyqt_app/mcp_client/mcpClient.py
+- 目的：将原来的java封装转换为python封装，以便在PyQt应用中使用。
+
+## 2.2 约束条件
+
+- 之前的封装是基于Java的Spring Boot框架，架构为“MCP Server - Spring Boot 后端 - Vue前端”，新的封装需要适应Python的PyQt框架，架构简化为“MCP Server - Python 应用程序”。
+- 新封装需要保持与原封装相同的功能和接口。
+
+## 2.3 实现细节
+
+### 2.3.1 模块划分
+
+| 文件 | 变更 | 说明 |
+|---|---|---|
+| `pyqt_app/mcp_client/mcpClient.py` | 新增 | `McpClient` + `McpServiceException`，Java `McpClientService` 的 Python 等价实现 |
+| `pyqt_app/mcp_client/__init__.py` | 新增 | 导出 `McpClient` / `McpServiceException` / 默认 endpoint、api key |
+| `pyqt_app/mcp_client/mcp_runner.py` | 新增 | `McpCallRunner(QThread)`：后台线程执行单次 MCP 调用 |
+| `pyqt_app/ui/mcp_module.py` | 改造 | 页签5：MCP 会话状态、操作按钮、`loadInUI` 勾选、调用日志与状态机 |
+| `pyqt_app/app_config.py` | 修改 | 新增 `MCP_DEFAULTS` 配置段与 `mcp_settings()` |
+| `pyqt_app/app_config.json` | 修改 | 新增 `mcp` 段：`endpoint_url` / `api_key` / `user_id` / `load_in_ui` |
+
+Java 侧代码不改动，`McpClientService.java` 保留为对照实现。
+
+### 2.3.2 配置注入
+
+Java 的 `@Resource McpProperties` + `@PostConstruct init()` 改为构造参数注入：
+
+- `McpProperties.endpointUrl` → `McpClient(endpoint_url=...)`
+- `McpProperties.apiKey` → `McpClient(api_key=...)`（请求头 `X-API-Key`）
+- `@Slf4j log.info` → 可选 `log_hook` 回调，PyQt 侧经 `pyqtSignal` 转到界面日志区（跨线程安全）
+
+默认值与 `McpProperties.java` 保持一致（`http://127.0.0.1:8081/mcp`、`7sK9p2G@2026`），
+可用 `app_config.json` 的 `mcp.endpoint_url` 切到部署地址（对应 `application-prod.properties` 的 `fscloud.mcp.endpoint-url`）。
+
+### 2.3.3 接口对应关系
+
+方法名、参数顺序、默认值语义与 Java 版完全一致（保持 camelCase），共 **28 个高层方法 + `call` / `callTool`**：
+
+- 会话：`initialize` / `notifyInitialized` / `initializeSession` / `listTools`
+- 模型：`loadModel` / `unloadModel` / `listModels` / `getStatus`
+- 仿真控制：`startSimulation` / `pauseSimulation` / `resumeSimulation` / `resetSimulation` / `stopSimulation`
+- 结果与参数：`getResultSnapshot` / `listParameterTables` / `getParameterSnapshot` /
+  `updateParameterTable` / `updateParameterCells` / `batchUpdateParameterTables` /
+  `getResultDatasetPage` / `getEnergyPowerCurvePage`
+- 动画与事件：`listAnimationLayers` / `selectAnimationLayer` / `setAnimationEnabled` /
+  `setEventPublishing` / `setAccelerateFactor` / `getSvgPicture` /
+  `getObjectPositionSnapshot` / `getObjectPositionSnapshotPage` / `getSimulationEvents`
+
+底层实现与 Java 一一对应：
+
+- `buildRequest` → JSON-RPC 2.0 请求体，`id` 自增（加锁，比 Java 的裸 `++` 更稳）
+- `post` → `urllib.request` POST，`Content-Type: application/json; charset=UTF-8` + `X-API-Key`；
+  非 2xx 仍读取响应体（错误流里可能是带 `error` 字段的 JSON-RPC 响应）；有 `error` 字段即抛 `McpServiceException`
+- `unwrapResult` → `result.content[0].text` 二次解析为业务 JSON，缺字段时抛 `McpServiceException`
+- 业务失败（`success=false` + `code`）不抛异常，与原封装一致，由调用方检查
+- 空值语义保留：`runId`/`layerId` 等 `null` → `""`，`scopeType` 空 → `ALL_DEVICES`，
+  `entityKind` 空 → `ALL`，`publishIntervalMs` 为 `None` 时不下发
+
+与 Java 版的差异（3 处）：
+
+1. `initialize()` 按 MCP 协议带上 `protocolVersion` / `capabilities` / `clientInfo`（Java 版未带，实测该 Server 两者都接受）；
+   另提供 `initializeSession()` 补发 `notifications/initialized`。
+2. Java 的 `connectTimeout=10s` / `readTimeout=60s` 分开设置，`urllib` 只有单一超时，统一取 60s。
+3. 响应体不是合法 JSON 时抛 `McpServiceException`（Java 版由 hutool 抛解析异常）。
+
+### 2.3.4 页签5 的最小验证流程
+
+1. `📂加载模型`：选择本地 `.fs` 文件（仅取文件名，沿用原有逻辑）；
+2. `🔌测试连接`：`initialize` + `notifications/initialized` + `tools/list`，日志打印 Server 名称与工具数；
+3. `▶加载到 FS`：生成 `recordId`（本地无模型库，取 `pyqt-<uuid4 前 8 位>`）后调用
+   `loadRemoteSimulationModel(userId, recordId, modelFileName, loadInUI)`，
+   `modelFileName` 传所选文件**绝对路径**（MCP Server 与 PyQt 应用同机），保存返回的 `modelId`；
+4. `■关闭 FS 模型`：用 `modelId` 调 `unloadRemoteSimulationModel(userId, modelId)`，成功后复位本地状态；
+5. `↻刷新已加载`：`listRemoteSimulationModels` 校正本地状态（含“FS 侧已被卸载”的复位场景）。
+
+状态机与约束：未选文件时禁用「加载到 FS」；已加载时禁用「加载到 FS」（MCP 侧限制单用户 1 个模型）；
+调用进行中禁用全部按钮；本地文件关闭时若 FS 仍在加载则提示先关闭 FS 模型。
+所有 MCP 调用均通过 `McpCallRunner` 在后台线程执行，避免 60s 读超时卡住界面。
+
+### 2.3.5 验证记录（2026-08-23）
+
+- `python -m py_compile` 全部新增/修改文件通过；`from mcp_client import McpClient` 等导入检查通过。
+- 连通性（真实调用本机 `http://127.0.0.1:8081/mcp`，无副作用）：
+  - `initializeSession()` → `serverInfo = {langchain4j-factory-simulation, 1.0.0}`；
+  - `listTools()` → 26 个工具，含 `loadRemoteSimulationModel` / `unloadRemoteSimulationModel` /
+    `getRemoteSimulationEnergyPowerCurvePage`；
+  - `listModels("pyqt-local")` → `success=true, models=[]`；
+  - 业务错误路径：`unloadModel("pyqt-local", "no-such-model")` → `success=false, code=MODEL_NOT_FOUND`（不抛异常）；
+  - 连接失败路径：不可达端点 → `McpServiceException(code=-1, "MCP connection failed: ...")`。
+- 界面状态机：offscreen 模式下实例化 `MCPModule`，逐个注入伪响应（加载成功/失败、卸载成功/失败、
+  刷新同步、测试连接、调用异常），按钮使能、状态文案与日志输出均符合预期；`MainWindow` 整窗构造冒烟通过。
+- 待人工验证：在带界面的实际环境中用 `道路回填【5V5】.fs` 走「加载 → 刷新/状态 → 卸载」，
+  确认 FS 侧实际加载效果与 `loadInUI` 行为。
+
+### 2.3.6 已知风险
+
+- `道路回填【5V5】.fs` 文件名为中文：JSON 层按 UTF-8 传输无问题，若 FS 引擎拒绝中文路径，可用同内容英文名副本验证。
+- `loadInUI=true` 时 FS 需要具备桌面 UI，否则返回 `UI_LOAD_FAILED`；`app_config.json` 的 `mcp.load_in_ui` 可改默认值。
+- MCP 侧限制：单用户同时 1 个模型、全局最多 10 个；重复加载需先卸载。
+- `app_config.json` 中 `api_key` 为明文（与 `McpProperties.java` 中的默认值同源，非新增泄露面）。

@@ -200,7 +200,7 @@ public class McpClientService {
 
     /** 获取结果数据集分页 */
     public JSONObject getResultDatasetPage(String userId, String modelId, String runId,
-                                            String dataset, int limit, int offset) {
+                                           String dataset, int limit, int offset) {
         JSONObject args = new JSONObject();
         args.put("userId", userId);
         args.put("modelId", modelId);
@@ -301,7 +301,7 @@ public class McpClientService {
 
     /** 分页查询完整对象位置快照（全量快照需多次分页拉取，snapshotId 需原样回传防止漂移） */
     public JSONObject getObjectPositionSnapshotPage(String userId, String modelId, String runId, String layerId,
-            long simTime, String snapshotId, String entityKind, int offset, int limit) {
+                                                    long simTime, String snapshotId, String entityKind, int offset, int limit) {
         JSONObject args = new JSONObject();
         args.put("userId", userId);
         args.put("modelId", modelId);
@@ -402,9 +402,9 @@ public class McpClientService {
             if (result.containsKey("error")) {
                 JSONObject error = result.getJSONObject("error");
                 throw new McpServiceException(
-                        error.getInt("code"),
-                        error.getStr("message"),
-                        requestBody
+                    error.getInt("code"),
+                    error.getStr("message"),
+                    requestBody
                 );
             }
 
