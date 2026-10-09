@@ -1268,3 +1268,124 @@ factory/sim/{username}/{modelId}/animation/{layerId}/objects
 - [x] 在snowy-admin-web/src/views/fscloud/eventplayback/index.vue之前订阅后者（objects），现在需要改成订阅前者（events）。
 - [ ] 在snowy-admin-web/src/views/fscloud/simcontrol/index.vue中开启仿真成功后，需要将snowy-admin-web/src/views/fscloud/eventplayback/index.vue订阅events主题，所需的信息保存在myModel中，所需的信息包括runId。
 
+## step 23 - feat: 仿真结果快照的图形显示（对照 pyqt_app 实现）
+
+需求：pyqt_app（`ui/sim_tabs/result_tab.py` + `result_chart.py` + `result_tab_map.json`）已实现部分结果快照数据的图形显示，
+`simdata/index.vue` 只有表格。要求对照实现，且不修改 pyqt_app，Java+Vue 既有功能（表格/分页/横向对比/快照保存）全部保留。
+
+- [x] `TableTitleKeyMap.js` 为 15 个 dataset 增加 `chart` 配置（语义与 pyqt 的 `result_tab_map.json` 逐字对齐）：
+  - overview 3（taktTime/uph/utilRate，utilRate 为 stacked 堆叠柱）
+  - basic 3（rbData、wip.timeline、wip.distribution）
+  - lean 6（lean.fpy、lean.wipTimeline、lean.cycleTime、lean.processEfficiency、lean.oee、lean.pplh）
+  - energy 3（energy.rows、energy.mediumSummary、energy.powerCurve）
+- [x] 新增 `simdata/ResultChart.vue`（ECharts 按需引入）：bar/line、stacked、groupBy 多序列、t 轴按 `fmtTimestamp` 格式化、
+      类别过多自动 dataZoom、降采样提示、ResizeObserver 自适应
+- [x] 新增 `simdata/DataViewPanel.vue`：仅「有 chart 配置」的 dataset 才出现「表格 / 图表」切换（与 pyqt 一致）；
+      overview 的 leanMetrics/energyAnalysis 摘要子页不受影响
+- [x] 新增 `simdata/utils/format.js`（公共 `fmtTimestamp`/`toNumber`），`ResultTable.vue` 改用，消除两份时间格式化实现
+- [x] 后端新增 `POST /fscloud/sim/getResultChartData`（`GetResultChartDataParam` / `ChartDataDto` /
+      `FsSimResultSnapshotServiceImpl.getChartData`）：实时数据源走 MCP 循环分页取全量，历史快照从
+      DATASETS JSON / partCycleTime CSV 读全量，统一按 `maxPoints`（默认 2000，硬上限 20000）等距抽样后返回
+      `{ dataset, rows, total, returned, sampled }`
+- [x] `index.vue` 接入：`viewMode` + `chartCache`（按 dataset 懒加载并缓存）；实时快照传 `modelId/runId`、
+      历史快照传 `id`；取结果/切快照/切模式时清缓存回到表格；**横向对比模式本期不支持图表**（未选中的方案）
+
+  > ### 实施备注（2026-08-08）
+  >
+  > **设计要点**
+  > - 图表元数据（type/x/y/stacked/groupBy/title）全部走 `TableTitleKeyMap.js`，与 pyqt 的 JSON 配置表一一对应，
+  >   两边以后可对照维护；新增图表只需加配置，不改组件。
+  > - 数据不再是「当前分页页」，而是服务端返回的全量（降采样）——`wip.timeline`、`energy.powerCurve` 这类时序表
+  >   在 25 行/页下画不出趋势，这是与 pyqt 的差异点（pyqt 用当前页 rows）。
+  > - `t` 类型值 `-1`（n/a）在图表中按空值跳过，与 `ResultTable.vue` 的表格口径一致。
+  > - 权限码 `/fscloud/sim/getResultChartData` 与既有 fscloud 接口一样未在菜单表注册（超管环境放行）。
+  > - 图表仅在单快照模式可用；对比模式仍为表格 + 差值标注。
+  >
+  > **验证**：`npm run build` 通过（产物含 `ResultChart-*.js`）；`mvn -pl snowy-plugin/snowy-plugin-fscloud -am -DskipTests compile` 通过。
+  >
+  > **遗留**：对比模式的双序列图表（devlog step 17 的建议项）、`getRemoteSimulationEnergyPowerCurvePage` 专用过滤接口
+  > （`McpClientService.getEnergyPowerCurvePage` 已封装但 controller 未暴露）未实现。
+
+## step 24 - fix: 图表降采样把「同一 x 上的多点」拆散，功率曲线垂直跳变丢失
+
+现象：`energy.powerCurve` 会在同一个时间点（同一个 `timeMs`）给出多个点，用于形成垂直跳变（阶梯）显示。
+step 23 的「统一等距抽样降采样」按**行**抽样，把这些同 x 的点拆散，阶梯退化成斜线（pyqt 不分页抽样，整页原样绘制，所以没这个问题）。
+
+- [x] 后端 `getResultChartData` 新增 `xColumn` 入参；给了 xColumn 时，降采样以「同一个 x 值的**全部行**」为最小不可拆单位：
+      先按 x 值分组（`LinkedHashMap` 保持 x 首次出现顺序；数值统一归一为 `Double`，避免 `0` 与 `0.0` 被当成两个时间点），
+      再对「x 值」等距抽样、命中组的全部行整体保留；某组行数异常多时按行抽样兜底（`maxPoints * 2` 上限）
+- [x] 未传 xColumn 时保持原「按行等距抽样」行为不变
+- [x] 前端 `ensureChartData` 请求体带 `xColumn = chart.x`（取自 `TableTitleKeyMap.js`）
+- [x] 前端 `ResultChart.vue`：line 数据点带原始序号并按 `(x, 序号)` 排序，保证同一 x 上的多点连线顺序与数据原始顺序一致
+      （否则「先降后升」会被连成斜线、跳变方向翻转）；传给 ECharts 前再裁回 `[x, y]`
+- [x] 新增单元测试 `snowy-plugin-fscloud/src/test/.../ChartDownsampleTest.java`（该模块首个测试类，6 例）
+
+  > ### 实施备注（2026-08-08）
+  >
+  > **行为语义**：`maxPoints` 是点数预算。同 x 多点的图表按「x 值」整组抽样，返回行数约为预算量级（如功率曲线每组 2 点，
+  > 预算 2000 即约 1000 个时间点），宁可少画时间点，也不拆散跳变。
+  >
+  > **测试基建踩坑**：根 pom 的 `dependencyManagement` 把 `junit-jupiter-api` 锁在 5.10.1，与 `spring-boot-starter-test`
+  > 带来的 `junit-platform/engine`(1.12.2 / 5.12.2) 版本错配，surefire forked JVM 以
+  > `TestEngine with ID 'junit-jupiter' failed to discover tests` / `NoClassDefFoundError` 失败。
+  > 修法：在 `snowy-plugin-fscloud` 模块内显式声明 `junit-jupiter-api` 为 `${junit-jupiter.version}`（继承自
+  > `spring-boot-starter-parent`，随升级自动跟随），**未改动根 pom 与其他模块**。若其它模块要加测试，需同样对齐。
+  >
+  > **验证**：`mvn -pl snowy-plugin/snowy-plugin-fscloud -am test -Dtest=ChartDownsampleTest` → Tests run: 6, Failures: 0, Errors: 0；
+  > `npm run build` 通过。
+  >
+  > **仍需人工验收**：真实功率曲线数据下，缩放/抽样后是否仍完整呈现阶梯（需运行中的 FS + MCP 环境）。
+
+## step 25 - fix: 稀疏区被抽样整段跳过，功率曲线中间出现跨时间窗的斜线
+
+现象（用户截图）：功率曲线 4128 点抽到 2000 点后，曲线中段只有一条从 12kW 斜降到 0 的直线，横跨约 21 小时；
+正确形态应当只有垂直跳变 + 水平段（阶梯）。
+
+- [x] 后端抽样策略由「按 x 值**索引**等距抽样」改为「按 x **范围分桶**抽样，每桶保留首末组、空桶直接跳过」
+- [x] 仅对数值型 x 启用分桶（时间序列）；非数值 x（字符串类目）退回原按 x 等距抽样
+- [x] 新增单元测试 `keepsSparsePlateauPoints`：构造「密集段 + 中间只有平台入口/出口两个采样点 + 密集段」的数据，
+      断言平台入口（降至 0）与出口（升回）的时间点必须保留
+
+  > ### 实施备注（2026-08-09）
+  >
+  > **根因**：功率曲线是**事件驱动**数据——功率恒定时几乎没有采样点，只有跳变（事件）前后各一组。
+  > step 24 的「按组索引等距抽样」是按**序号**均匀取组，与数据在时间轴上的疏密无关：
+  > 前段/后段的密集波动占满了组索引，中段孤立的平台跳变点（索引恰好落在取样间隔之外）被整体跳过，
+  > 于是图上只剩 (05:33, 12) → (1天03:46, 0) 两点连成的斜线。pyqt 因为只画当前页（连续一小段）看不到该现象。
+  >
+  > **修法**：把 x 轴范围等分 `buckets`（≈ 可保留组数 / 2）个桶，每个桶取**首组与末组**（含各自同 x 的全部行）、
+  > 空桶不补点。这样：
+  > - 稀疏区：平台入口/出口各自落在所属桶内被保留 → 图上为垂直跳变 + 水平段（不再有斜线）；
+  > - 密集区：每桶仍取首末两组 → 保持阶梯感且行数受预算约束；
+  > - 首末点必然保留（首桶首组、末桶末组）。
+  > 实现用两个 int 数组做单遍分桶定位（O(n)），不做桶×组 的嵌套扫描。
+  >
+  > **验证**：`mvn -pl snowy-plugin/snowy-plugin-fscloud -am test -Dtest=ChartDownsampleTest` → Tests run: 7, Failures: 0；
+  > `npm run build` 通过。
+  >
+  > **仍需人工验收**：真实功率曲线上「长时间恒定功率」段是否呈现为水平线（若该时段数据中确实一个点都没有，
+  > 则任何抽样都无法还原，只能显示为连线——这需要真实数据确认）。
+
+## step 26 - feat: 二次采样间隔改为可调（当前关闭，数据原样返回）
+
+需求：功率曲线仍有斜线问题，先把「二次采样」关掉验证——间隔做成可调（放在采样函数体最前面，方便以后改），
+当前设为 1 即数据原样返回；抽样机制保留。
+
+- [x] `FsSimResultSnapshotServiceImpl.downsampleRows(rows, maxPoints, xColumn)` 函数体第一行即
+      `final int sampleRatio = 1;`（改这一处即可调整间隔），随后转发给 4 参重载
+- [x] 4 参 `downsampleRows(rows, maxPoints, xColumn, sampleRatio)`：`sampleRatio <= 1` 时**原样返回**；
+      `n > 1` 时按 x 范围分桶抽样，保留组数 = `组数 / n`（桶内取首末组，稀疏区跳变点仍尽量保留）
+- [x] `maxPoints` 语义下调为「数据量本来就小则不抽样」的门槛（不再作为抽样目标），去掉 `maxPoints * 2` 行数兜底
+- [x] 单测同步：抽样用例显式传 sampleRatio（2/3/10），新增 `returnsRowsAsIsWhenSampleRatioIsOne`
+
+  > ### 实施备注（2026-08-09）
+  >
+  > **当前行为**：`sampleRatio = 1` → 后端把该 dataset 的**全量数据**原样返回（`sampled=false`，前端不显示抽样提示），
+  > 不再对功率曲线做任何加工。若图形仍出现斜线，即可排除抽样因素，问题在数据本身
+  > （该时段确实没有采样点，或 x 值跳变）。
+  >
+  > **代价**：返回体与渲染量随数据量线性增长（当前样例 4128 点无压力）。数据量再上一个量级时，
+  > 把 `sampleRatio` 调成 2~5 即可恢复压缩（仍按 x 分桶、保留同 x 全部点）。
+  >
+  > **验证**：`mvn -pl snowy-plugin/snowy-plugin-fscloud -am test -Dtest=ChartDownsampleTest` → Tests run: 8, Failures: 0。
+

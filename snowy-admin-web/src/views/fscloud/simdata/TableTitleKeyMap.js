@@ -16,6 +16,12 @@ export const tableTitleKeyMap = {
     overview: {
       taktTime: {
         show: true,
+        chart: {
+          type: "bar",
+          x: "objectName",
+          y: ["taktTime"],
+          title: "各对象节拍"
+        },
         compareKey: "objectName",
         tabTitle: "节拍时间",
         tabBrief: "节拍",
@@ -81,6 +87,12 @@ export const tableTitleKeyMap = {
         compareKey: "objectName",
         tabTitle: "小时产出量(UPH)",
         tabBrief: "产量/小时",
+        chart: {
+          type: "bar",
+          x: "objectName",
+          y: ["uph"],
+          title: "各对象 UPH"
+        },
         columns: {
           objectName: {
             title: "对象名",
@@ -131,6 +143,13 @@ export const tableTitleKeyMap = {
         compareKey: "objectName",
         tabTitle: "设备利用率",
         tabBrief: "设备利用率",
+        chart: {
+          type: "bar",
+          x: "objectName",
+          y: ["workingRate", "waitingRate", "blockedRate", "failedRate"],
+          stacked: true,
+          title: "设备利用率构成"
+        },
         columns: {
           objectName: {
             title: "对象名",
@@ -337,6 +356,12 @@ export const tableTitleKeyMap = {
         compareKey: "objectName",
         tabTitle: "资源缓冲区数据",
         tabBrief: "缓冲区",
+        chart: {
+          type: "bar",
+          x: "objectName",
+          y: ["mtbf", "mttr"],
+          title: "MTBF / MTTR"
+        },
         columns: {
           objectName: {
             title: "对象名",
@@ -591,6 +616,12 @@ export const tableTitleKeyMap = {
         compareKey: "",
         tabTitle: "在制品时间趋势",
         tabBrief: "WIP趋势",
+        chart: {
+          type: "line",
+          x: "time",
+          y: ["wip"],
+          title: "WIP 趋势"
+        },
         columns: {
           time: {
             title: "时间",
@@ -611,6 +642,12 @@ export const tableTitleKeyMap = {
         compareKey: "",
         tabTitle: "在制品分布",
         tabBrief: "WIP分布",
+        chart: {
+          type: "bar",
+          x: "minTime",
+          y: ["count"],
+          title: "WIP 时长分布"
+        },
         columns: {
           minTime: {
             title: "最小时间",
@@ -787,6 +824,12 @@ export const tableTitleKeyMap = {
         compareKey: "componentId",
         tabTitle: "一次合格率(FPY)",
         tabBrief: "FPY",
+        chart: {
+          type: "bar",
+          x: "componentNo",
+          y: ["fpy"],
+          title: "直通率 (FPY)"
+        },
         columns: {
           componentId: {
             title: "组件ID",
@@ -941,6 +984,13 @@ export const tableTitleKeyMap = {
         compareKey: "",
         tabTitle: "在制品时序曲线",
         tabBrief: "WIP时序",
+        chart: {
+          type: "line",
+          x: "time",
+          y: ["wip"],
+          groupBy: "componentNo",
+          title: "WIP 时序曲线"
+        },
         columns: {
           componentId: {
             title: "组件ID",
@@ -1101,6 +1151,12 @@ export const tableTitleKeyMap = {
         compareKey: "componentId",
         tabTitle: "工序循环时间",
         tabBrief: "工序CT",
+        chart: {
+          type: "bar",
+          x: "componentNo",
+          y: ["avgCTMs"],
+          title: "平均 CT"
+        },
         columns: {
           componentId: {
             title: "组件ID",
@@ -1163,6 +1219,12 @@ export const tableTitleKeyMap = {
         compareKey: "componentId",
         tabTitle: "工艺效率",
         tabBrief: "工艺效率",
+        chart: {
+          type: "bar",
+          x: "componentNo",
+          y: ["balanceRate"],
+          title: "平衡率"
+        },
         columns: {
           componentId: {
             title: "组件ID",
@@ -1391,6 +1453,12 @@ export const tableTitleKeyMap = {
         compareKey: "componentId",
         tabTitle: "设备综合效率(OEE)",
         tabBrief: "OEE",
+        chart: {
+          type: "bar",
+          x: "componentNo",
+          y: ["availabilityRate", "performanceRate", "qualityRate", "oee"],
+          title: "OEE 构成"
+        },
         columns: {
           componentId: {
             title: "组件ID",
@@ -1477,6 +1545,12 @@ export const tableTitleKeyMap = {
         compareKey: "componentId",
         tabTitle: "人时产出量(PPLH)",
         tabBrief: "PPLH",
+        chart: {
+          type: "bar",
+          x: "componentNo",
+          y: ["pplh"],
+          title: "人时产出量 (PPLH)"
+        },
         columns: {
           componentId: {
             title: "组件ID",
@@ -1641,6 +1715,12 @@ export const tableTitleKeyMap = {
         compareKey: "",
         tabTitle: "能耗明细数据行",
         tabBrief: "明细",
+        chart: {
+          type: "bar",
+          x: "deviceName",
+          y: ["totalEnergy"],
+          title: "按设备总能耗"
+        },
         columns: {
           componentId: {
             title: "组件ID",
@@ -1733,6 +1813,12 @@ export const tableTitleKeyMap = {
         compareKey: "mediumId",
         tabTitle: "能源介质汇总",
         tabBrief: "介质汇总",
+        chart: {
+          type: "bar",
+          x: "deviceName",
+          y: ["deviceEnergy"],
+          title: "设备能耗"
+        },
         columns: {
           componentId: {
             title: "组件ID",
@@ -1801,6 +1887,13 @@ export const tableTitleKeyMap = {
         compareKey: "",
         tabTitle: "功率曲线",
         tabBrief: "功率曲线",
+        chart: {
+          type: "line",
+          x: "timeMs",
+          y: ["power"],
+          groupBy: "scopeName",
+          title: "功率曲线"
+        },
         columns: {
           componentId: {
             title: "组件ID",

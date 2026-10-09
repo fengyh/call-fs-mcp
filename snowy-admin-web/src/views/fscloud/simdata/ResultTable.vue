@@ -20,6 +20,7 @@
 <script setup>
 	import { ref, computed, watch, h } from 'vue'
 	import { tableTitleKeyMap } from './TableTitleKeyMap.js'
+	import { fmtTimestamp } from './utils/format.js'
 
 	const props = defineProps({
 		rows: { type: Array, default: () => [] },
@@ -78,21 +79,6 @@
 			case 's': return String(rawValue)
 			default:  return rawValue
 		}
-	}
-
-	function fmtTimestamp(ms) {
-		if (ms === null || ms === undefined) return '-'
-		if (typeof ms === 'string' && ms.trim() === '') return '-'
-		const totalSec = Math.floor(ms / 1000)
-		const d = Math.floor(totalSec / 86400)
-		const h = Math.floor((totalSec % 86400) / 3600)
-		const m = Math.floor((totalSec % 3600) / 60)
-		const s = totalSec % 60
-		if (d > 0) return `${d}天 ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
-		if (h > 0) return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
-		if (m > 0) return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
-		if (s > 0) return `${s}`
-		return '0'
 	}
 
 	function columnTitle(key) {

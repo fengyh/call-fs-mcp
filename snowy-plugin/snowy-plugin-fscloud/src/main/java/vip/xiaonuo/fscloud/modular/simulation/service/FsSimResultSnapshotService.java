@@ -12,6 +12,7 @@
  */
 package vip.xiaonuo.fscloud.modular.simulation.service;
 
+import vip.xiaonuo.fscloud.modular.simulation.dto.ChartDataDto;
 import vip.xiaonuo.fscloud.modular.simulation.dto.ResultDatasetPageDto;
 import vip.xiaonuo.fscloud.modular.simulation.dto.ResultSnapshotDto;
 
@@ -44,6 +45,19 @@ public interface FsSimResultSnapshotService {
 
     /** 按页读取结果快照某 dataset 的数据（小表从 DATASETS JSON，partCycleTime 从 CSV 文件） */
     ResultDatasetPageDto getDatasetPage(Long id, String dataset, int limit, int offset);
+
+    /**
+     * 读取某 dataset 的全量数据供图表绘制使用，超过 maxPoints 时按等距抽样降采样。
+     *
+     * <p>数据源二选一：{@code id} 非空 → 读已落库的历史快照；否则按 {@code modelId/runId} 走 MCP 实时拉取。
+     *
+     * @param id        结果快照主键（历史数据源，可为 null）
+     * @param maxPoints 图表最大点数
+     * @param xColumn   图表 x 轴列名（可空）；非空时降采样以「同一个 x 值的全部行」为最小单位，
+     *                  保证同一时间点上的多个点（时间序列的垂直跳变）不被拆散
+     */
+    ChartDataDto getChartData(String userId, Long id, String modelId, String runId,
+                              String dataset, int maxPoints, String xColumn);
 
     /** 删除结果快照（连带删除成对参数快照与 partCycleTime 文件） */
     void deleteById(Long id);

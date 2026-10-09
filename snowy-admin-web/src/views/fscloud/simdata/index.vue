@@ -127,16 +127,23 @@
 						<a-tabs v-model:activeKey="tab1Key" @change="onTab1Change">
 							<!-- 结果总览 -->
 							<a-tab-pane key="overview" tab="结果总览" v-if="isGroupVisible('overview')">
-								<a-tabs v-model:activeKey="tab2Key" size="small">
+								<a-tabs v-model:activeKey="tab2Key" size="small" @change="onOverviewTabChange">
 									<a-tab-pane v-for="ds in overviewDatasets" :key="ds.tabKey" :tab="ds.tabBrief">
-										<ResultTable
+										<DataViewPanel
 											v-if="ds.tabKey !== 'leanMetrics' && ds.tabKey !== 'energyAnalysis'"
-											:rows="summaryRows(ds.tabKey)"
 											groupKey="overview"
 											:datasetKey="ds.tabKey"
+											:chartMode="viewMode"
+											:chartable="isChartable('overview', ds.tabKey)"
+											:rows="summaryRows(ds.tabKey)"
+											:localPaging="true"
 											:compareRows="compareRowsOf('overview', ds.tabKey)"
 											:compareKey="compareKeyOf('overview', ds.tabKey)"
-											:local-paging="true"
+											:chartRows="chartRowsOf(ds.tabKey)"
+											:chartTotal="chartMetaOf(ds.tabKey).total"
+											:chartSampled="chartMetaOf(ds.tabKey).sampled"
+											:chartLoading="chartLoading"
+											@viewChange="onViewChange"
 										/>
 										<LeanMetricsTable v-else-if="ds.tabKey === 'leanMetrics'" :summaryResult="summaryResult('leanMetrics')" />
 										<EnergyAnalysis v-else :summaryResult="summaryResult('energyAnalysis')" />
@@ -156,17 +163,24 @@
 											<span>{{ ds.tabBrief }}</span>
 										</a-tooltip>
 									</template>
-									<ResultTable
+									<DataViewPanel
+										groupKey="basic"
+										:datasetKey="ds.tabKey"
+										:chartMode="viewMode"
+										:chartable="isChartable('basic', ds.tabKey)"
 										:rows="datasetRows"
 										:loading="datasetLoading"
 										:total="datasetTotal"
 										:pageSize="datasetPageSize"
 										:current="datasetPage"
-										groupKey="basic"
-										:datasetKey="ds.tabKey"
 										:compareRows="compareRowsOf('basic', ds.tabKey)"
 										:compareKey="compareKeyOf('basic', ds.tabKey)"
+										:chartRows="chartRowsOf(ds.tabKey)"
+										:chartTotal="chartMetaOf(ds.tabKey).total"
+										:chartSampled="chartMetaOf(ds.tabKey).sampled"
+										:chartLoading="chartLoading"
 										@pageChange="onDatasetPageChange"
+										@viewChange="onViewChange"
 									/>
 									</a-tab-pane>
 								</a-tabs>
@@ -184,17 +198,24 @@
 											<span>{{ ds.tabBrief }}</span>
 										</a-tooltip>
 									</template>
-									<ResultTable
+									<DataViewPanel
+										groupKey="lean"
+										:datasetKey="ds.tabKey"
+										:chartMode="viewMode"
+										:chartable="isChartable('lean', ds.tabKey)"
 										:rows="datasetRows"
 										:loading="datasetLoading"
 										:total="datasetTotal"
 										:pageSize="datasetPageSize"
 										:current="datasetPage"
-										groupKey="lean"
-										:datasetKey="ds.tabKey"
 										:compareRows="compareRowsOf('lean', ds.tabKey)"
 										:compareKey="compareKeyOf('lean', ds.tabKey)"
+										:chartRows="chartRowsOf(ds.tabKey)"
+										:chartTotal="chartMetaOf(ds.tabKey).total"
+										:chartSampled="chartMetaOf(ds.tabKey).sampled"
+										:chartLoading="chartLoading"
 										@pageChange="onDatasetPageChange"
+										@viewChange="onViewChange"
 									/>
 									</a-tab-pane>
 								</a-tabs>
@@ -212,17 +233,24 @@
 											<span>{{ ds.tabBrief }}</span>
 										</a-tooltip>
 									</template>
-									<ResultTable
+									<DataViewPanel
+										groupKey="energy"
+										:datasetKey="ds.tabKey"
+										:chartMode="viewMode"
+										:chartable="isChartable('energy', ds.tabKey)"
 										:rows="datasetRows"
 										:loading="datasetLoading"
 										:total="datasetTotal"
 										:pageSize="datasetPageSize"
 										:current="datasetPage"
-										groupKey="energy"
-										:datasetKey="ds.tabKey"
 										:compareRows="compareRowsOf('energy', ds.tabKey)"
 										:compareKey="compareKeyOf('energy', ds.tabKey)"
+										:chartRows="chartRowsOf(ds.tabKey)"
+										:chartTotal="chartMetaOf(ds.tabKey).total"
+										:chartSampled="chartMetaOf(ds.tabKey).sampled"
+										:chartLoading="chartLoading"
 										@pageChange="onDatasetPageChange"
+										@viewChange="onViewChange"
 									/>
 									</a-tab-pane>
 								</a-tabs>
@@ -246,7 +274,7 @@
 	import { useMyModelStore } from '@/store/myModel'
 	import fsSimApi from '@/api/fscloud/fsSimApi'
 	import { message, Modal } from 'ant-design-vue'
-	import ResultTable from './ResultTable.vue'
+	import DataViewPanel from './DataViewPanel.vue'
 	import LeanMetricsTable from './LeanMetricsTable.vue'
 	import EnergyAnalysis from './EnergyAnalysis.vue'
 	import { tableTitleKeyMap } from './TableTitleKeyMap.js'
@@ -268,6 +296,86 @@
 	const datasetPageSize = ref(25)
 	const datasetPage = ref(1)
 	const activeDataset = ref('')
+
+	// ====== 表格 / 图表视图 ======
+	/** 图表最大点数（与后端 getResultChartData 的 maxPoints 对应，超出由服务端等距抽样） */
+	const CHART_MAX_POINTS = 2000
+	/** 当前视图：table | chart（全局一个，与 pyqt 的「表格/图表」切换按钮一致） */
+	const viewMode = ref('table')
+	/** 图表数据缓存 { dataset: { rows, total, sampled } }（成功与失败都缓存，避免重复请求） */
+	const chartCache = ref({})
+	/** 正在请求的 dataset 集合 { dataset: true }：多个 dataset 之间不互相阻塞 */
+	const chartPending = ref({})
+	const chartLoading = computed(() => Object.keys(chartPending.value).length > 0)
+
+	/** 该 dataset 的图表配置（TableTitleKeyMap.js），无配置返回 null */
+	function datasetChart(groupKey, datasetKey) {
+		return tableTitleKeyMap[groupKey]?.[datasetKey]?.chart || null
+	}
+
+	/** 图表是否可用：有 chart 配置且处于单快照模式（横向对比模式本期不支持图表） */
+	function isChartable(groupKey, datasetKey) {
+		return mode.value === 'single' && !!datasetChart(groupKey, datasetKey)
+	}
+
+	function chartRowsOf(datasetKey) {
+		return chartCache.value[datasetKey]?.rows || []
+	}
+	function chartMetaOf(datasetKey) {
+		return chartCache.value[datasetKey] || { total: 0, sampled: false }
+	}
+
+	/** 切换视图：切到图表时按需取该 dataset 的全量图表数据 */
+	function onViewChange(m) {
+		viewMode.value = m
+		if (m === 'chart') ensureChartData(activeDataset.value)
+	}
+
+	/** 已切到图表视图时，切换 dataset 需要取对应图表数据 */
+	function ensureChartIfNeeded(dataset) {
+		if (viewMode.value === 'chart') ensureChartData(dataset)
+	}
+
+	/** 按需取图表数据：实时快照走 MCP（后端循环分页取全量），历史快照传 id 走数据库 */
+	async function ensureChartData(dataset) {
+		if (!dataset || !isChartable(currentGroupFor(dataset), dataset)) return
+		if (chartCache.value[dataset] || chartPending.value[dataset]) return
+		chartPending.value = { ...chartPending.value, [dataset]: true }
+		try {
+			// xColumn：后端据此把「同一个 x 值的全部行」视为不可拆单位，
+			// 时间序列同一时刻的多个点（功率曲线的垂直跳变/阶梯）不会因降采样被拆散
+			const xColumn = datasetChart(currentGroupFor(dataset), dataset)?.x || ''
+			const payload = selectedKey.value === '__current__'
+				? { modelId: myModel.modelId, runId: myModel.runId || '', dataset, maxPoints: CHART_MAX_POINTS, xColumn }
+				: { id: selectedKey.value, dataset, maxPoints: CHART_MAX_POINTS, xColumn }
+			const res = await fsSimApi.fsSimGetResultChartData(payload)
+			setChartCache(dataset, res)
+		} catch (err) {
+			setChartCache(dataset, null)
+			message.error('获取图表数据失败：' + (err?.msg || err?.message || '请求异常'))
+		} finally {
+			const pending = { ...chartPending.value }
+			delete pending[dataset]
+			chartPending.value = pending
+		}
+	}
+
+	function setChartCache(dataset, res) {
+		chartCache.value = {
+			...chartCache.value,
+			[dataset]: {
+				rows: res?.rows || [],
+				total: res?.total ?? 0,
+				sampled: !!res?.sampled
+			}
+		}
+	}
+
+	/** 数据源变化（取结果 / 切快照 / 切模式）时清空图表缓存并回到表格视图 */
+	function clearChartCache() {
+		chartCache.value = {}
+		viewMode.value = 'table'
+	}
 
 	// ====== 快照列表 / 模式 / 对比 ======
 	const mode = ref('single')                    // single | compare
@@ -420,6 +528,7 @@
 				myModel.resultSnapshot = res
 				myModel.runId = res.runId
 				selectedKey.value = '__current__'
+				clearChartCache()
 				message.success('获取仿真结果成功')
 			} else { message.error('获取仿真结果失败：返回数据为空') }
 		} catch (err) {
@@ -434,6 +543,7 @@
 			if (res) {
 				result.value = res
 				selectedKey.value = id
+				clearChartCache()
 				// 清空上一份数据，再切到第一个 dataset 拉取
 				datasetRows.value = []
 				datasetTotal.value = 0
@@ -460,6 +570,7 @@
 		// 切换模式：清空勾选与两页缓存
 		checkedIds.value = []
 		compareRowsCache.value = {}
+		clearChartCache()
 		paramMainTables.value = []
 		paramRefTables.value = []
 		paramCompareMsg.value = ''
@@ -818,10 +929,22 @@
 		console.log('onDatasetPageChange', page, pageSize)
 		loadDataset(activeDataset.value, page, pageSize || 25)
 	}
-	function onBasicTabChange(dataset) { datasetPage.value = 1; loadDataset(dataset, 1, 25) }
-	function onLeanTabChange(dataset) { datasetPage.value = 1; loadDataset(dataset, 1, 25) }
-	function onEnergyTabChange(dataset) { datasetPage.value = 1; loadDataset(dataset, 1, 25) }
-	function onTab1Change() {}
+	function onOverviewTabChange(dataset) {
+		activeDataset.value = dataset
+		currentGroupKey.value = 'overview'
+		datasetPage.value = 1
+		ensureChartIfNeeded(dataset)
+	}
+	function onBasicTabChange(dataset) { datasetPage.value = 1; loadDataset(dataset, 1, 25); ensureChartIfNeeded(dataset) }
+	function onLeanTabChange(dataset) { datasetPage.value = 1; loadDataset(dataset, 1, 25); ensureChartIfNeeded(dataset) }
+	function onEnergyTabChange(dataset) { datasetPage.value = 1; loadDataset(dataset, 1, 25); ensureChartIfNeeded(dataset) }
+	function onTab1Change(key) {
+		// 切换一级 tab（结果总览/基础/精益/能耗）：同步当前 dataset 与组，图表视图下重新取数
+		const activeOfGroup = { overview: tab2Key.value, basic: basicTab.value, lean: leanTab.value, energy: energyTab.value }
+		activeDataset.value = activeOfGroup[key] || ''
+		currentGroupKey.value = key
+		ensureChartIfNeeded(activeDataset.value)
+	}
 
 	// ====== 初始化 ======
 	async function initPage() {

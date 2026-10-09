@@ -132,6 +132,10 @@ export default {
 	fsSimGetResultDatasetPageInDb(data) {
 		return request('getResultDatasetPageInDb', data, 'post')
 	},
+	// 获取结果图表数据（全量 + 服务端降采样；实时走 MCP，历史快照传 id）
+	fsSimGetResultChartData(data) {
+		return request('getResultChartData', data, 'post')
+	},
 	// 删除结果快照（连带成对参数快照与 partCycleTime 文件）
 	fsSimDeleteResultSnapshot(data) {
 		return request('deleteResultSnapshot', data, 'post')

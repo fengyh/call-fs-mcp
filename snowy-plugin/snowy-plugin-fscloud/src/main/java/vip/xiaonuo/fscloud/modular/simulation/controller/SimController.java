@@ -605,6 +605,21 @@ public class SimController {
         return CommonResult.data(result);
     }
 
+    @Operation(summary = "获取结果图表数据（全量+降采样）")
+    @SaCheckPermission("/fscloud/sim/getResultChartData")
+    @PostMapping("/fscloud/sim/getResultChartData")
+    public CommonResult<ChartDataDto> getResultChartData(@RequestBody @Valid GetResultChartDataParam param) {
+        String userId = StpUtil.getLoginIdAsString();
+        int maxPoints = param.getMaxPoints() != null ? param.getMaxPoints() : 2000;
+        log.info("getResultChartData: id={}, modelId={}, dataset={}, maxPoints={}, xColumn={}",
+                param.getId(), param.getModelId(), param.getDataset(), maxPoints, param.getXColumn());
+        ChartDataDto dto = fsSimResultSnapshotService.getChartData(userId, param.getId(),
+                param.getModelId(), param.getRunId(), param.getDataset(), maxPoints, param.getXColumn());
+        log.info("getResultChartData success: dataset={}, total={}, returned={}, sampled={}",
+                dto.getDataset(), dto.getTotal(), dto.getReturned(), dto.getSampled());
+        return CommonResult.data(dto);
+    }
+
     // ==================== 参数快照（落库） ====================
 
     @Resource

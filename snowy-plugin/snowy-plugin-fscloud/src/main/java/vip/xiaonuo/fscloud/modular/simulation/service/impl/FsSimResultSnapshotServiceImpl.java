@@ -30,6 +30,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vip.xiaonuo.common.exception.CommonException;
+import vip.xiaonuo.fscloud.modular.simulation.dto.ChartDataDto;
 import vip.xiaonuo.fscloud.modular.simulation.dto.ResultDatasetPageDto;
 import vip.xiaonuo.fscloud.modular.simulation.dto.ResultSnapshotDto;
 import vip.xiaonuo.fscloud.modular.simulation.entity.FsSimResultSnapshot;
@@ -61,6 +62,15 @@ public class FsSimResultSnapshotServiceImpl
 
     /** 单次从 MCP 拉取的分页大小 */
     private static final int FETCH_PAGE_SIZE = 1000;
+
+    /** 图表默认点数上限（前端未指定时） */
+    private static final int DEFAULT_CHART_POINTS = 2000;
+
+    /** 图表点数硬上限（防止一次返回过多点拖垮浏览器） */
+    private static final int MAX_CHART_POINTS = 20000;
+
+    /** 图表点数下限（降至 2 点以下曲线无意义） */
+    private static final int MIN_CHART_POINTS = 2;
 
     @Resource
     private McpClientService mcpClientService;
@@ -242,6 +252,40 @@ public class FsSimResultSnapshotServiceImpl
     }
 
     @Override
+    public ChartDataDto getChartData(String userId, Long id, String modelId, String runId,
+                                     String dataset, int maxPoints, String xColumn) {
+        ChartDataDto dto = new ChartDataDto();
+        dto.setDataset(dataset);
+        int cap = normalizeChartPoints(maxPoints);
+
+        List<Map<String, Object>> allRows;
+        String source;
+        if (id != null) {
+            FsSimResultSnapshot entity = super.getById(id);
+            if (entity == null) {
+                throw new CommonException("结果快照不存在，id={}", id);
+            }
+            allRows = readAllRows(entity, dataset);
+            source = "db:" + id;
+        } else {
+            if (StrUtil.isBlank(modelId)) {
+                throw new CommonException("id 与 modelId 不能同时为空");
+            }
+            allRows = fetchAllRows(userId, modelId, runId != null ? runId : "", dataset);
+            source = "mcp";
+        }
+
+        List<Map<String, Object>> chartRows = downsampleRows(allRows, cap, xColumn);
+        dto.setRows(chartRows);
+        dto.setTotal((long) allRows.size());
+        dto.setReturned(chartRows.size());
+        dto.setSampled(chartRows.size() < allRows.size());
+        log.info("getChartData: dataset={}, source={}, xColumn={}, total={}, returned={}, sampled={}",
+                dataset, source, xColumn, allRows.size(), chartRows.size(), dto.getSampled());
+        return dto;
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteById(Long id) {
         FsSimResultSnapshot entity = super.getById(id);
@@ -409,6 +453,250 @@ public class FsSimResultSnapshotServiceImpl
             }
         }
         dto.setRows(pageRows);
+    }
+
+    /** 图表点数归一化：非正值回退默认，超出硬上限则截断 */
+    private int normalizeChartPoints(int maxPoints) {
+        if (maxPoints < MIN_CHART_POINTS) {
+            return DEFAULT_CHART_POINTS;
+        }
+        return Math.min(maxPoints, MAX_CHART_POINTS);
+    }
+
+    /**
+     * 降采样入口（由 getChartData 调用）。
+     *
+     * <p><b>二次采样间隔 sampleRatio —— 只改函数体第一处：</b>
+     * <ul>
+     *   <li>{@code 1} = <b>不抽样，数据原样返回</b>（当前设定）；</li>
+     *   <li>{@code n > 1} = 每 n 组保留 1 组（按 x 范围分桶、桶内取首末组，尽量保留稀疏区的跳变点）。</li>
+     * </ul>
+     *
+     * <p>时间序列（如 {@code energy.powerCurve} 的功率曲线）是事件驱动数据：功率长时间恒定时几乎没有采样点，
+     * 只有跳变前后各一组。抽样很容易丢掉这类孤立点，使曲线出现横跨很长时间窗的斜线（阶梯形态被破坏），
+     * 因此默认间隔为 1（原样返回）；确实需要压缩数据量时再把 sampleRatio 调大。
+     */
+    List<Map<String, Object>> downsampleRows(List<Map<String, Object>> rows, int maxPoints, String xColumn) {
+        final int sampleRatio = 1;
+        return downsampleRows(rows, maxPoints, xColumn, sampleRatio);
+    }
+
+    /**
+     * 降采样实现：{@code sampleRatio <= 1} 时原样返回，否则按 x 抽样（同一 x 上的全部点整组保留）。
+     *
+     * @param maxPoints   仅在 {@code sampleRatio > 1} 时作为「数据量本来就小则不抽样」的门槛
+     * @param xColumn     图表 x 轴列名；为空时退回按行抽样
+     * @param sampleRatio 二次采样间隔：每 sampleRatio 组保留 1 组
+     */
+    List<Map<String, Object>> downsampleRows(List<Map<String, Object>> rows, int maxPoints, String xColumn,
+                                             int sampleRatio) {
+        int total = rows.size();
+        if (sampleRatio <= 1 || total <= maxPoints || maxPoints < MIN_CHART_POINTS) {
+            return rows;
+        }
+        if (StrUtil.isBlank(xColumn)) {
+            return downsampleByRow(rows, maxPoints);
+        }
+        Map<Object, List<Map<String, Object>>> grouped = groupRowsByXMap(rows, xColumn);
+        if (grouped.size() <= 1) {
+            // x 值全相同（或整列无有效值）：按组抽样无意义，退化为按行抽样
+            return downsampleByRow(rows, maxPoints);
+        }
+        List<Double> sortedX = numericSortedKeys(grouped);
+        if (sortedX != null) {
+            // 数值型 x（时间序列）：按 x 范围分桶
+            return downsampleByXBucket(grouped, sortedX, total, sampleRatio);
+        }
+        // 非数值 x（字符串类目）：退回按 x 等距抽样
+        return downsampleByGroup(new ArrayList<>(grouped.values()), total, sampleRatio);
+    }
+
+    /** 按 x 列取值分组（LinkedHashMap 保持 x 首次出现顺序），同一个 x 的多个点聚在一组 */
+    List<List<Map<String, Object>>> groupRowsByX(List<Map<String, Object>> rows, String xColumn) {
+        return new ArrayList<>(groupRowsByXMap(rows, xColumn).values());
+    }
+
+    /** 按 x 列取值分组：保留 x 首次出现顺序与组内行顺序 */
+    LinkedHashMap<Object, List<Map<String, Object>>> groupRowsByXMap(List<Map<String, Object>> rows, String xColumn) {
+        LinkedHashMap<Object, List<Map<String, Object>>> grouped = new LinkedHashMap<>();
+        for (Map<String, Object> row : rows) {
+            grouped.computeIfAbsent(xKey(row.get(xColumn)), key -> new ArrayList<>()).add(row);
+        }
+        return grouped;
+    }
+
+    /** 所有 x 键都是数值时返回升序的 x 列表；含非数值键时返回 null（不做分桶） */
+    private List<Double> numericSortedKeys(Map<Object, List<Map<String, Object>>> grouped) {
+        List<Double> keys = new ArrayList<>(grouped.size());
+        for (Object key : grouped.keySet()) {
+            if (!(key instanceof Double)) {
+                return null;
+            }
+            keys.add((Double) key);
+        }
+        keys.sort(Double::compareTo);
+        return keys;
+    }
+
+    /**
+     * 按 x 值范围等分桶，每桶保留「首组」与「末组」（含各自同 x 的全部行），空桶直接跳过。
+     *
+     * <p>稀疏区（长时间恒定值）里只有跳变前后各一组数据，分桶后它们各自落在所属桶内被保留，
+     * 图上就是水平段 + 垂直跳变；按组索引等距抽样则可能把它们整体跳过，导致跨时间窗的斜线。
+     *
+     * @param sampleRatio 二次采样间隔：约保留 1/sampleRatio 的 x 值
+     */
+    private List<Map<String, Object>> downsampleByXBucket(Map<Object, List<Map<String, Object>>> grouped,
+                                                         List<Double> sortedX, int totalRows, int sampleRatio) {
+        int groupCount = sortedX.size();
+        int keepGroups = Math.max(2, groupCount / Math.max(2, sampleRatio));
+        if (keepGroups >= groupCount) {
+            return flattenGroups(grouped, sortedX, totalRows);
+        }
+        // 每桶保留首末两组 → 桶数约为可保留组数的一半
+        int buckets = Math.max(1, keepGroups / 2);
+        int[] firstOfBucket = new int[buckets];
+        int[] lastOfBucket = new int[buckets];
+        Arrays.fill(firstOfBucket, -1);
+        Arrays.fill(lastOfBucket, -1);
+        double min = sortedX.get(0);
+        double span = sortedX.get(groupCount - 1) - min;
+        for (int i = 0; i < groupCount; i++) {
+            int bucket = span > 0 ? (int) ((sortedX.get(i) - min) / span * buckets) : 0;
+            if (bucket < 0) {
+                bucket = 0;
+            }
+            if (bucket >= buckets) {
+                bucket = buckets - 1;
+            }
+            if (firstOfBucket[bucket] < 0) {
+                firstOfBucket[bucket] = i;
+            }
+            lastOfBucket[bucket] = i;
+        }
+        List<Map<String, Object>> sampled = new ArrayList<>();
+        Set<Object> picked = new HashSet<>();
+        for (int b = 0; b < buckets; b++) {
+            if (firstOfBucket[b] < 0) {
+                continue;   // 该时间窗内没有采样点：保持空白，不补点
+            }
+            for (int i : new int[]{firstOfBucket[b], lastOfBucket[b]}) {
+                Double x = sortedX.get(i);
+                if (picked.add(x)) {
+                    sampled.addAll(grouped.get(x));
+                }
+            }
+        }
+        return sampled;
+    }
+
+    /** 非数值 x 的退路：按 x 等距抽样，命中组的所有行整体保留 */
+    private List<Map<String, Object>> downsampleByGroup(List<List<Map<String, Object>>> groups,
+                                                       int totalRows, int sampleRatio) {
+        int groupCount = groups.size();
+        int keepGroups = Math.max(2, groupCount / Math.max(2, sampleRatio));
+        if (keepGroups >= groupCount) {
+            List<Map<String, Object>> all = new ArrayList<>(totalRows);
+            for (List<Map<String, Object>> group : groups) {
+                all.addAll(group);
+            }
+            return all;
+        }
+        List<Map<String, Object>> sampled = new ArrayList<>();
+        double step = (double) (groupCount - 1) / (keepGroups - 1);
+        for (int i = 0; i < keepGroups; i++) {
+            sampled.addAll(groups.get((int) Math.round(i * step)));
+        }
+        return sampled;
+    }
+
+    /** 按 x 升序拼接全部分组 */
+    private List<Map<String, Object>> flattenGroups(Map<Object, List<Map<String, Object>>> grouped,
+                                                   List<Double> sortedX, int totalRows) {
+        List<Map<String, Object>> all = new ArrayList<>(totalRows);
+        for (Double x : sortedX) {
+            all.addAll(grouped.get(x));
+        }
+        return all;
+    }
+
+    /** x 值归一化：数值统一为 Double，避免 0 与 0.0 被拆成两个时间点 */
+    Object xKey(Object value) {
+        if (value == null) {
+            return "";
+        }
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+        return String.valueOf(value);
+    }
+
+    /** 等距抽样降采样（保留首尾行），行数不足上限时原样返回 */
+    private List<Map<String, Object>> downsampleByRow(List<Map<String, Object>> rows, int maxPoints) {
+        int total = rows.size();
+        if (total <= maxPoints || maxPoints < MIN_CHART_POINTS) {
+            return rows;
+        }
+        List<Map<String, Object>> sampled = new ArrayList<>(maxPoints);
+        double step = (double) (total - 1) / (maxPoints - 1);
+        for (int i = 0; i < maxPoints; i++) {
+            sampled.add(rows.get((int) Math.round(i * step)));
+        }
+        return sampled;
+    }
+
+    /** 从历史快照读取某 dataset 的全量行（小表取 DATASETS JSON，partCycleTime 取 CSV 文件） */
+    private List<Map<String, Object>> readAllRows(FsSimResultSnapshot entity, String dataset) {
+        if (PART_CYCLE_TIME.equals(dataset)) {
+            return readPartCycleTimeAll(entity);
+        }
+        List<Map<String, Object>> all = new ArrayList<>();
+        if (StrUtil.isBlank(entity.getDatasets())) {
+            return all;
+        }
+        JSONObject inner = JSONUtil.parseObj(entity.getDatasets()).getJSONObject(dataset);
+        if (inner == null) {
+            return all;
+        }
+        JSONArray rows = inner.getJSONArray("rows");
+        if (rows == null) {
+            return all;
+        }
+        for (int i = 0; i < rows.size(); i++) {
+            Object row = rows.get(i);
+            if (row instanceof JSONObject) {
+                all.add(((JSONObject) row).toBean(Map.class));
+            }
+        }
+        return all;
+    }
+
+    /** partCycleTime 从 CSV 文件读取全量行 */
+    private List<Map<String, Object>> readPartCycleTimeAll(FsSimResultSnapshot entity) {
+        List<Map<String, Object>> all = new ArrayList<>();
+        if (StrUtil.isBlank(entity.getPartCycleTimeFile())) {
+            return all;
+        }
+        File file = resolveSnapshotFile(entity.getPartCycleTimeFile());
+        if (!file.exists()) {
+            return all;
+        }
+        List<String> headers = null;
+        int lineNo = 0;
+        for (CsvRow csvRow : CsvUtil.getReader().read(file, CharsetUtil.CHARSET_UTF_8)) {
+            if (lineNo == 0) {
+                headers = new ArrayList<>(csvRow);
+                lineNo++;
+                continue;
+            }
+            lineNo++;
+            Map<String, Object> map = new LinkedHashMap<>();
+            for (int i = 0; i < headers.size(); i++) {
+                map.put(headers.get(i), i < csvRow.size() ? csvRow.get(i) : "");
+            }
+            all.add(map);
+        }
+        return all;
     }
 
     private FsSimResultSnapshot getByRunId(String runId) {
