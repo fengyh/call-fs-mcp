@@ -211,6 +211,26 @@ public class McpClientService {
         return callTool("getRemoteSimulationResultDatasetPage", args);
     }
 
+    /**
+     * 获取能耗功率曲线分页（MCP getRemoteSimulationEnergyPowerCurvePage）。
+     * 仅可在仿真结束且 resultStatus=READY 后调用。
+     */
+    public JSONObject getEnergyPowerCurvePage(String userId, String modelId, String runId,
+                                              String componentId, String mediumId, String scopeType,
+                                              String deviceName, int limit, int offset) {
+        JSONObject args = new JSONObject();
+        args.put("userId", userId);
+        args.put("modelId", modelId);
+        args.put("runId", runId != null ? runId : "");
+        args.put("componentId", componentId != null ? componentId : "");
+        args.put("mediumId", mediumId != null ? mediumId : "");
+        args.put("scopeType", (scopeType == null || scopeType.trim().isEmpty()) ? "ALL_DEVICES" : scopeType);
+        args.put("deviceName", deviceName != null ? deviceName : "");
+        args.put("limit", limit);
+        args.put("offset", offset);
+        return callTool("getRemoteSimulationEnergyPowerCurvePage", args);
+    }
+
     /** 获取动画层列表 */
     public JSONObject listAnimationLayers(String userId, String modelId) {
         JSONObject args = new JSONObject();
