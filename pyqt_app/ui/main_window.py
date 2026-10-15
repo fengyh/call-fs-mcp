@@ -15,11 +15,11 @@ from ui.mcp_module import MCPModule
 
 
 TABS = [
-    ("grid", "① 网格生成", "点云网格划分"),
-    ("equipment", "② 设备参数", "资源参数配置"),
-    ("planning", "③ 单次仿真", "单配置仿真"),
-    ("optimization", "④ 配置寻优", "多配置扫描与帕累托分析"),
-    ("fs_mcp_demo", "⑤ 通过MCP与FS集成演示", "Python集成FS方法演示"),
+    # ("grid", "① 网格生成", "点云网格划分"),
+    # ("equipment", "② 设备参数", "资源参数配置"),
+    # ("planning", "③ 单次仿真", "单配置仿真"),
+    # ("optimization", "④ 配置寻优", "多配置扫描与帕累托分析"),
+    ("fs_mcp_demo", "通过MCP与FS集成演示", "Python集成FS方法演示"),
 ]
 
 
