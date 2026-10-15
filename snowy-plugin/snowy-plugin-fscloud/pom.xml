@@ -46,19 +46,10 @@
             <version>1.2.5</version>
         </dependency>
 
-        <!-- 单元测试（图表降采样等纯逻辑）
-             注：根 pom 的 dependencyManagement 把 junit-jupiter-api 锁在 5.10.1，与 spring-boot-starter-test
-             带来的 junit-platform/engine(1.12.2 / 5.12.2) 不匹配，forked 测试 JVM 会以
-             NoClassDefFoundError 启动失败，因此这里显式对齐到父 pom 管理的同一版本 -->
+        <!-- 单元测试（图表降采样等纯逻辑） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
-            <version>${junit-jupiter.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
