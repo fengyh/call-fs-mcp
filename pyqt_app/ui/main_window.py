@@ -54,16 +54,16 @@ class MainWindow(QMainWindow):
         root.addWidget(self._create_navbar())
 
         self.stack = QStackedWidget()
-        self.module_grid = GridModule(self)
-        self.module_equip = EquipmentModule(self)
-        self.module_plan = PlanningModule(self)
-        self.module_optim = OptimizationModule(self)
+        # self.module_grid = GridModule(self)
+        # self.module_equip = EquipmentModule(self)
+        # self.module_plan = PlanningModule(self)
+        # self.module_optim = OptimizationModule(self)
         self.module_mcp = MCPModule(self)
 
-        self.stack.addWidget(self.module_grid)    # index 0
-        self.stack.addWidget(self.module_equip)   # index 1
-        self.stack.addWidget(self.module_plan)    # index 2
-        self.stack.addWidget(self.module_optim)   # index 3
+        # self.stack.addWidget(self.module_grid)    # index 0
+        # self.stack.addWidget(self.module_equip)   # index 1
+        # self.stack.addWidget(self.module_plan)    # index 2
+        # self.stack.addWidget(self.module_optim)   # index 3
         self.stack.addWidget(self.module_mcp)     # index 4
 
         root.addWidget(self.stack, 1)
