@@ -62,18 +62,6 @@
 			</a-row>
 		</a-card>
 
-		<!-- 页面尾部：保留原始 todo 说明 -->
-		<pre class="todo-pre">
-todo —— 数据分析:
-1) 一个slider组件（0~此时仿真进度/或总仿真时长）, 滑动时， 将对应的时间点显示在slider上方，变用变量 timeWindowCursor 保存当前slider位置对应的时间点。
-2) 一个取位置快照按钮，点击后， 按slider位置调用MCP接口(查询时间轴对象位置快照 getRemoteSimulationObjectPositionSnapshot)获取当前仿真模型对应时间的对象位置快照；
-3）一个步进播放按钮，点击后调用MCP接口（时间窗口内的仿真事件 getRemoteSimulationEvents）获取后序10秒(时间窗口)内的仿真事件，并在页面上用pre标签显示这次获取的事件。
-  再次点，获取下一个10秒的事件；timeWindowCursor += 10000;
-4）一个步进回退按钮，点击后调用MCP接口（时间窗口内的仿真事件 getRemoteSimulationEvents）获取前10秒(时间窗口)内的仿真事件，并在页面上用pre标签显示这次获取的事件。
-再次点，获取下一个10秒的事件；timeWindowCursor -= 10000;
-5) 一个实时事件订阅按钮，点击后，接收MQTT主题“factory/sim/{username}/{modelId}/events”，并将接收到的消息保存在store(myModel的events)中，
-   最多保存100个消息用于分析，之后不再保存。
-		</pre>
 	</div>
 </template>
 

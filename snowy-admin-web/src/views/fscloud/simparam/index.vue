@@ -213,9 +213,15 @@
 	 */
 	const saveSnapshotToModel = async () => {
 		const data = myModel.snapshotData
-		const tableNames = Object.keys(data)
-		if (tableNames.length === 0) {
+		const allTableNames = Object.keys(data)
+		if (allTableNames.length === 0) {
 			message.warning('没有可写入的参数表数据，请先从模型获取参数')
+			return
+		}
+		// 输出表（remark=Out）不会被修改，写模型时排除
+		const tableNames = allTableNames.filter(name => !outTableNames.value.has(normalizeTableName(name)))
+		if (tableNames.length === 0) {
+			message.warning('没有可写入的参数表（remark 为 Out 的输出表不参与写模型）')
 			return
 		}
 
@@ -223,7 +229,7 @@
 		const confirmed = await new Promise((resolve) => {
 			Modal.confirm({
 				title: '确认将参数写入模型',
-				content: `将 ${tableNames.length} 张参数表写入仿真模型。修改将保存到 .fs 模型文件，确定继续？`,
+				content: `将 ${tableNames.length} 张参数表写入仿真模型（remark 为 Out 的输出表不写入）。修改将保存到 .fs 模型文件，确定继续？`,
 				okText: '确认写入',
 				cancelText: '取消',
 				onOk: () => resolve(true),
