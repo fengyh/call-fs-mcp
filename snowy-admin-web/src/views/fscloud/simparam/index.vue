@@ -87,12 +87,51 @@
 
 	const loaded = computed(() => myModel.isLoaded)
 
-	const tableOptions = computed(() => {
-		return Object.keys(myModel.snapshotData).map(name => ({
-			label: name.replace(/^Param_/i, ''),
-			value: name
-		}))
+	/** 表名归一化：去前导点与 Param_ 前缀（MCP 清单与快照的表名格式可能不一致） */
+	const normalizeTableName = (name) => {
+		let n = String(name || '').trim().replace(/^\.+/, '')
+		if (/^param_/i.test(n)) n = n.slice(6)
+		return n
+	}
+
+	/** 当前展示快照的 MCP 清单（含 remark）：历史快照 keyed 格式也能据此过滤输出表 */
+	const snapshotMcpRows = ref([])
+
+	/** remark=Out 的输出表：参数页不显示（归到仿真结果页的「自定义结果表」） */
+	const outTableNames = computed(() => {
+		let rows = snapshotMcpRows.value
+		if (!Array.isArray(rows) || rows.length === 0) {
+			rows = myModel.snapshotRaw?.mcpRows
+			if (typeof rows === 'string') {
+				try { rows = JSON.parse(rows) } catch (e) { rows = [] }
+			}
+		}
+		const names = new Set()
+		for (const row of (Array.isArray(rows) ? rows : [])) {
+			if (!row) continue
+			if (String(row.remark ?? '').trim().toLowerCase() !== 'out') continue
+			const key = normalizeTableName(row.tableName)
+			if (key) names.add(key)
+		}
+		return names
 	})
+
+	const tableOptions = computed(() => {
+		return Object.keys(myModel.snapshotData)
+			.filter(name => !outTableNames.value.has(normalizeTableName(name)))
+			.map(name => ({
+				label: name.replace(/^Param_/i, ''),
+				value: name
+			}))
+	})
+
+	/** 过滤后当前选中表可能已被隐藏，自动切到第一张可见表 */
+	watch(tableOptions, (opts) => {
+		if (opts.length === 0) return
+		if (!opts.some(opt => opt.value === myModel.selectedTableName)) {
+			myModel.setSelectedTableName(opts[0].value)
+		}
+	}, { immediate: true })
 
 	const currentTableData = computed(() => {
 		const name = myModel.selectedTableName
@@ -129,11 +168,13 @@
 		snapshotLoading.value = true
 		snapshotErrorMsg.value = ''
 		snapshotJson.value = ''
+		snapshotMcpRows.value = []
 
 		try {
 			const res = await fsSimApi.fsSimGetParameterSnapshot({ modelId: myModel.modelId })
 			if (res) {
 				snapshotJson.value = JSON.stringify(res, null, 2)
+				snapshotMcpRows.value = Array.isArray(res.mcpRows) ? res.mcpRows : []
 				myModel.parseAndSetSnapshot(res)
 				message.info('已成功从模型中取到参数')
 			} else {
@@ -272,6 +313,13 @@
 		try {
 			const detail = await fsSimApi.fsSimGetSnapshot({ id })
 			console.log('[simparam/index.vue] getSnapshot res', detail)
+			if (detail) {
+				let mcpRows = []
+				if (detail.mcpRows) {
+					try { mcpRows = JSON.parse(detail.mcpRows) } catch (e) { mcpRows = [] }
+				}
+				snapshotMcpRows.value = Array.isArray(mcpRows) ? mcpRows : []
+			}
 			if (detail && detail.tables) {
 				const parsedTables = JSON.parse(detail.tables)
 				if (Array.isArray(parsedTables)) {
@@ -404,6 +452,7 @@
 			errorMsg.value = ''
 			snapshotJson.value = ''
 			snapshotErrorMsg.value = ''
+			snapshotMcpRows.value = []
 			snapshotList.value = []
 		}
 	}, { immediate: true })

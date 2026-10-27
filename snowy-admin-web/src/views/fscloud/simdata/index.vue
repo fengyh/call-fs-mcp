@@ -255,6 +255,22 @@
 									</a-tab-pane>
 								</a-tabs>
 							</a-tab-pane>
+							<!-- 自定义结果表：MCP 参数表中 remark=Out 的输出表，只读展示 -->
+							<a-tab-pane key="custom" tab="自定义结果表">
+								<div v-if="customLoading" class="tab-placeholder">正在读取参数表中的输出表（remark=Out）…</div>
+								<div v-else-if="customError" class="tab-placeholder">{{ customError }}</div>
+								<a-tabs v-else-if="customTables.length > 0" v-model:activeKey="customTabKey" size="small">
+									<a-tab-pane v-for="t in customTables" :key="t.tableName" :tab="customTableLabel(t.tableName)">
+										<ResultTable
+											:rows="customRowsOf(t)"
+											:columns="customColumnsOf(t)"
+											:localPaging="true"
+											:pageSize="datasetPageSize"
+										/>
+									</a-tab-pane>
+								</a-tabs>
+								<div v-else class="tab-placeholder">未发现 remark 为 “Out” 的参数表（自定义结果表为空）</div>
+							</a-tab-pane>
 						</a-tabs>
 					</a-card>
 				</div>
@@ -275,6 +291,7 @@
 	import fsSimApi from '@/api/fscloud/fsSimApi'
 	import { message, Modal } from 'ant-design-vue'
 	import DataViewPanel from './DataViewPanel.vue'
+	import ResultTable from './ResultTable.vue'
 	import LeanMetricsTable from './LeanMetricsTable.vue'
 	import EnergyAnalysis from './EnergyAnalysis.vue'
 	import { tableTitleKeyMap } from './TableTitleKeyMap.js'
@@ -529,6 +546,7 @@
 				myModel.runId = res.runId
 				selectedKey.value = '__current__'
 				clearChartCache()
+				resetCustomTables()
 				message.success('获取仿真结果成功')
 			} else { message.error('获取仿真结果失败：返回数据为空') }
 		} catch (err) {
@@ -544,6 +562,7 @@
 				result.value = res
 				selectedKey.value = id
 				clearChartCache()
+				resetCustomTables()
 				// 清空上一份数据，再切到第一个 dataset 拉取
 				datasetRows.value = []
 				datasetTotal.value = 0
@@ -575,6 +594,7 @@
 		paramRefTables.value = []
 		paramCompareMsg.value = ''
 		compareView.value = 'param'
+		resetCustomTables()
 		if (mode.value !== 'compare') {
 			// 回到单快照：清掉对比缓存的结果页数据
 			datasetRows.value = []
@@ -681,6 +701,115 @@
 	}
 
 	const currentGroupKey = ref('basic')
+
+	// ====== 自定义结果表（MCP 参数表中 remark=Out 的输出表） ======
+	/** 输出表备注（大小写不敏感） */
+	const OUT_REMARK = 'out'
+	const customTables = ref([])          // [{ tableName, columns, rows }]
+	const customLoading = ref(false)
+	const customError = ref('')
+	const customTabKey = ref('')
+	const customLoaded = ref(false)
+	let customReqSeq = 0   // 请求序号：结果刷新后丢弃仍在途的旧响应
+
+	/** 表名归一化：去前导点与 Param_ 前缀（MCP 清单与快照的表名格式可能不一致） */
+	function normalizeParamTableName(name) {
+		let n = String(name || '').trim().replace(/^\.+/, '')
+		if (/^param_/i.test(n)) n = n.slice(6)
+		return n
+	}
+
+	function parseMaybeJson(val, fallback) {
+		if (val === null || val === undefined) return fallback
+		if (typeof val !== 'string') return val
+		try { return JSON.parse(val) } catch (e) { return fallback }
+	}
+
+	/** 自定义结果表二级 tab 标题：与参数页一致，隐藏 Param_ 前缀 */
+	function customTableLabel(name) {
+		return normalizeParamTableName(name) || name
+	}
+
+	function customColumnsOf(table) {
+		return (table.columns || []).map(c => ({
+			title: c.name || '',
+			key: c.name || '',
+			dataIndex: c.name || '',
+			width: 120
+		}))
+	}
+
+	function customRowsOf(table) {
+		return (table.rows || []).map(row => rowToObj(table.columns, row))
+	}
+
+	function invalidateCustomTables() {
+		customReqSeq++
+		customTables.value = []
+		customTabKey.value = ''
+		customError.value = ''
+		customLoading.value = false
+		customLoaded.value = false
+	}
+
+	/** 结果刷新（取结果 / 切快照 / 切模式）后，若正停在自定义结果表页则重新读取 */
+	function resetCustomTables() {
+		invalidateCustomTables()
+		if (tab1Key.value === 'custom') loadCustomTables()
+	}
+
+	/**
+	 * 读取自定义结果表：取当前模型参数快照（runId 传空 = 模型本体参数表），
+	 * 按 MCP 清单/快照 mcpRows 中的 remark 过滤出 Out 表（对齐 pyqt 结果页实现）
+	 */
+	async function loadCustomTables() {
+		if (customLoading.value || customLoaded.value) return
+		if (!myModel.isLoaded) {
+			customError.value = '当前没有加载的仿真模型'
+			return
+		}
+		customLoading.value = true
+		customError.value = ''
+		const seq = ++customReqSeq
+		try {
+			const snapshot = await fsSimApi.fsSimGetParameterSnapshot({ modelId: myModel.modelId, runId: '' })
+			if (seq !== customReqSeq) return
+			// remark 映射：优先取快照 mcpRows；缺失时回退到参数表清单
+			const remarks = {}
+			const mcpRows = parseMaybeJson(snapshot?.mcpRows, [])
+			if (Array.isArray(mcpRows)) {
+				for (const row of mcpRows) {
+					if (!row) continue
+					const key = normalizeParamTableName(row.tableName)
+					if (key) remarks[key] = String(row.remark ?? '').trim()
+				}
+			}
+			const needListing = !Array.isArray(mcpRows) || mcpRows.length === 0
+				|| Object.values(remarks).every(r => !r)
+			if (needListing) {
+				const listing = await fsSimApi.fsSimListParameterTables({ modelId: myModel.modelId }).catch(() => null)
+				if (seq !== customReqSeq) return
+				for (const raw of (listing?.parameterTables || [])) {
+					const row = parseMaybeJson(raw, null)
+					if (!row) continue
+					const key = normalizeParamTableName(row.tableName)
+					if (key && !remarks[key]) remarks[key] = String(row.remark ?? '').trim()
+				}
+			}
+			const tables = normalizeParamTables(snapshot)
+			customTables.value = tables.filter(t =>
+				(remarks[normalizeParamTableName(t.tableName)] || '').toLowerCase() === OUT_REMARK
+			)
+			customTabKey.value = customTables.value[0]?.tableName || ''
+			customLoaded.value = true
+		} catch (err) {
+			if (seq !== customReqSeq) return
+			invalidateCustomTables()
+			customError.value = '读取自定义结果表失败：' + (err?.msg || err?.message || '请求异常')
+		} finally {
+			if (seq === customReqSeq) customLoading.value = false
+		}
+	}
 
 	// ====== 参数对比 ======
 	const paramCompareReady = computed(() =>
@@ -939,11 +1068,12 @@
 	function onLeanTabChange(dataset) { datasetPage.value = 1; loadDataset(dataset, 1, 25); ensureChartIfNeeded(dataset) }
 	function onEnergyTabChange(dataset) { datasetPage.value = 1; loadDataset(dataset, 1, 25); ensureChartIfNeeded(dataset) }
 	function onTab1Change(key) {
-		// 切换一级 tab（结果总览/基础/精益/能耗）：同步当前 dataset 与组，图表视图下重新取数
+		// 切换一级 tab（结果总览/基础/精益/能耗/自定义结果表）：同步当前 dataset 与组，图表视图下重新取数
 		const activeOfGroup = { overview: tab2Key.value, basic: basicTab.value, lean: leanTab.value, energy: energyTab.value }
 		activeDataset.value = activeOfGroup[key] || ''
 		currentGroupKey.value = key
 		ensureChartIfNeeded(activeDataset.value)
+		if (key === 'custom') loadCustomTables()
 	}
 
 	// ====== 初始化 ======
