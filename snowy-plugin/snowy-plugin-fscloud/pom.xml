@@ -39,6 +39,12 @@
             <artifactId>snowy-plugin-dev-api</artifactId>
         </dependency>
 
+        <!-- dynamic-datasource：API 访问日志写入 dm8 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>dynamic-datasource-spring-boot3-starter</artifactId>
+        </dependency>
+
         <!-- MQTT 客户端，用于订阅 FS 云仿真服务的实时状态/进度/控制台消息 -->
         <dependency>
             <groupId>org.eclipse.paho</groupId>

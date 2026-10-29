@@ -66,10 +66,10 @@
         </dependency>-->
 
         <!-- 达梦数据库 -->
-        <!--<dependency>
+        <dependency>
             <groupId>com.dameng</groupId>
             <artifactId>DmJdbcDriver18</artifactId>
-        </dependency>-->
+        </dependency>
 
         <!-- 人大金仓数据库 -->
         <!--<dependency>

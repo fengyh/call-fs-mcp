@@ -442,11 +442,11 @@
             </dependency>-->
 
             <!-- 达梦数据库 -->
-            <!--<dependency>
+            <dependency>
                 <groupId>com.dameng</groupId>
                 <artifactId>DmJdbcDriver18</artifactId>
                 <version>8.1.3.62</version>
-            </dependency>-->
+            </dependency>
 
             <!-- 人大金仓数据库 -->
             <!--<dependency>
