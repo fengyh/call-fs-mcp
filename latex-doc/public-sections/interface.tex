@@ -388,6 +388,78 @@
 }
 \end{lstlisting}\vspace{-30pt}
 
+\subsubsection{getRemoteSimulationEnergyPowerCurvePage}
+\bf{方法描述}：仿真结束后分页读取能耗功率曲线，支持全部设备汇总（\texttt{ALL\_DEVICES}）或单设备（\texttt{DEVICE}）范围。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{runId}(String，空串=当前运行)；\texttt{componentId}(String，模型只有 1 个能耗组件时可空)；\texttt{mediumId}(String，来自结果快照的 \texttt{energy.mediums})；\texttt{scopeType}(String，\texttt{ALL\_DEVICES} 或 \texttt{DEVICE})；\texttt{deviceName}(String，\texttt{DEVICE} 范围必填)；\texttt{offset}(int，$\geq$0)；\texttt{limit}(int，1--1000)。
+	\item \it{出参}（\texttt{data}）：\texttt{userId}、\texttt{recordId}、\texttt{modelId}、\texttt{runId}、\texttt{componentId}、\texttt{mediumId}、\texttt{scopeType}、\texttt{deviceName}、\texttt{offset}、\texttt{limit}、\texttt{returned}、\texttt{total}、\texttt{hasMore}、\texttt{nextOffset}、\texttt{points}（时间-功率点数组）。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "runId": "",
+    "componentId": "",
+    "mediumId": "电",
+    "scopeType": "ALL_DEVICES",
+    "deviceName": "",
+    "offset": 0,
+    "limit": 500
+}
+// 出参（data 关键字段）
+{
+    "mediumId": "电",
+    "scopeType": "ALL_DEVICES",
+    "returned": 500,
+    "total": 1200,
+    "hasMore": true,
+    "nextOffset": 500,
+    "points": [
+        { "simTime": 3600000, "power": 12.5 }
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{getRemoteSimulationResultChartGanttDevicePage}
+\bf{方法描述}：仿真结束后分页读取设备甘特图数据；先按 \texttt{nameFilter} 过滤，再按 \texttt{offset/limit} 分页。建议先调用 \texttt{getRemoteSimulationResultSnapshot} 确认 \texttt{resultStatus=READY}。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{runId}(String，空串=当前运行)；\texttt{offset}(int，$\geq$0)；\texttt{limit}(int，1--1000)；\texttt{nameFilter}(String，可选；按第 0 列“设备及单元”\texttt{startsWith} 匹配，大小写敏感；空串表示不过滤)。
+	\item \it{出参}（\texttt{data}）：\texttt{total}(过滤后行数)、\texttt{rawTotal}(过滤前行数)、\texttt{offset}、\texttt{limit}、\texttt{returned}、\texttt{hasMore}、\texttt{nextOffset}、\texttt{columns}（\texttt{name/type/format/width}）、\texttt{rowGroups}（\texttt{rowName/rowIndex}）、\texttt{rows}（二维数组）。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "runId": "",
+    "offset": 0,
+    "limit": 500,
+    "nameFilter": ""
+}
+// 出参（data 关键字段，rows 仅列一条）
+{
+    "total": 1180,
+    "rawTotal": 3420,
+    "offset": 0,
+    "limit": 500,
+    "returned": 500,
+    "hasMore": true,
+    "nextOffset": 500,
+    "columns": [
+        { "name": "设备及单元", "type": "String", "format": "", "width": 200 }
+    ],
+    "rowGroups": [
+        { "rowName": "CNC加工中心-01(0)", "rowIndex": 0 }
+    ],
+    "rows": [
+        ["CNC加工中心-01(0)", "Part-10001", "产品1主件", "2025-01-01 08:00:00.000", "2025-01-01 08:05:23.000", "00:00:05.230", "Working"]
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
 \subsection{参数表读写}
 \bf{设计约定}：模型中预制一张 \texttt{mcp}（或 \texttt{MCP}）表，第一列登记要开放给 Web 端读写的参数表名；后端只允许读写 \texttt{mcp} 表中列出的参数表。参数表数据统一为 \texttt{\{tableId, tableName, wholeNo, remark, columnCount, rowCount, columns[], rows[][]\}} 结构，\texttt{rows} 是二维字符串数组。模型未配置 \texttt{mcp} 表时（如测试模型 \texttt{step-by-step.fs}），\texttt{mcpTableFound=false}、\texttt{parameterTables=[]}。
 
@@ -825,6 +897,389 @@
 }
 \end{lstlisting}\vspace{-30pt}
 
+\subsection{WorkerPool 运行数据}
+三个工具均允许在仿真运行中读取；\texttt{detail} / \texttt{tasks} 要求仿真已启动，否则返回 \texttt{RESULT\_NOT\_READY}。模型中有多个 WorkerPool 时必须传 \texttt{componentId}。
+
+\subsubsection{listRemoteSimulationWorkerPools}
+\bf{方法描述}：发现模型中的 WorkerPool，返回工人数与任务计数摘要；未启动仿真时计数为 0。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)。
+	\item \it{出参}（\texttt{data}）：\texttt{count}、\texttt{pools[]}（\texttt{componentId}、\texttt{componentNo}、\texttt{objectType}、\texttt{workerCount}、\texttt{unassignedTasks}、\texttt{assignedTasks}、\texttt{finishedTasks}、\texttt{avgTaskRespondTimeMs}、\texttt{avgTaskReadyTimeMs}、\texttt{avgTaskDurationMs}、\texttt{workers[]}）。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195"
+}
+// 出参（data 关键字段）
+{
+    "count": 1,
+    "pools": [
+        {
+            "componentId": "worker-pool-id",
+            "componentNo": "WorkerPool01",
+            "workerCount": 13,
+            "unassignedTasks": 0,
+            "assignedTasks": 0,
+            "finishedTasks": 2019,
+            "avgTaskRespondTimeMs": 24280,
+            "avgTaskReadyTimeMs": 72922,
+            "avgTaskDurationMs": 427039,
+            "workers": [
+                { "workerId": "工人1", "muType": "Worker", "utilizationPct": 91.61 }
+            ]
+        }
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{getRemoteSimulationWorkerPoolDetail}
+\bf{方法描述}：读取单个 WorkerPool 的任务汇总和每名工人的利用率。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{runId}(String，空串=当前运行)；\texttt{componentId}(String，模型只有 1 个 WorkerPool 时可空)。
+	\item \it{出参}（\texttt{data}）：\texttt{componentId}、\texttt{taskSummary}（\texttt{unassigned/assigned/finished/avgRespondTimeMs/avgReadyTimeMs/avgDurationMs}）、\texttt{workerCount}、\texttt{workers[]}（\texttt{workerId}、\texttt{muType}、\texttt{onDuty}、\texttt{calendarId}、\texttt{shiftNo}、\texttt{operatingPct}、\texttt{walkingUnloadPct}、\texttt{walkingLoadPct}、\texttt{waitingPct}、\texttt{walkDistanceM}、\texttt{transportDistanceM}、\texttt{workingTimeMs}、\texttt{moveUnloadTimeMs}、\texttt{moveLoadTimeMs}、\texttt{effectiveTimeMs}）。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "runId": "",
+    "componentId": "worker-pool-id"
+}
+// 出参（data 关键字段）
+{
+    "taskSummary": {
+        "unassigned": 0, "assigned": 0, "finished": 2019,
+        "avgRespondTimeMs": 24280,
+        "avgReadyTimeMs": 72922,
+        "avgDurationMs": 427039
+    },
+    "workerCount": 13,
+    "workers": [
+        {
+            "workerId": "工人1", "muType": "Worker",
+            "operatingPct": 77.46, "walkingUnloadPct": 12.22,
+            "walkingLoadPct": 1.93, "waitingPct": 8.39,
+            "walkDistanceM": 6119.44, "transportDistanceM": 1443.75,
+            "workingTimeMs": 289937159, "effectiveTimeMs": 374287554
+        }
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{getRemoteSimulationWorkerPoolTasks}
+\bf{方法描述}：分页读取单个 WorkerPool 的任务列表；合并未分配、已分配、已完成三个集合后按 \texttt{createTime}、\texttt{taskId} 排序。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{runId}(String)；\texttt{componentId}(String，可选)；\texttt{offset}(int，$\geq$0)；\texttt{limit}(int，1--500，必传)。
+	\item \it{出参}（\texttt{data}）：\texttt{total}、\texttt{offset}、\texttt{limit}、\texttt{returned}、\texttt{hasMore}、\texttt{nextOffset}、\texttt{tasks[]}（\texttt{taskId}、\texttt{taskType}、\texttt{taskTypeDisplay}、\texttt{status}、\texttt{statusDisplay}、\texttt{operatorDevice}、\texttt{muIds}、\texttt{workers}、\texttt{priority}、6 个时间字段、\texttt{responseDurationMs}、\texttt{readyDurationMs}、\texttt{durationMs}）。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "runId": "",
+    "componentId": "worker-pool-id",
+    "offset": 0,
+    "limit": 50
+}
+// 出参（data 关键字段，tasks 仅列一条）
+{
+    "total": 2019,
+    "offset": 0,
+    "limit": 50,
+    "returned": 50,
+    "hasMore": true,
+    "nextOffset": 50,
+    "tasks": [
+        {
+            "taskId": "WorkerProcessing-...",
+            "taskTypeDisplay": "加工",
+            "statusDisplay": "已完成",
+            "operatorDevice": ".S001",
+            "muIds": ["1000001"],
+            "workers": ["工人1", "工人2", "工人3"],
+            "finishTimeMs": 669439,
+            "responseDurationMs": 0,
+            "readyDurationMs": 69439,
+            "durationMs": 669439
+        }
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsection{ResourcePool 运行数据}
+三个工具的读取时机与 WorkerPool 相同；任务列表单页上限 500 条。
+
+\subsubsection{listRemoteSimulationResourcePools}
+\bf{方法描述}：发现模型中的 ResourcePool，返回资源构成与任务计数摘要。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)。
+	\item \it{出参}（\texttt{data}）：\texttt{count}、\texttt{pools[]}（\texttt{componentId}、\texttt{componentNo}、\texttt{enabled}、\texttt{resourceCount}、\texttt{resourceTypes[]}、\texttt{unassignedTasks}、\texttt{assignedTasks}、\texttt{finishedTasks}、\texttt{avgTaskRespondTimeMs}、\texttt{avgTaskReadyTimeMs}、\texttt{avgTaskDurationMs}、\texttt{avgServiceTimePct}）。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195"
+}
+// 出参（data 关键字段）
+{
+    "count": 1,
+    "pools": [
+        {
+            "componentId": "resource-pool-id",
+            "componentNo": "ResourcePool01",
+            "enabled": true,
+            "resourceCount": 5,
+            "resourceTypes": [
+                { "type": "工具", "count": 5 }
+            ],
+            "unassignedTasks": 0,
+            "assignedTasks": 0,
+            "finishedTasks": 1008,
+            "avgTaskRespondTimeMs": 48632,
+            "avgTaskReadyTimeMs": 0,
+            "avgTaskDurationMs": 627881,
+            "avgServiceTimePct": 31.71
+        }
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{getRemoteSimulationResourcePoolDetail}
+\bf{方法描述}：读取单个 ResourcePool 的任务汇总和每个资源的服务、移动、等待占比。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{runId}(String)；\texttt{componentId}(String，模型只有 1 个 ResourcePool 时可空)。
+	\item \it{出参}（\texttt{data}）：\texttt{componentId}、\texttt{taskSummary}、\texttt{resourceCount}、\texttt{resources[]}（\texttt{resourceId}、\texttt{resourceType}、\texttt{currentTaskId}、\texttt{currentDevice}、\texttt{totalTaskNum}、\texttt{serviceTimeMs}、\texttt{moveTimeMs}、\texttt{moveLoadTimeMs}、\texttt{moveUnloadTimeMs}、\texttt{waitingTimeMs}、\texttt{sumTimeMs}、\texttt{servicePct}、\texttt{waitingPct}、\texttt{movePct}）。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "runId": "",
+    "componentId": "resource-pool-id"
+}
+// 出参（data 关键字段，resources 仅列一条）
+{
+    "taskSummary": {
+        "unassigned": 0, "assigned": 0, "finished": 1008,
+        "avgRespondTimeMs": 48632,
+        "avgReadyTimeMs": 0,
+        "avgDurationMs": 627881
+    },
+    "resourceCount": 5,
+    "resources": [
+        {
+            "resourceId": "R1", "resourceType": "工具",
+            "currentTaskId": null, "currentDevice": "",
+            "serviceTimeMs": 125110752,
+            "moveTimeMs": 0, "moveLoadTimeMs": 0, "moveUnloadTimeMs": 0,
+            "waitingTimeMs": 249176802, "sumTimeMs": 374287554,
+            "servicePct": 33.4, "waitingPct": 66.6, "movePct": 0.0
+        }
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{getRemoteSimulationResourcePoolTasks}
+\bf{方法描述}：分页读取单个 ResourcePool 的任务列表，每个任务包含嵌套的 \texttt{requiredResources}。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{runId}(String)；\texttt{componentId}(String，可选)；\texttt{offset}(int，$\geq$0)；\texttt{limit}(int，1--500，必传)。
+	\item \it{出参}（\texttt{data}）：\texttt{total}、\texttt{offset}、\texttt{limit}、\texttt{returned}、\texttt{hasMore}、\texttt{nextOffset}、\texttt{tasks[]}（\texttt{taskId}、\texttt{status}、\texttt{statusDisplay}、\texttt{operationDevice}、\texttt{workplace}、\texttt{requiredResources[]}、\texttt{muIds}、\texttt{priority}、时间字段、时长字段）。
+	\item \texttt{requiredResources[]} 每项含 \texttt{resourceType}（可能为 \texttt{"*"} 或 \texttt{"A|B"}）、\texttt{orTypes}、\texttt{requiredNum}、\texttt{assignedCount}、\texttt{assignedResources}、\texttt{transportTimeMs}、\texttt{useTimeMs}。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "runId": "",
+    "componentId": "resource-pool-id",
+    "offset": 0,
+    "limit": 50
+}
+// 出参（data 关键字段，tasks 仅列一条）
+{
+    "total": 1008,
+    "offset": 0,
+    "limit": 50,
+    "returned": 50,
+    "hasMore": true,
+    "nextOffset": 50,
+    "tasks": [
+        {
+            "taskId": "ResourceCall-...",
+            "statusDisplay": "已完成",
+            "operationDevice": ".S001",
+            "workplace": ".RP02",
+            "requiredResources": [
+                {
+                    "resourceType": "工具",
+                    "orTypes": ["工具"],
+                    "requiredNum": 1,
+                    "assignedCount": 1,
+                    "assignedResources": ["R1"],
+                    "transportTimeMs": 0,
+                    "useTimeMs": 0
+                }
+            ],
+            "muIds": ["1000001"],
+            "finishTimeMs": 669439,
+            "durationMs": 669439
+        }
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsection{AGVSystem 运行数据}
+三个工具的读取时机与 WorkerPool 相同；任务列表单页上限 500 条。
+
+\subsubsection{listRemoteSimulationAGVSystems}
+\bf{方法描述}：发现模型中的 AGVSystem，返回 AGV 规模、调度规则与任务计数摘要。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)。
+	\item \it{出参}（\texttt{data}）：\texttt{count}、\texttt{systems[]}（\texttt{componentId}、\texttt{componentNo}、\texttt{agvCount}、\texttt{scheduleRule}、\texttt{scheduleRuleDisplay}、\texttt{unassignedTasks}、\texttt{assignedTasks}、\texttt{finishedTasks}、4 个平均时间、\texttt{totalMoveDistanceM}、\texttt{totalTaskNum}、\texttt{agvs[]}）。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195"
+}
+// 出参（data 关键字段）
+{
+    "count": 1,
+    "systems": [
+        {
+            "componentId": "agv-system-id",
+            "componentNo": "AGV系统",
+            "agvCount": 2,
+            "scheduleRule": 1,
+            "scheduleRuleDisplay": "随机选择",
+            "unassignedTasks": 0,
+            "assignedTasks": 0,
+            "finishedTasks": 400,
+            "avgTaskRespondTimeMs": 0,
+            "avgTaskReadyTimeMs": 55827,
+            "avgTaskWorkingTimeMs": 136489,
+            "avgTaskDurationMs": 136489,
+            "totalMoveDistanceM": 20299.188,
+            "totalTaskNum": 400,
+            "agvs": [
+                { "agvId": "AGV1", "agvType": "AGV", "utilizationPct": 67.0 }
+            ]
+        }
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{getRemoteSimulationAGVSystemDetail}
+\bf{方法描述}：读取单个 AGVSystem 的任务汇总、每台 AGV 的 15 种状态分解与实时状态。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{runId}(String)；\texttt{componentId}(String，模型只有 1 个 AGVSystem 时可空)。
+	\item \it{出参}（\texttt{data}）：\texttt{componentId}、\texttt{simTimeMs}、\texttt{validSimTimeMs}、\texttt{shiftCalendar}、\texttt{taskSummary}、\texttt{agvCount}、\texttt{agvs[]}（\texttt{agvId}、\texttt{agvType}、\texttt{name}、\texttt{currentStatus}、\texttt{currentPosition}、\texttt{entranceTimeMs}、\texttt{totalTaskNum}、\texttt{moveDistanceM}、\texttt{chargeNumber}、\texttt{batCurrCap}、\texttt{homeStation}、\texttt{battery}、\texttt{statusBreakdown}、\texttt{currentTask}）。
+	\item \texttt{statusBreakdown} 含全部 15 种 \texttt{AGVStatus}，每种输出 \texttt{xxxMs} / \texttt{xxxPct}；占比分母为 15 种状态时长之和。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "runId": "",
+    "componentId": "agv-system-id"
+}
+// 出参（data 关键字段，agvs 仅列一条）
+{
+    "simTimeMs": 48905180,
+    "shiftCalendar": null,
+    "taskSummary": {
+        "unassigned": 0, "assigned": 0, "finished": 400,
+        "avgRespondTimeMs": 0,
+        "avgReadyTimeMs": 55827,
+        "avgWorkingTimeMs": 136489,
+        "avgDurationMs": 136489
+    },
+    "agvCount": 2,
+    "agvs": [
+        {
+            "agvId": "AGV1", "agvType": "AGV",
+            "currentStatus": "SHUTDOWN",
+            "currentPosition": ".P01",
+            "totalTaskNum": 225,
+            "moveDistanceM": 12446.6,
+            "battery": { "capacityAh": 0.0, "safeCapAh": 0.0, "chargeSpeed": 0.0 },
+            "statusBreakdown": {
+                "waitingMs": 16137034, "waitingPct": 33.0,
+                "movingLoadMs": 11111798, "movingLoadPct": 22.7,
+                "movingUnloadMs": 14906348, "movingUnloadPct": 30.5
+            },
+            "currentTask": null
+        }
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
+\subsubsection{getRemoteSimulationAGVSystemTasks}
+\bf{方法描述}：分页读取单个 AGVSystem 的任务列表；合并未分配、已分配、已完成三个集合后按 \texttt{createTime}、\texttt{taskId} 排序。
+\begin{itemize}
+	\item \it{入参}：\texttt{userId}(String)；\texttt{modelId}(String)；\texttt{runId}(String)；\texttt{componentId}(String，可选)；\texttt{offset}(int，$\geq$0)；\texttt{limit}(int，1--500，必传)。
+	\item \it{出参}（\texttt{data}）：\texttt{total}、\texttt{offset}、\texttt{limit}、\texttt{returned}、\texttt{hasMore}、\texttt{nextOffset}、\texttt{tasks[]}（\texttt{taskId}、\texttt{status}、\texttt{statusDisplay}、\texttt{fromStation}、\texttt{toStation}、\texttt{routeDesc}、\texttt{source}、\texttt{dest}、\texttt{agvNo}、\texttt{priority}、\texttt{muIds}、\texttt{loadMUIds}、\texttt{unloadMUIds}、6 个时间字段、\texttt{transportDistanceM}、\texttt{responseDurationMs}、\texttt{readyDurationMs}、\texttt{workingDurationMs}、\texttt{durationMs}）。
+\end{itemize}
+入参/出参举例：
+\begin{lstlisting}
+// 入参（tools/call arguments）
+{
+    "userId": "demo-1786434116021",
+    "modelId": "a2c00999f195",
+    "runId": "",
+    "componentId": "agv-system-id",
+    "offset": 0,
+    "limit": 50
+}
+// 出参（data 关键字段，tasks 仅列一条）
+{
+    "total": 400,
+    "offset": 0,
+    "limit": 50,
+    "returned": 50,
+    "hasMore": true,
+    "nextOffset": 50,
+    "tasks": [
+        {
+            "taskId": "AGVTransport-...",
+            "statusDisplay": "已完成",
+            "fromStation": ".P05",
+            "toStation": ".P02",
+            "routeDesc": "P05→W→P01→W07→P02",
+            "source": ".立库出口缓冲区",
+            "dest": ".生产线入口",
+            "agvNo": "AGV1",
+            "muIds": ["1000001"],
+            "loadMUIds": ["1000001"],
+            "unloadMUIds": ["1000001"],
+            "transportDistanceM": 58.17,
+            "finishTimeMs": 192522,
+            "responseDurationMs": 0,
+            "readyDurationMs": 72782,
+            "workingDurationMs": 151348,
+            "durationMs": 151348
+        }
+    ]
+}
+\end{lstlisting}\vspace{-30pt}
+
 \subsection{MCP 工具的调用顺序推荐}
 以一次完整的"加载 $\rightarrow$ 运行 $\rightarrow$ 取结果 $\rightarrow$ 卸载"流程为例，推荐调用顺序如下（与 \texttt{McpClientTest} 的实测顺序一致）：
 \begin{lstlisting}
@@ -846,12 +1301,16 @@ resumeRemoteSimulation           // 15.（可选）恢复
 stopRemoteSimulation             // 16. 手动停止；或等待状态变为 FINISHED
 getRemoteSimulationResultSnapshot          // 17. 仿真结束后取第一层结果摘要
 getRemoteSimulationResultDatasetPage       // 18. 按 datasets 目录分页取第二层明细
-resetRemoteSimulation            // 19.（可选）重置，可再次 start 新一轮
-unloadRemoteSimulationModel      // 20. 卸载模型
+getRemoteSimulationResultChartGanttDevicePage  // 19.（可选）设备甘特图分页
+listRemoteSimulationWorkerPools / listRemoteSimulationResourcePools / listRemoteSimulationAGVSystems  // 20.（可选）发现组件
+getRemoteSimulationWorkerPoolDetail / getRemoteSimulationResourcePoolDetail / getRemoteSimulationAGVSystemDetail  // 21.（可选）组件明细
+getRemoteSimulationWorkerPoolTasks / getRemoteSimulationResourcePoolTasks / getRemoteSimulationAGVSystemTasks  // 22.（可选）任务列表分页
+resetRemoteSimulation            // 23.（可选）重置，可再次 start 新一轮
+unloadRemoteSimulationModel      // 24. 卸载模型
 \end{lstlisting}\vspace{-30pt}
 说明：
 \begin{itemize}
-	\item 步骤 5--9、12--15、19 按业务需要选用；其余为完整生命周期必经步骤。
+	\item 步骤 5--9、12--15、19--23 按业务需要选用；其余为完整生命周期必经步骤。
 	\item 需要浏览器动画时，\texttt{startRemoteSimulation} 传 \texttt{showAnimation=true}（或启动后用 \texttt{setRemoteSimulationAnimationEnabled} 开启），并在启动前完成步骤 6--7。
 	\item 修改参数后，须先 \texttt{resetRemoteSimulation} 再 \texttt{startRemoteSimulation}，新一轮仿真才会使用最新参数。
 \end{itemize}

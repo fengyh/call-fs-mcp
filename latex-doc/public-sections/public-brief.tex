@@ -42,7 +42,7 @@ MCP 支持多种传输方式：\it{stdio}（本地子进程通信）、\it{HTTP}
 \subsection{FS 仿真控制 MCP 接口介绍}
 \bf{FactorySimulation（FS）}是面向工厂物流与生产系统的仿真引擎。FS 的 MCP Server 运行在仿真引擎进程中，默认端点地址为 \texttt{http://127.0.0.1:8081/mcp}（生产环境可按部署修改），鉴权方式为请求头 \texttt{X-API-Key}，请求体为 JSON-RPC 2.0 格式。会话初始化先发送 \texttt{initialize}，再发送 \texttt{notifications/initialized}，之后通过 \texttt{tools/list} 查询工具清单、通过 \texttt{tools/call} 调用具体工具。
 
-FS 仿真控制 MCP 接口按功能分为以下七类：
+FS 仿真控制 MCP 接口按功能分为以下十类：
 \begin{table}[h!]
 \scriptsize
 \centering
@@ -55,7 +55,10 @@ FS 仿真控制 MCP 接口按功能分为以下七类：
     模型管理 & \texttt{loadRemoteSimulationModel}、\texttt{unloadRemoteSimulationModel}、\texttt{listRemoteSimulationModels} & 加载/卸载模型，列出 MCP Server 内存中已加载的模型 \\
     运行控制 & \texttt{startRemoteSimulation}、\texttt{pauseRemoteSimulation}、\texttt{resumeRemoteSimulation}、\texttt{resetRemoteSimulation}、\texttt{stopRemoteSimulation} & 仿真启动、暂停、恢复、重置、停止 \\
     状态查询 & \texttt{getRemoteSimulationStatus} & 查询模型状态与运行信息 \\
-    结果获取 & \texttt{getRemoteSimulationResultSnapshot}、\texttt{getRemoteSimulationResultDatasetPage} & 第一层有界结果摘要 + 第二层全量数据分页读取 \\
+    结果获取 & \texttt{getRemoteSimulationResultSnapshot}、\texttt{getRemoteSimulationResultDatasetPage}、\texttt{getRemoteSimulationEnergyPowerCurvePage}、\texttt{getRemoteSimulationResultChartGanttDevicePage} & 第一层有界结果摘要、第二层全量数据分页、能耗功率曲线、设备甘特图 \\
+    工人池数据 & \texttt{listRemoteSimulationWorkerPools}、\texttt{getRemoteSimulationWorkerPoolDetail}、\texttt{getRemoteSimulationWorkerPoolTasks} & 工人池摘要、工人利用率明细、任务列表分页 \\
+    资源池数据 & \texttt{listRemoteSimulationResourcePools}、\texttt{getRemoteSimulationResourcePoolDetail}、\texttt{getRemoteSimulationResourcePoolTasks} & 资源池摘要、资源利用率明细、任务列表分页 \\
+    AGV系统数据 & \texttt{listRemoteSimulationAGVSystems}、\texttt{getRemoteSimulationAGVSystemDetail}、\texttt{getRemoteSimulationAGVSystemTasks} & AGV 系统摘要、AGV 状态与利用率明细、任务列表分页 \\
     参数表读写 & \texttt{listRemoteSimulationParameterTables}、\texttt{getRemoteSimulationParameterSnapshot}、\texttt{updateRemoteSimulationParameterTable}、\texttt{updateRemoteSimulationParameterCells}、\texttt{batchUpdateRemoteSimulationParameterTable} & 读取/修改模型中由 \texttt{mcp} 表开放出来的参数表 \\
 	动画与画面 & \texttt{listRemoteSimulationAnimationLayers}、\texttt{selectRemoteSimulationAnimationLayer}、\texttt{setRemoteSimulationAnimationEnabled}、\texttt{setRemoteSimulationAccelerateFactor}、\texttt{getSvgPicture} & 动画层级、推流开关、加速因子、SVG 画面 \\
     时间轴对象/事件 & \texttt{getRemoteSimulationObjectPositionSnapshot}、\texttt{getRemoteSimulationEvents}、\texttt{getRemoteSimulationObjectPositionSnapshotPage}、\texttt{setRemoteSimulationEventPublishing} & 按仿真时间查询对象位置快照与仿真事件 \\
