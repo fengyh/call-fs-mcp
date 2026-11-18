@@ -646,7 +646,8 @@ export const tableTitleKeyMap = {
           type: "bar",
           x: "minTime",
           y: ["count"],
-          title: "WIP 时长分布"
+          title: "WIP 时长分布",
+          dualWip: true
         },
         columns: {
           minTime: {

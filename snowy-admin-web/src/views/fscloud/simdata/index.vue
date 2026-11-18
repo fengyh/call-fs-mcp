@@ -179,6 +179,10 @@
 										:chartTotal="chartMetaOf(ds.tabKey).total"
 										:chartSampled="chartMetaOf(ds.tabKey).sampled"
 										:chartLoading="chartLoading"
+										:chartWindowPageCount="chartWindowPageCount('basic', ds.tabKey)"
+										:chartWindowPos="chartWindowPos"
+										:chartWindowLabel="chartWindowLabel('basic', ds.tabKey)"
+										@windowChange="onChartWindowChange"
 										@pageChange="onDatasetPageChange"
 										@viewChange="onViewChange"
 									/>
@@ -214,6 +218,10 @@
 										:chartTotal="chartMetaOf(ds.tabKey).total"
 										:chartSampled="chartMetaOf(ds.tabKey).sampled"
 										:chartLoading="chartLoading"
+										:chartWindowPageCount="chartWindowPageCount('lean', ds.tabKey)"
+										:chartWindowPos="chartWindowPos"
+										:chartWindowLabel="chartWindowLabel('lean', ds.tabKey)"
+										@windowChange="onChartWindowChange"
 										@pageChange="onDatasetPageChange"
 										@viewChange="onViewChange"
 									/>
@@ -249,6 +257,10 @@
 										:chartTotal="chartMetaOf(ds.tabKey).total"
 										:chartSampled="chartMetaOf(ds.tabKey).sampled"
 										:chartLoading="chartLoading"
+										:chartWindowPageCount="chartWindowPageCount('energy', ds.tabKey)"
+										:chartWindowPos="chartWindowPos"
+										:chartWindowLabel="chartWindowLabel('energy', ds.tabKey)"
+										@windowChange="onChartWindowChange"
 										@pageChange="onDatasetPageChange"
 										@viewChange="onViewChange"
 									/>
@@ -317,20 +329,23 @@
 	// ====== 表格 / 图表视图 ======
 	/** 图表最大点数（与后端 getResultChartData 的 maxPoints 对应，超出由服务端等距抽样） */
 	const CHART_MAX_POINTS = 2000
+	/** 超过该页数时图表不再全量取数，改为按窗口滑动取数 */
+	const CHART_WINDOW_PAGE_THRESHOLD = 50
+	/** 窗口固定显示多少页 */
+	const CHART_WINDOW_PAGES = 50
+	/** 单次分页请求最大行数（后端 getResultDatasetPage 上限 1000） */
+	const CHART_FETCH_CHUNK = 1000
 	/** 当前视图：table | chart（全局一个，与 pyqt 的「表格/图表」切换按钮一致） */
 	const viewMode = ref('table')
-	/** 图表数据缓存 { "group:dataset": { rows, total, sampled } }（成功与失败都缓存，避免重复请求） */
+	/** 图表窗口位置：占全量页数的百分比，1~100（默认显示末尾窗口） */
+	const chartWindowPos = ref(100)
+	/** 图表数据缓存 { "group:dataset:windowKey": { rows, total, sampled } }（成功与失败都缓存，避免重复请求） */
 	const chartCache = ref({})
-	/** 正在请求的 key 集合 { "group:dataset": true }：多个 dataset 之间不互相阻塞 */
+	/** 正在请求的 key 集合 { "group:dataset:windowKey": true }：多个 dataset 之间不互相阻塞 */
 	const chartPending = ref({})
 	/** 数据源版本号：切快照/取结果后丢弃仍在飞行中的旧请求结果 */
 	const chartEpoch = ref(0)
 	const chartLoading = computed(() => Object.keys(chartPending.value).length > 0)
-
-	/** 缓存 key 必须带 group：overview/basic 下存在同名 dataset（taktTime/uph/utilRate） */
-	function chartCacheKey(groupKey, datasetKey) {
-		return `${groupKey}:${datasetKey}`
-	}
 
 	/** 当前可见 tab 对应的 group + dataset（图表链路唯一真源，不靠 dataset 名猜分组） */
 	function activeChartTarget() {
@@ -354,11 +369,47 @@
 		return mode.value === 'single' && !!datasetChart(groupKey, datasetKey)
 	}
 
+	/** 当前 dataset 的总页数（表格已按页加载过才能拿到） */
+	function chartWindowPageCount(groupKey, datasetKey) {
+		if (datasetKey !== activeDataset.value) return 0
+		return Math.ceil((datasetTotal.value || 0) / (datasetPageSize.value || 25))
+	}
+
+	/** 超过阈值的大数据集改为窗口取数：总览是内联摘要，不走窗口 */
+	function chartIsWindowed(groupKey, datasetKey) {
+		if (!isChartable(groupKey, datasetKey)) return false
+		if (groupKey === 'overview' || groupKey === 'custom') return false
+		// dualWip 双图（wip.distribution）需按全量数据做分布/阶梯聚合，按窗口截断会得到错误统计
+		if (datasetChart(groupKey, datasetKey)?.dualWip) return false
+		return chartWindowPageCount(groupKey, datasetKey) > CHART_WINDOW_PAGE_THRESHOLD
+	}
+
+	/** 滑动条对应的实际页区间文案 */
+	function chartWindowLabel(groupKey, datasetKey) {
+		if (!chartIsWindowed(groupKey, datasetKey)) return ''
+		const totalPages = chartWindowPageCount(groupKey, datasetKey)
+		const windowPages = Math.min(CHART_WINDOW_PAGES, totalPages)
+		const start = Math.round((chartWindowPos.value / 100) * (totalPages - windowPages)) + 1
+		return `${start}-${start + windowPages - 1}`
+	}
+
+	function chartCacheKey(groupKey, datasetKey, windowKey = 'all') {
+		return `${groupKey}:${datasetKey}:${windowKey}`
+	}
+	function chartWindowKeyOf(datasetKey) {
+		return chartIsWindowed(currentGroupKey.value, datasetKey) ? `w${chartWindowPos.value}` : 'all'
+	}
+
 	function chartRowsOf(datasetKey) {
-		return chartCache.value[chartCacheKey(currentGroupKey.value, datasetKey)]?.rows || []
+		return chartCache.value[chartCacheKey(currentGroupKey.value, datasetKey, chartWindowKeyOf(datasetKey))]?.rows || []
 	}
 	function chartMetaOf(datasetKey) {
-		return chartCache.value[chartCacheKey(currentGroupKey.value, datasetKey)] || { total: 0, sampled: false }
+		return (
+			chartCache.value[chartCacheKey(currentGroupKey.value, datasetKey, chartWindowKeyOf(datasetKey))] || {
+				total: 0,
+				sampled: false
+			}
+		)
 	}
 
 	/** 切换视图：切到图表时按需取【当前可见 tab】的全量图表数据 */
@@ -377,25 +428,61 @@
 		if (viewMode.value === 'chart') ensureChartData(groupKey, dataset)
 	}
 
-	/** 按需取图表数据：实时快照走 MCP（后端循环分页取全量），历史快照传 id 走数据库 */
+	/** 窗口取数：按行 offset 分块调用现有分页接口，累加指定行数（不触发后端全量拉取） */
+	async function fetchChartWindowRows(dataset, offset, rowCount) {
+		const rows = []
+		let fetched = 0
+		while (fetched < rowCount) {
+			const chunk = Math.min(CHART_FETCH_CHUNK, rowCount - fetched)
+			const payload = selectedKey.value === '__current__'
+				? {
+					modelId: myModel.modelId, runId: myModel.runId || '', dataset, limit: chunk, offset: offset + fetched
+				}
+				: { id: selectedKey.value, dataset, limit: chunk, offset: offset + fetched }
+			const res = selectedKey.value === '__current__'
+				? await fsSimApi.fsSimGetResultDatasetPage(payload)
+				: await fsSimApi.fsSimGetResultDatasetPageInDb(payload)
+			const part = res?.rows || []
+			rows.push(...part)
+			fetched += part.length
+			if (part.length < chunk) break
+		}
+		return rows
+	}
+
+	/** 按需取图表数据：大数据集按窗口分页取数，小数据集仍走后端全量+降采样接口 */
 	async function ensureChartData(groupKey, dataset) {
 		if (!groupKey || !dataset || !isChartable(groupKey, dataset)) return
-		const key = chartCacheKey(groupKey, dataset)
+		const windowed = chartIsWindowed(groupKey, dataset)
+		const windowKey = windowed ? `w${chartWindowPos.value}` : 'all'
+		const key = chartCacheKey(groupKey, dataset, windowKey)
 		if (chartCache.value[key] || chartPending.value[key]) return
 		chartPending.value = { ...chartPending.value, [key]: true }
 		const epoch = chartEpoch.value
 		try {
-			// xColumn：后端据此把「同一个 x 值的全部行」视为不可拆单位，
-			// 时间序列同一时刻的多个点（功率曲线的垂直跳变/阶梯）不会因降采样被拆散
-			const xColumn = datasetChart(groupKey, dataset)?.x || ''
-			const payload = selectedKey.value === '__current__'
-				? { modelId: myModel.modelId, runId: myModel.runId || '', dataset, maxPoints: CHART_MAX_POINTS, xColumn }
-				: { id: selectedKey.value, dataset, maxPoints: CHART_MAX_POINTS, xColumn }
-			const res = await fsSimApi.fsSimGetResultChartData(payload)
-			if (epoch === chartEpoch.value) setChartCache(groupKey, dataset, res)
+			let res
+			if (windowed) {
+				const pageSize = datasetPageSize.value || 25
+				const totalPages = chartWindowPageCount(groupKey, dataset)
+				const windowPages = Math.min(CHART_WINDOW_PAGES, totalPages)
+				const startPage = Math.round((chartWindowPos.value / 100) * (totalPages - windowPages))
+				const offset = startPage * pageSize
+				const rowCount = Math.min(windowPages * pageSize, Math.max(0, datasetTotal.value - offset))
+				const rows = await fetchChartWindowRows(dataset, offset, rowCount)
+				res = { rows, total: datasetTotal.value, sampled: false }
+			} else {
+				// xColumn：后端据此把「同一个 x 值的全部行」视为不可拆单位，
+				// 时间序列同一时刻的多个点（功率曲线的垂直跳变/阶梯）不会因降采样被拆散
+				const xColumn = datasetChart(groupKey, dataset)?.x || ''
+				const payload = selectedKey.value === '__current__'
+					? { modelId: myModel.modelId, runId: myModel.runId || '', dataset, maxPoints: CHART_MAX_POINTS, xColumn }
+					: { id: selectedKey.value, dataset, maxPoints: CHART_MAX_POINTS, xColumn }
+				res = await fsSimApi.fsSimGetResultChartData(payload)
+			}
+			if (epoch === chartEpoch.value) setChartCache(groupKey, dataset, res, windowKey)
 		} catch (err) {
 			if (epoch === chartEpoch.value) {
-				setChartCache(groupKey, dataset, null)
+				setChartCache(groupKey, dataset, null, windowKey)
 				message.error('获取图表数据失败：' + (err?.msg || err?.message || '请求异常'))
 			}
 		} finally {
@@ -405,10 +492,17 @@
 		}
 	}
 
-	function setChartCache(groupKey, dataset, res) {
+	/** 拖动窗口滑动条：按新位置重新取数 */
+	function onChartWindowChange(pos) {
+		chartWindowPos.value = Number(pos) || 1
+		const t = activeChartTarget()
+		ensureChartData(t.groupKey, t.datasetKey)
+	}
+
+	function setChartCache(groupKey, dataset, res, windowKey = 'all') {
 		chartCache.value = {
 			...chartCache.value,
-			[chartCacheKey(groupKey, dataset)]: {
+			[chartCacheKey(groupKey, dataset, windowKey)]: {
 				rows: res?.rows || [],
 				total: res?.total ?? 0,
 				sampled: !!res?.sampled
@@ -421,6 +515,7 @@
 		chartEpoch.value += 1
 		chartCache.value = {}
 		chartPending.value = {}
+		chartWindowPos.value = 100
 		viewMode.value = 'table'
 	}
 
