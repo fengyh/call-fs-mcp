@@ -143,6 +143,7 @@
 		x: 'wip',
 		y: [...selectedObjects.value],
 		stacked: false,
+		legendGrid: 2,
 		title: 'WIP 停留分布（占比 %）'
 	}))
 	const distColumns = computed(() => {
@@ -174,6 +175,7 @@
 		y: ['wip'],
 		groupBy: 'objectName',
 		step: 'end',
+		legendGrid: 2,
 		title: 'WIP 阶梯趋势'
 	}))
 	const stepColumns = {

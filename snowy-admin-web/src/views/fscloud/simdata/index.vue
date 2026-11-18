@@ -59,6 +59,12 @@
 			<div class="simdata-right">
 				<!-- 总览信息（单快照模式 或 对比模式的结果对照页） -->
 				<a-card v-if="result && showResultView" size="small" class="overview-card">
+					<template #extra>
+						<a-button type="link" size="small" class="overview-toggle" @click="overviewExpanded = !overviewExpanded">
+							<component :is="overviewExpanded ? UpOutlined : DownOutlined" />
+							{{ overviewExpanded ? '收缩' : '展开' }}
+						</a-button>
+					</template>
 					<a-descriptions :column="3" size="small" bordered>
 						<a-descriptions-item label="模型文件名">{{ result.modelFileName || '-' }}</a-descriptions-item>
 						<a-descriptions-item label="仿真状态">
@@ -67,13 +73,15 @@
 						<a-descriptions-item label="结果状态">
 							<a-tag :color="result.resultStatus === 'READY' ? 'green' : 'orange'">{{ result.resultStatus }}</a-tag>
 						</a-descriptions-item>
-						<a-descriptions-item label="仿真时长">{{ formatTime(result.simTime) }}</a-descriptions-item>
-						<a-descriptions-item label="开始时间">{{ formatTs(result.startedAt) }}</a-descriptions-item>
-						<a-descriptions-item label="结束时间">{{ formatTs(result.finishedAt) }}</a-descriptions-item>
-						<a-descriptions-item label="总产量">{{ result.totalOutput }}</a-descriptions-item>
-						<a-descriptions-item label="产量/小时">{{ result.throughputPerHour }}</a-descriptions-item>
-						<a-descriptions-item label="当前 WIP">{{ result.currentWip }}</a-descriptions-item>
-						<a-descriptions-item label="运行 ID" :span="3">{{ result.runId || '-' }}</a-descriptions-item>
+						<template v-if="overviewExpanded">
+							<a-descriptions-item label="仿真时长">{{ formatTime(result.simTime) }}</a-descriptions-item>
+							<a-descriptions-item label="开始时间">{{ formatTs(result.startedAt) }}</a-descriptions-item>
+							<a-descriptions-item label="结束时间">{{ formatTs(result.finishedAt) }}</a-descriptions-item>
+							<a-descriptions-item label="总产量">{{ result.totalOutput }}</a-descriptions-item>
+							<a-descriptions-item label="产量/小时">{{ result.throughputPerHour }}</a-descriptions-item>
+							<a-descriptions-item label="当前 WIP">{{ result.currentWip }}</a-descriptions-item>
+							<a-descriptions-item label="运行 ID" :span="3">{{ result.runId || '-' }}</a-descriptions-item>
+						</template>
 					</a-descriptions>
 				</a-card>
 
@@ -302,6 +310,7 @@
 	import { useMyModelStore } from '@/store/myModel'
 	import fsSimApi from '@/api/fscloud/fsSimApi'
 	import { message, Modal } from 'ant-design-vue'
+	import { UpOutlined, DownOutlined } from '@ant-design/icons-vue'
 	import DataViewPanel from './DataViewPanel.vue'
 	import ResultTable from './ResultTable.vue'
 	import LeanMetricsTable from './LeanMetricsTable.vue'
@@ -313,6 +322,8 @@
 	const loading = ref(false)
 	const saving = ref(false)
 	const result = ref(null)
+	/** 总览信息 card 是否展开：默认收缩只显示第一行 */
+	const overviewExpanded = ref(false)
 	const tab1Key = ref('overview')
 	const tab2Key = ref('taktTime')
 	const basicTab = ref('partCycleTime')
@@ -1256,8 +1267,24 @@
 	.compare-hint { padding: 8px; font-size: 12px; color: #d46b08; }
 	.simdata-right { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
 	.overview-card { flex-shrink: 0; }
-	.overview-card :deep(.ant-descriptions-item-label) { font-weight: 600; width: 130px; }
+	.overview-card :deep(.ant-card-body) { padding: 4px 10px; }
+	.overview-card :deep(.ant-descriptions-item-label) { font-weight: 600; width: 120px; }
+	/* 总览区紧凑：缩小单元格上下内边距与行高（行距主要来源），并压扁内部 tag */
+	.overview-card :deep(.ant-descriptions-item-label),
+	.overview-card :deep(.ant-descriptions-item-content) {
+		padding: 1px 8px;
+		line-height: 16px;
+	}
+	.overview-card :deep(.ant-descriptions-item-content .ant-tag) {
+		line-height: 16px;
+		padding: 0 5px;
+		margin: 0;
+	}
 	.simdata-tabs { flex: 1; }
+	/* 一级结果 tabs：缩小 tab 项底部 padding（原 0 0 12px 0 过大）。
+	   一级 tabs 外层还包着一个 a-card，故用 .ant-card-body > .ant-tabs 精确定位，
+	   避免误伤 tabpane 内的二级 small tabs */
+	.simdata-tabs :deep(.ant-card-body > .ant-tabs > .ant-tabs-nav .ant-tabs-tab) { padding: 4px 0 !important; }
 	.simdata-tabs :deep(.ant-card-body) { padding: 12px; }
 	/* 对比模式二级 tabs（参数对照/结果对照）：蓝色系，与内层结果 tabs（默认白色）区分 */
 	.compare-view-tabs :deep(.ant-tabs-tab) {
