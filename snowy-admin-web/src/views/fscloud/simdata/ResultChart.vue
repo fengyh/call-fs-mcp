@@ -1,6 +1,13 @@
 <template>
 	<div class="rc-container">
 		<div v-if="hint" class="rc-hint">{{ hint }}</div>
+		<!-- chart.legendGrid>0 时用 HTML 网格图例替代 ECharts 内置图例：每行固定 N 个对象、不分页 -->
+		<div v-if="gridLegend.length" class="rc-grid-legend" :style="{ gridTemplateColumns: `repeat(${legendCols}, minmax(0, 1fr))` }">
+			<span v-for="(item, i) in gridLegend" :key="i" class="rc-grid-legend-item" :title="item.name">
+				<i class="rc-grid-legend-marker" :style="{ background: item.color }"></i>
+				<span class="rc-grid-legend-text">{{ item.name }}</span>
+			</span>
+		</div>
 		<div v-show="hasData" ref="chartRef" class="rc-chart"></div>
 		<div v-if="!hasData" class="rc-empty">暂无图表数据</div>
 	</div>
@@ -28,8 +35,10 @@
 
 	echarts.use([BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, CanvasRenderer])
 
-	/** 柱状图类别过多时自动开启的缩放窗口大小 */
-	const BAR_ZOOM_THRESHOLD = 50
+/** 柱状图类别过多时自动开启的缩放窗口大小 */
+const BAR_ZOOM_THRESHOLD = 50
+/** 系列配色：ECharts 自动按顺序分配，HTML 网格图例复用同一数组保证颜色一致 */
+const CHART_COLORS = ['#3B82F6', '#22C55E', '#F59E0B', '#EF4444', '#A855F7', '#06B6D4', '#84CC16', '#EC4899']
 
 	const props = defineProps({
 		/** chart 配置（TableTitleKeyMap.js 的 dataset.chart） */
@@ -44,9 +53,14 @@
 		sampled: { type: Boolean, default: false }
 	})
 
-	const chartRef = ref(null)
-	let inst = null
-	let observer = null
+const chartRef = ref(null)
+let inst = null
+let observer = null
+
+/** HTML 网格图例项 [{ name, color }]（仅 chart.legendGrid>0 时填充） */
+const gridLegend = ref([])
+/** 网格图例每行对象数（由 chart.legendGrid 指定，默认 2） */
+const legendCols = computed(() => Math.max(1, Number(props.chart?.legendGrid) || 2))
 
 	const hasData = computed(() =>
 		!!props.chart && Array.isArray(props.rows) && props.rows.length > 0
@@ -112,6 +126,9 @@
 		const isLine = chart.type === 'line'
 		const xMeta = metaOf(xKey)
 		const xIsTime = xMeta.type === 't'
+		/** 是否启用 HTML 网格图例（每行 legendCols 个、不分页） */
+		const useGridLegend = Number(chart.legendGrid) > 0
+		const legendItems = []
 		// line 图补全 tooltip：时间 + 设备/节点名 + 值（同一时刻多个对象的点也能区分）
 		const lineLabelKey = isLine ? probeLabelKey(props.rows, chart) : ''
 		const option = {
@@ -136,15 +153,15 @@
 					}
 				}
 				: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-			legend: { show: yKeys.length > 1 || !!chart.groupBy, top: chart.title ? 26 : 8, type: 'scroll' },
+			legend: { show: !useGridLegend && (yKeys.length > 1 || !!chart.groupBy), top: chart.title ? 26 : 8, type: 'scroll' },
 			grid: {
 				left: 60,
 				right: 30,
 				bottom: isLine ? 56 : 80,
-				top: (chart.title ? 60 : 40) + (yKeys.length > 1 || chart.groupBy ? 12 : 0),
+				top: (chart.title ? 60 : 40) + (!useGridLegend && (yKeys.length > 1 || chart.groupBy) ? 12 : 0),
 				containLabel: true
 			},
-			color: ['#3B82F6', '#22C55E', '#F59E0B', '#EF4444', '#A855F7', '#06B6D4', '#84CC16', '#EC4899'],
+			color: CHART_COLORS,
 			series: []
 		}
 
@@ -185,8 +202,11 @@
 				}
 				if (!points.length) continue
 				points.sort((a, b) => (a[0] - b[0]) || (a[2] - b[2]))
+				const seriesName = groupKey ? String(group) : axisName(yKeys[0])
+				const seriesColor = CHART_COLORS[idx % CHART_COLORS.length]
+				if (useGridLegend) legendItems.push({ name: seriesName, color: seriesColor })
 				option.series.push({
-					name: groupKey ? String(group) : axisName(yKeys[0]),
+					name: seriesName,
 					type: 'line',
 					// 阶梯（方波）：水平走到下一点的 x 再垂直跳变，形成直上直下的台阶；
 					// 值为 false 可退回普通斜线折线；字符串则按 ECharts step 模式绘制
@@ -195,8 +215,9 @@
 					smooth: false,
 					lineStyle: { width: 1.4 },
 					data: points.map(p => [p[0], p[1], p[2], p[3]]),
-					color: option.color[idx++ % option.color.length]
+					color: seriesColor
 				})
+				idx++
 			}
 		} else {
 			const labels = props.rows.map(row => cellLabel(row, xKey))
@@ -223,17 +244,23 @@
 			}
 			const stacked = !!chart.stacked
 			const single = yKeys.length === 1
-			for (const key of yKeys) {
+			yKeys.forEach((key, keyIdx) => {
+				const name = axisName(key)
+				const color = CHART_COLORS[keyIdx % CHART_COLORS.length]
+				if (useGridLegend) legendItems.push({ name: metaOf(key).title || key, color })
 				option.series.push({
-					name: axisName(key),
+					name,
 					type: 'bar',
 					stack: stacked ? 'total' : undefined,
 					barMaxWidth: single ? 46 : 28,
 					data: props.rows.map(row => cellNumber(row, key)),
-					emphasis: { focus: 'series' }
+					emphasis: { focus: 'series' },
+					color
 				})
-			}
+			})
 		}
+		// 网格图例：仅在启用时赋值，其它图表保持为空（不渲染 HTML 图例）
+		gridLegend.value = useGridLegend ? legendItems : []
 		return option
 	}
 
@@ -267,4 +294,33 @@
 	.rc-hint { font-size: 12px; color: #d46b08; margin-bottom: 4px; }
 	.rc-chart { flex: 1; width: 100%; min-height: 360px; }
 	.rc-empty { padding: 60px 0; text-align: center; color: #999; }
+	/* HTML 网格图例：每行固定 N 个对象（由 legendGrid 决定），不分页；名称过长省略，悬浮看全称 */
+	.rc-grid-legend {
+		display: grid;
+		gap: 2px 10px;
+		padding: 2px 8px 0;
+		flex-shrink: 0;
+		min-height: 20px;
+	}
+	.rc-grid-legend-item {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		min-width: 0;
+		font-size: 12px;
+		line-height: 18px;
+		color: #595959;
+		cursor: default;
+	}
+	.rc-grid-legend-marker {
+		flex: 0 0 10px;
+		width: 10px;
+		height: 10px;
+		border-radius: 2px;
+	}
+	.rc-grid-legend-text {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
 </style>
