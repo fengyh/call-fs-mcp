@@ -6,9 +6,21 @@
 				<a-radio-button value="chart">图表</a-radio-button>
 			</a-radio-group>
 		</div>
+		<div v-if="showChart && chartWindowPageCount > 0 && !chartIsDual" class="dv-window">
+			<span class="dv-window-label">显示区间：第 {{ chartWindowLabel }} 页 / 共 {{ chartWindowPageCount }} 页</span>
+			<a-slider
+				:value="chartWindowPos"
+				:min="1"
+				:max="100"
+				:step="1"
+				class="dv-window-slider"
+				@change="(v) => emit('windowChange', v)"
+			/>
+		</div>
 		<a-spin :spinning="showChart && chartLoading">
+			<WipDualChart v-if="showChart && chartIsDual" :rows="chartRows" />
 			<ResultChart
-				v-if="showChart"
+				v-else-if="showChart"
 				:chart="chartCfg"
 				:rows="chartRows"
 				:columns="columns"
@@ -44,6 +56,7 @@
 	import { computed } from 'vue'
 	import ResultTable from './ResultTable.vue'
 	import ResultChart from './ResultChart.vue'
+	import WipDualChart from './WipDualChart.vue'
 	import { tableTitleKeyMap } from './TableTitleKeyMap.js'
 
 	const props = defineProps({
@@ -65,13 +78,21 @@
 		chartRows: { type: Array, default: () => [] },
 		chartTotal: { type: Number, default: 0 },
 		chartSampled: { type: Boolean, default: false },
-		chartLoading: { type: Boolean, default: false }
+		chartLoading: { type: Boolean, default: false },
+		/** 超过该页数时图表改为窗口取数，0 表示窗口滑动条不显示 */
+		chartWindowPageCount: { type: Number, default: 0 },
+		/** 窗口位置（占全量页数的百分比 1~100） */
+		chartWindowPos: { type: Number, default: 100 },
+		/** 窗口区间文案，如 "1951-2000" */
+		chartWindowLabel: { type: String, default: '' }
 	})
 
-	const emit = defineEmits(['pageChange', 'viewChange'])
+	const emit = defineEmits(['pageChange', 'viewChange', 'windowChange'])
 
 	const chartCfg = computed(() => tableTitleKeyMap[props.groupKey]?.[props.datasetKey]?.chart || null)
 	const columns = computed(() => tableTitleKeyMap[props.groupKey]?.[props.datasetKey]?.columns || {})
+	/** chart.dualWip=true 的 dataset（wip.distribution）改用「对象筛选 + 分布图/阶梯图」双图组件 */
+	const chartIsDual = computed(() => !!chartCfg.value?.dualWip)
 	const showChart = computed(() => props.chartable && props.chartMode === 'chart' && !!chartCfg.value)
 
 	function onSwitch(e) {
@@ -82,4 +103,21 @@
 <style scoped>
 	.dv-panel { display: flex; flex-direction: column; gap: 8px; }
 	.dv-switch { display: flex; justify-content: flex-end; }
+	.dv-window {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 0 8px;
+	}
+	.dv-window-label {
+		flex-shrink: 0;
+		font-size: 12px;
+		color: #666;
+		white-space: nowrap;
+	}
+	.dv-window-slider {
+		flex: 1;
+		min-width: 120px;
+		margin: 0;
+	}
 </style>
