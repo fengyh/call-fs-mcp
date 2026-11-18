@@ -319,11 +319,30 @@
 	const CHART_MAX_POINTS = 2000
 	/** 当前视图：table | chart（全局一个，与 pyqt 的「表格/图表」切换按钮一致） */
 	const viewMode = ref('table')
-	/** 图表数据缓存 { dataset: { rows, total, sampled } }（成功与失败都缓存，避免重复请求） */
+	/** 图表数据缓存 { "group:dataset": { rows, total, sampled } }（成功与失败都缓存，避免重复请求） */
 	const chartCache = ref({})
-	/** 正在请求的 dataset 集合 { dataset: true }：多个 dataset 之间不互相阻塞 */
+	/** 正在请求的 key 集合 { "group:dataset": true }：多个 dataset 之间不互相阻塞 */
 	const chartPending = ref({})
+	/** 数据源版本号：切快照/取结果后丢弃仍在飞行中的旧请求结果 */
+	const chartEpoch = ref(0)
 	const chartLoading = computed(() => Object.keys(chartPending.value).length > 0)
+
+	/** 缓存 key 必须带 group：overview/basic 下存在同名 dataset（taktTime/uph/utilRate） */
+	function chartCacheKey(groupKey, datasetKey) {
+		return `${groupKey}:${datasetKey}`
+	}
+
+	/** 当前可见 tab 对应的 group + dataset（图表链路唯一真源，不靠 dataset 名猜分组） */
+	function activeChartTarget() {
+		const groupKey = tab1Key.value
+		const activeOfGroup = {
+			overview: tab2Key.value,
+			basic: basicTab.value,
+			lean: leanTab.value,
+			energy: energyTab.value
+		}
+		return { groupKey, datasetKey: activeOfGroup[groupKey] || '' }
+	}
 
 	/** 该 dataset 的图表配置（TableTitleKeyMap.js），无配置返回 null */
 	function datasetChart(groupKey, datasetKey) {
@@ -336,51 +355,60 @@
 	}
 
 	function chartRowsOf(datasetKey) {
-		return chartCache.value[datasetKey]?.rows || []
+		return chartCache.value[chartCacheKey(currentGroupKey.value, datasetKey)]?.rows || []
 	}
 	function chartMetaOf(datasetKey) {
-		return chartCache.value[datasetKey] || { total: 0, sampled: false }
+		return chartCache.value[chartCacheKey(currentGroupKey.value, datasetKey)] || { total: 0, sampled: false }
 	}
 
-	/** 切换视图：切到图表时按需取该 dataset 的全量图表数据 */
+	/** 切换视图：切到图表时按需取【当前可见 tab】的全量图表数据 */
 	function onViewChange(m) {
 		viewMode.value = m
-		if (m === 'chart') ensureChartData(activeDataset.value)
+		if (m === 'chart') {
+			const t = activeChartTarget()
+			activeDataset.value = t.datasetKey
+			currentGroupKey.value = t.groupKey
+			ensureChartData(t.groupKey, t.datasetKey)
+		}
 	}
 
 	/** 已切到图表视图时，切换 dataset 需要取对应图表数据 */
-	function ensureChartIfNeeded(dataset) {
-		if (viewMode.value === 'chart') ensureChartData(dataset)
+	function ensureChartIfNeeded(groupKey, dataset) {
+		if (viewMode.value === 'chart') ensureChartData(groupKey, dataset)
 	}
 
 	/** 按需取图表数据：实时快照走 MCP（后端循环分页取全量），历史快照传 id 走数据库 */
-	async function ensureChartData(dataset) {
-		if (!dataset || !isChartable(currentGroupFor(dataset), dataset)) return
-		if (chartCache.value[dataset] || chartPending.value[dataset]) return
-		chartPending.value = { ...chartPending.value, [dataset]: true }
+	async function ensureChartData(groupKey, dataset) {
+		if (!groupKey || !dataset || !isChartable(groupKey, dataset)) return
+		const key = chartCacheKey(groupKey, dataset)
+		if (chartCache.value[key] || chartPending.value[key]) return
+		chartPending.value = { ...chartPending.value, [key]: true }
+		const epoch = chartEpoch.value
 		try {
 			// xColumn：后端据此把「同一个 x 值的全部行」视为不可拆单位，
 			// 时间序列同一时刻的多个点（功率曲线的垂直跳变/阶梯）不会因降采样被拆散
-			const xColumn = datasetChart(currentGroupFor(dataset), dataset)?.x || ''
+			const xColumn = datasetChart(groupKey, dataset)?.x || ''
 			const payload = selectedKey.value === '__current__'
 				? { modelId: myModel.modelId, runId: myModel.runId || '', dataset, maxPoints: CHART_MAX_POINTS, xColumn }
 				: { id: selectedKey.value, dataset, maxPoints: CHART_MAX_POINTS, xColumn }
 			const res = await fsSimApi.fsSimGetResultChartData(payload)
-			setChartCache(dataset, res)
+			if (epoch === chartEpoch.value) setChartCache(groupKey, dataset, res)
 		} catch (err) {
-			setChartCache(dataset, null)
-			message.error('获取图表数据失败：' + (err?.msg || err?.message || '请求异常'))
+			if (epoch === chartEpoch.value) {
+				setChartCache(groupKey, dataset, null)
+				message.error('获取图表数据失败：' + (err?.msg || err?.message || '请求异常'))
+			}
 		} finally {
 			const pending = { ...chartPending.value }
-			delete pending[dataset]
+			delete pending[key]
 			chartPending.value = pending
 		}
 	}
 
-	function setChartCache(dataset, res) {
+	function setChartCache(groupKey, dataset, res) {
 		chartCache.value = {
 			...chartCache.value,
-			[dataset]: {
+			[chartCacheKey(groupKey, dataset)]: {
 				rows: res?.rows || [],
 				total: res?.total ?? 0,
 				sampled: !!res?.sampled
@@ -390,7 +418,9 @@
 
 	/** 数据源变化（取结果 / 切快照 / 切模式）时清空图表缓存并回到表格视图 */
 	function clearChartCache() {
+		chartEpoch.value += 1
 		chartCache.value = {}
+		chartPending.value = {}
 		viewMode.value = 'table'
 	}
 
@@ -547,6 +577,10 @@
 				selectedKey.value = '__current__'
 				clearChartCache()
 				resetCustomTables()
+				// 图表链路的当前 dataset 必须跟随当前可见 tab（默认结果总览/节拍）
+				const t = activeChartTarget()
+				activeDataset.value = t.datasetKey
+				currentGroupKey.value = t.groupKey
 				message.success('获取仿真结果成功')
 			} else { message.error('获取仿真结果失败：返回数据为空') }
 		} catch (err) {
@@ -567,7 +601,11 @@
 				datasetRows.value = []
 				datasetTotal.value = 0
 				const firstDs = basicDatasets[0]?.tabKey
-				if (firstDs) loadDataset(firstDs, 1, 25)
+				if (firstDs) loadDataset(firstDs, 1, 25, 'basic')
+				// 预载的是基础结果首表，但界面仍停在结果总览；图表链路必须跟随当前可见 tab
+				const t = activeChartTarget()
+				activeDataset.value = t.datasetKey
+				currentGroupKey.value = t.groupKey
 			} else { message.warning('快照数据为空') }
 		} catch (err) {
 			message.error('加载历史快照失败')
@@ -700,7 +738,8 @@
 		}
 	}
 
-	const currentGroupKey = ref('basic')
+	/** 当前一级 tab 对应的分组（初始跟随 tab1Key，避免默认 overview 时被写成 basic） */
+	const currentGroupKey = ref(tab1Key.value)
 
 	// ====== 自定义结果表（MCP 参数表中 remark=Out 的输出表） ======
 	/** 输出表备注（大小写不敏感） */
@@ -994,12 +1033,12 @@
 	}
 
 	// ====== 数据集分页 ======
-	async function loadDataset(dataset, page, pageSize) {
+	async function loadDataset(dataset, page, pageSize, groupKey) {
 		if (!dataset) return
 		const mainIsLive = selectedKey.value === '__current__'
 		datasetLoading.value = true
 		activeDataset.value = dataset
-		currentGroupKey.value = currentGroupFor(dataset)
+		currentGroupKey.value = groupKey || currentGroupFor(dataset)
 		// 对比模式：预取对照全量
 		if (mode.value === 'compare') {
 			ensureCompareRows(dataset)
@@ -1056,23 +1095,35 @@
 
 	function onDatasetPageChange(page, pageSize) {
 		console.log('onDatasetPageChange', page, pageSize)
-		loadDataset(activeDataset.value, page, pageSize || 25)
+		loadDataset(activeDataset.value, page, pageSize || 25, tab1Key.value)
 	}
 	function onOverviewTabChange(dataset) {
 		activeDataset.value = dataset
 		currentGroupKey.value = 'overview'
 		datasetPage.value = 1
-		ensureChartIfNeeded(dataset)
+		ensureChartIfNeeded('overview', dataset)
 	}
-	function onBasicTabChange(dataset) { datasetPage.value = 1; loadDataset(dataset, 1, 25); ensureChartIfNeeded(dataset) }
-	function onLeanTabChange(dataset) { datasetPage.value = 1; loadDataset(dataset, 1, 25); ensureChartIfNeeded(dataset) }
-	function onEnergyTabChange(dataset) { datasetPage.value = 1; loadDataset(dataset, 1, 25); ensureChartIfNeeded(dataset) }
+	function onBasicTabChange(dataset) {
+		datasetPage.value = 1
+		loadDataset(dataset, 1, 25, 'basic')
+		ensureChartIfNeeded('basic', dataset)
+	}
+	function onLeanTabChange(dataset) {
+		datasetPage.value = 1
+		loadDataset(dataset, 1, 25, 'lean')
+		ensureChartIfNeeded('lean', dataset)
+	}
+	function onEnergyTabChange(dataset) {
+		datasetPage.value = 1
+		loadDataset(dataset, 1, 25, 'energy')
+		ensureChartIfNeeded('energy', dataset)
+	}
 	function onTab1Change(key) {
 		// 切换一级 tab（结果总览/基础/精益/能耗/自定义结果表）：同步当前 dataset 与组，图表视图下重新取数
 		const activeOfGroup = { overview: tab2Key.value, basic: basicTab.value, lean: leanTab.value, energy: energyTab.value }
 		activeDataset.value = activeOfGroup[key] || ''
 		currentGroupKey.value = key
-		ensureChartIfNeeded(activeDataset.value)
+		ensureChartIfNeeded(key, activeDataset.value)
 		if (key === 'custom') loadCustomTables()
 	}
 
